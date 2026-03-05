@@ -12,59 +12,70 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
+// ─── Credit Costs ───
+
+export const CREDIT_COSTS = {
+  imageGeneration: 10, // Per image (1 angle)
+  characterCreation: 40, // 4 angles × 10
+  videoPerSecond: 40, // Per second of video
+  video5s: 200, // 5 × 40
+  video10s: 400, // 10 × 40
+} as const;
+
+// ─── Plans (Phase 1 — monthly only, no annual, no Studio) ───
+
 export const PLANS = {
   free: {
     name: "Free",
-    price: 0,
-    imageCredits: 8,
-    videoCredits: 2,
+    credits: 100, // One-time grant, not monthly
+    monthlyPrice: 0,
     stripePriceId: null,
+    baseCredits: 100, // For strikethrough display
+    bonusLabel: null,
   },
   starter: {
     name: "Starter",
-    price: 999,
-    imageCredits: 30,
-    videoCredits: 15,
+    credits: 750,
+    monthlyPrice: 1500, // $15
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID,
+    baseCredits: 500, // Strikethrough: ~~500~~ 750
+    bonusLabel: "+50% bonus credits",
   },
   creator: {
     name: "Creator",
-    price: 1999,
-    imageCredits: 50,
-    videoCredits: 30,
+    credits: 2_500,
+    monthlyPrice: 5000, // $50
     stripePriceId: process.env.STRIPE_CREATOR_PRICE_ID,
+    baseCredits: 1_750, // Strikethrough: ~~1,750~~ 2,500
+    bonusLabel: "+43% bonus credits",
   },
   pro: {
     name: "Pro",
-    price: 2999,
-    imageCredits: 80,
-    videoCredits: 50,
+    credits: 6_000,
+    monthlyPrice: 10000, // $100
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
+    baseCredits: 4_000, // Strikethrough: ~~4,000~~ 6,000
+    bonusLabel: "+50% bonus credits",
   },
 } as const;
 
 export type PlanKey = keyof typeof PLANS;
 
+// ─── Credit Packs (Phase 1 — available to subscribed users only) ───
+
 export const CREDIT_PACKS = {
-  image_20: {
-    name: "20 Image Credits",
-    imageCredits: 20,
-    videoCredits: 0,
-    price: 299,
-    stripePriceId: process.env.STRIPE_IMAGE_PACK_PRICE_ID,
+  credit_pack: {
+    name: "400 Credits",
+    credits: 400,
+    price: 999, // $9.99
+    stripePriceId: process.env.STRIPE_CREDIT_PACK_PRICE_ID,
   },
-  video_10: {
-    name: "10 Video Credits",
-    imageCredits: 0,
-    videoCredits: 10,
-    price: 499,
-    stripePriceId: process.env.STRIPE_VIDEO_PACK_10_PRICE_ID,
-  },
-  video_30: {
-    name: "30 Video Credits",
-    imageCredits: 0,
-    videoCredits: 30,
-    price: 1299,
-    stripePriceId: process.env.STRIPE_VIDEO_PACK_30_PRICE_ID,
+  credit_pack_plus: {
+    name: "1,000 Credits",
+    credits: 1_000,
+    price: 2499, // $24.99
+    stripePriceId: process.env.STRIPE_CREDIT_PACK_PLUS_PRICE_ID,
   },
 } as const;
+
+export type CreditPackKey = keyof typeof CREDIT_PACKS;

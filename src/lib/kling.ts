@@ -1,8 +1,40 @@
 // Kling 2.6 Video Generation API client
 // Phase 1: Single video generation per project
 
+import { createHmac } from "crypto";
+
 const BASE_URL = () => process.env.KLING_API_BASE_URL ?? "https://api.klingai.com";
-const API_KEY = () => process.env.KLING_API_KEY!;
+const ACCESS_KEY = () => process.env.KLING_ACCESS_KEY!;
+const SECRET_KEY = () => process.env.KLING_SECRET_KEY!;
+
+// ─── JWT Generation ───
+
+function base64url(input: Buffer | string): string {
+  const buf = typeof input === "string" ? Buffer.from(input) : input;
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function generateJwt(): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "HS256", typ: "JWT" };
+  const payload = {
+    iss: ACCESS_KEY(),
+    iat: now,
+    exp: now + 1800, // 30 minutes
+  };
+
+  const segments = [
+    base64url(JSON.stringify(header)),
+    base64url(JSON.stringify(payload)),
+  ];
+
+  const signature = createHmac("sha256", SECRET_KEY())
+    .update(segments.join("."))
+    .digest();
+
+  segments.push(base64url(signature));
+  return segments.join(".");
+}
 
 // ─── Types ───
 
@@ -45,7 +77,7 @@ async function klingFetch(path: string, options?: RequestInit): Promise<Response
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${API_KEY()}`,
+      Authorization: `Bearer ${generateJwt()}`,
       ...options?.headers,
     },
   });

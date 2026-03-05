@@ -167,7 +167,7 @@ export function SceneBuilderClient({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         if (data.error === "insufficient_credits") {
-          setError(`Not enough video credits (need ${data.required}, have ${data.available})`);
+          setError(`Not enough credits (need ${data.required}, have ${data.available})`);
         } else {
           setError(data.error ?? "Failed to start generation");
         }

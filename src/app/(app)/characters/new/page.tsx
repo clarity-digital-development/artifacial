@@ -94,7 +94,7 @@ export default function NewCharacterPage() {
         const data = await res.json();
         if (data.error === "insufficient_credits") {
           setError(
-            `Not enough image credits. Need ${data.required}, have ${data.available}.`
+            `Not enough credits. Need ${data.required}, have ${data.available}.`
           );
           setGenerating(false);
           return;
@@ -238,7 +238,7 @@ export default function NewCharacterPage() {
         </Button>
 
         <p className="text-center text-[var(--text-xs)] text-[var(--text-muted)]">
-          Uses 4 image credits (1 per angle)
+          Uses 40 credits (10 per angle)
         </p>
       </div>
 

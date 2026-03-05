@@ -87,8 +87,10 @@ src/
 │   ├── auth.ts          # NextAuth (server-side, with Prisma)
 │   ├── auth.config.ts   # NextAuth (edge-safe, no Prisma)
 │   ├── stripe.ts        # Stripe client + plan/pack definitions
+│   ├── credits.ts       # Credit deduction/refund helpers
 │   ├── r2.ts            # R2 upload/signed URL helpers
 │   ├── gemini.ts        # Gemini image generation + prompts
+│   ├── kling.ts         # Kling video API with JWT auth
 │   └── characters.ts    # Character data helpers with signed URLs
 ├── generated/prisma/    # Auto-generated (gitignored)
 └── middleware.ts         # Auth route protection
@@ -98,18 +100,34 @@ src/
 
 User, Account, Session, VerificationToken (NextAuth), Character, Project, Scene, GenerationJob, CreditTransaction — see `prisma/schema.prisma`.
 
-## Credit System
+## Credit System (Phase 1 — Unified Credits)
 
-| Plan    | $/mo  | Image Credits | Video Credits |
-|---------|-------|---------------|---------------|
-| Free    | $0    | 8             | 2             |
-| Starter | $9.99 | 30            | 15            |
-| Creator | $19.99| 50            | 30            |
-| Pro     | $29.99| 80            | 50            |
+Uses a single universal credit currency. Two pools per user: `subscriptionCredits` (reset monthly) and `purchasedCredits` (rollover forever). Subscription credits consumed first.
 
-- 1 character = 4 image credits (4 angles)
-- 1 scene = 1 video credit
-- Credits debited at job creation, refunded on failure
+### Credit Costs
+- 1 image generation: 10 credits
+- 1 character (4 angles): 40 credits
+- 1 second of video: 40 credits
+- 5-second video: 200 credits
+- 10-second video: 400 credits
+
+### Phase 1 Plans (Monthly Only)
+
+| Plan    | $/mo  | Credits/mo |
+|---------|-------|-----------|
+| Free    | $0    | 100 (one-time, not monthly) |
+| Starter | $15   | 750       |
+| Creator | $50   | 2,500     |
+| Pro     | $100  | 6,000     |
+
+### Credit Packs (subscribed users only)
+- 400 credits: $9.99
+- 1,000 credits: $24.99
+
+### Founding Member Program
+Phase 1 subscribers get `isFoundingMember = true`. Benefits activate in Phase 2: permanent +20% credits, locked pricing, transition bonus.
+
+Credits debited at job creation, refunded to `purchasedCredits` on failure.
 
 ## Build & Dev Commands
 
@@ -130,9 +148,9 @@ All defined in `.env.local` — see the template for the full list. Key groups: 
 1. [DONE] Project scaffolding
 2. [DONE] Design system
 3. [DONE] Character Studio
-4. [NEXT] Studio home screen
-5. Scene Builder
-6. Generation system (BullMQ + Kling)
-7. Credits + Stripe integration
-8. Gallery + Settings
-9. Polish pass + Railway deploy
+4. [DONE] Studio home screen
+5. [DONE] Scene Builder (Phase 1)
+6. [DONE] Generation system (BullMQ + Kling)
+7. [DONE] Credits + Stripe integration (unified credits, founding member)
+8. [DONE] Gallery + Settings
+9. [DONE] Polish pass + deployment config

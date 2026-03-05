@@ -138,16 +138,18 @@ async function handleJobFailure(jobId: string, projectId: string, userId: string
     data: { status: "failed" },
   });
 
-  // Refund video credit
+  // Refund 200 credits (5-second video) to purchasedCredits
+  // (refunds go to purchased pool since subscription may have been reset)
+  const REFUND_AMOUNT = 200;
   await prisma.user.update({
     where: { id: userId },
-    data: { videoCredits: { increment: 1 } },
+    data: { purchasedCredits: { increment: REFUND_AMOUNT } },
   });
   await prisma.creditTransaction.create({
     data: {
       userId,
       type: "refund",
-      videoCredits: 1,
+      credits: REFUND_AMOUNT,
       description: `Refund for failed video generation: ${errorMessage.slice(0, 100)}`,
     },
   });

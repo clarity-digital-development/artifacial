@@ -14,8 +14,10 @@ export default async function AppLayout({
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { imageCredits: true, videoCredits: true },
+    select: { subscriptionCredits: true, purchasedCredits: true },
   });
+
+  const totalCredits = (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0);
 
   return (
     <div className="grain ambient-light vignette flex h-screen bg-[var(--bg-deep)]">
@@ -23,10 +25,7 @@ export default async function AppLayout({
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
           user={session.user}
-          credits={{
-            image: user?.imageCredits ?? 0,
-            video: user?.videoCredits ?? 0,
-          }}
+          credits={totalCredits}
         />
         <main className="stagger-reveal flex-1 overflow-y-auto px-8 py-6 lg:px-12">
           {children}

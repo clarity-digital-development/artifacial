@@ -10,7 +10,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { plan: true, imageCredits: true, videoCredits: true },
+    select: { plan: true, subscriptionCredits: true, purchasedCredits: true },
   });
 
   const transactions = await prisma.creditTransaction.findMany({
@@ -19,5 +19,11 @@ export async function GET() {
     take: 50,
   });
 
-  return NextResponse.json({ ...user, transactions });
+  return NextResponse.json({
+    plan: user?.plan ?? "free",
+    subscriptionCredits: user?.subscriptionCredits ?? 0,
+    purchasedCredits: user?.purchasedCredits ?? 0,
+    totalCredits: (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0),
+    transactions,
+  });
 }

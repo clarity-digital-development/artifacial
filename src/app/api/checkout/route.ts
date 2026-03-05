@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getStripe, PLANS, CREDIT_PACKS, type PlanKey } from "@/lib/stripe";
-
-type CreditPackKey = keyof typeof CREDIT_PACKS;
+import { prisma } from "@/lib/db";
+import { getStripe, PLANS, CREDIT_PACKS, type PlanKey, type CreditPackKey } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -39,6 +38,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (type === "credit_pack") {
+    // Credit packs only available to subscribed users
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: true },
+    });
+
+    if (!user || user.plan === "free") {
+      return NextResponse.json(
+        { error: "Subscribe to a plan before purchasing credit packs" },
+        { status: 403 }
+      );
+    }
+
     const pack = CREDIT_PACKS[key as CreditPackKey];
     if (!pack || !pack.stripePriceId) {
       return NextResponse.json({ error: "Invalid credit pack" }, { status: 400 });

@@ -13,9 +13,10 @@ export default async function SettingsPage() {
     where: { id: session.user.id },
     select: {
       plan: true,
-      imageCredits: true,
-      videoCredits: true,
+      subscriptionCredits: true,
+      purchasedCredits: true,
       stripeCustomerId: true,
+      isFoundingMember: true,
     },
   });
 
@@ -29,8 +30,7 @@ export default async function SettingsPage() {
     select: {
       id: true,
       type: true,
-      imageCredits: true,
-      videoCredits: true,
+      credits: true,
       description: true,
       createdAt: true,
     },
@@ -80,14 +80,15 @@ export default async function SettingsPage() {
         <BillingClient
           plan={plan}
           planName={planConfig.name}
-          imageCredits={user?.imageCredits ?? 0}
-          videoCredits={user?.videoCredits ?? 0}
+          subscriptionCredits={user?.subscriptionCredits ?? 0}
+          purchasedCredits={user?.purchasedCredits ?? 0}
+          planCredits={planConfig.credits}
           hasStripeCustomer={!!user?.stripeCustomerId}
+          isFoundingMember={user?.isFoundingMember ?? false}
           transactions={recentTransactions.map((t) => ({
             id: t.id,
             type: t.type,
-            imageCredits: t.imageCredits,
-            videoCredits: t.videoCredits,
+            credits: t.credits,
             description: t.description,
             createdAt: t.createdAt.toISOString(),
           }))}

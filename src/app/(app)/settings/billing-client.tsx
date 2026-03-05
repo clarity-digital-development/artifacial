@@ -10,8 +10,7 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 interface Transaction {
   id: string;
   type: string;
-  imageCredits: number;
-  videoCredits: number;
+  credits: number;
   description: string;
   createdAt: string;
 }
@@ -19,45 +18,41 @@ interface Transaction {
 interface BillingClientProps {
   plan: string;
   planName: string;
-  imageCredits: number;
-  videoCredits: number;
+  subscriptionCredits: number;
+  purchasedCredits: number;
+  planCredits: number; // Monthly plan allocation for progress bar
   hasStripeCustomer: boolean;
+  isFoundingMember: boolean;
   transactions: Transaction[];
 }
 
 const PLANS = [
-  { key: "starter", name: "Starter", price: "$9.99", imageCredits: 30, videoCredits: 15 },
-  { key: "creator", name: "Creator", price: "$19.99", imageCredits: 50, videoCredits: 30 },
-  { key: "pro", name: "Pro", price: "$29.99", imageCredits: 80, videoCredits: 50 },
+  { key: "starter", name: "Starter", price: "$15", credits: 750, baseCredits: 500, bonusLabel: "+50% bonus" },
+  { key: "creator", name: "Creator", price: "$50", credits: 2500, baseCredits: 1750, bonusLabel: "+43% bonus" },
+  { key: "pro", name: "Pro", price: "$100", credits: 6000, baseCredits: 4000, bonusLabel: "+50% bonus" },
 ];
 
 const CREDIT_PACKS = [
-  { key: "image_20", name: "20 Image Credits", price: "$2.99" },
-  { key: "video_10", name: "10 Video Credits", price: "$4.99" },
-  { key: "video_30", name: "30 Video Credits", price: "$12.99" },
+  { key: "credit_pack", name: "400 Credits", price: "$9.99" },
+  { key: "credit_pack_plus", name: "1,000 Credits", price: "$24.99" },
 ];
-
-const PLAN_LIMITS: Record<string, { image: number; video: number }> = {
-  free: { image: 8, video: 2 },
-  starter: { image: 30, video: 15 },
-  creator: { image: 50, video: 30 },
-  pro: { image: 80, video: 50 },
-};
 
 // ─── Component ───
 
 export function BillingClient({
   plan,
   planName,
-  imageCredits,
-  videoCredits,
+  subscriptionCredits,
+  purchasedCredits,
+  planCredits,
   hasStripeCustomer,
+  isFoundingMember,
   transactions,
 }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+  const totalCredits = subscriptionCredits + purchasedCredits;
 
   const handleCheckout = async (type: "subscription" | "credit_pack", key: string) => {
     setLoading(key);
@@ -103,31 +98,35 @@ export function BillingClient({
 
       {/* Current Credits */}
       <Card className="p-6">
-        <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
-          Credits
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-[var(--text-base)] font-medium text-[var(--text-primary)]">
+            Credits
+          </h2>
+          {isFoundingMember && (
+            <Badge variant="amber">Founding Member</Badge>
+          )}
+        </div>
         <div className="space-y-4">
           <div>
             <div className="mb-1.5 flex items-center justify-between text-[var(--text-sm)]">
-              <span className="text-[var(--text-secondary)]">Image Credits</span>
-              <span className="font-medium text-[var(--text-primary)]">
-                {imageCredits}
+              <span className="text-[var(--text-secondary)]">Total Credits</span>
+              <span className="font-medium text-[var(--accent-amber)]">
+                {totalCredits.toLocaleString()}
               </span>
             </div>
             <ProgressBar
-              progress={limits.image > 0 ? (Math.min(imageCredits, limits.image) / limits.image) * 100 : 0}
+              progress={planCredits > 0 ? (Math.min(totalCredits, planCredits) / planCredits) * 100 : 0}
             />
           </div>
-          <div>
-            <div className="mb-1.5 flex items-center justify-between text-[var(--text-sm)]">
-              <span className="text-[var(--text-secondary)]">Video Credits</span>
-              <span className="font-medium text-[var(--text-primary)]">
-                {videoCredits}
+          <div className="flex items-center gap-6 text-[var(--text-xs)] text-[var(--text-muted)]">
+            <span>
+              Subscription: <span className="text-[var(--text-secondary)]">{subscriptionCredits.toLocaleString()}</span>
+            </span>
+            {purchasedCredits > 0 && (
+              <span>
+                Purchased: <span className="text-[var(--text-secondary)]">{purchasedCredits.toLocaleString()}</span>
               </span>
-            </div>
-            <ProgressBar
-              progress={limits.video > 0 ? (Math.min(videoCredits, limits.video) / limits.video) * 100 : 0}
-            />
+            )}
           </div>
         </div>
       </Card>
@@ -160,13 +159,11 @@ export function BillingClient({
 
         {plan === "free" ? (
           <p className="mb-5 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            {limits.image} image credits and {limits.video} video credits per month.
-            Upgrade for more.
+            100 credits one-time. Subscribe for monthly credits.
           </p>
         ) : (
           <p className="mb-5 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            {limits.image} image credits and {limits.video} video credits per month,
-            renewing with your subscription.
+            {planCredits.toLocaleString()} credits per month, renewing with your subscription.
           </p>
         )}
 
@@ -189,38 +186,46 @@ export function BillingClient({
                   </span>
                 </p>
                 <p className="mt-2 text-[var(--text-xs)] text-[var(--text-muted)]">
-                  {p.imageCredits} img + {p.videoCredits} vid
+                  <span className="line-through">{p.baseCredits.toLocaleString()}</span>
+                  {" "}
+                  <span className="text-[var(--accent-amber)] font-medium">{p.credits.toLocaleString()}</span>
+                  {" credits"}
                 </p>
+                <span className="mt-1 inline-block rounded-full bg-[var(--accent-amber)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-amber)]">
+                  {p.bonusLabel}
+                </span>
               </button>
             ))}
           </div>
         )}
       </Card>
 
-      {/* Credit Packs */}
-      <Card className="p-6">
-        <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
-          Credit Packs
-        </h2>
-        <p className="mb-4 text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Need more? Buy credits anytime — they never expire.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {CREDIT_PACKS.map((pack) => (
-            <Button
-              key={pack.key}
-              variant="secondary"
-              size="sm"
-              onClick={() => handleCheckout("credit_pack", pack.key)}
-              disabled={loading === pack.key}
-              className="justify-between"
-            >
-              <span>{pack.name}</span>
-              <span className="text-[var(--accent-amber)]">{pack.price}</span>
-            </Button>
-          ))}
-        </div>
-      </Card>
+      {/* Credit Packs — only for subscribed users */}
+      {plan !== "free" && (
+        <Card className="p-6">
+          <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
+            Credit Packs
+          </h2>
+          <p className="mb-4 text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Need more? Buy credits anytime — purchased credits never expire.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {CREDIT_PACKS.map((pack) => (
+              <Button
+                key={pack.key}
+                variant="secondary"
+                size="sm"
+                onClick={() => handleCheckout("credit_pack", pack.key)}
+                disabled={loading === pack.key}
+                className="justify-between"
+              >
+                <span>{pack.name}</span>
+                <span className="text-[var(--accent-amber)]">{pack.price}</span>
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Recent Transactions */}
       {transactions.length > 0 && (
@@ -238,14 +243,9 @@ export function BillingClient({
                   {t.description}
                 </span>
                 <div className="flex items-center gap-3">
-                  {t.imageCredits !== 0 && (
-                    <span className={t.imageCredits > 0 ? "text-[var(--success)]" : "text-[var(--text-muted)]"}>
-                      {t.imageCredits > 0 ? "+" : ""}{t.imageCredits} img
-                    </span>
-                  )}
-                  {t.videoCredits !== 0 && (
-                    <span className={t.videoCredits > 0 ? "text-[var(--success)]" : "text-[var(--text-muted)]"}>
-                      {t.videoCredits > 0 ? "+" : ""}{t.videoCredits} vid
+                  {t.credits !== 0 && (
+                    <span className={t.credits > 0 ? "text-[var(--success)]" : "text-[var(--text-muted)]"}>
+                      {t.credits > 0 ? "+" : ""}{t.credits.toLocaleString()}
                     </span>
                   )}
                   <span className="text-[var(--text-xs)] text-[var(--text-muted)]">

@@ -16,10 +16,7 @@ interface TopBarProps {
     email?: string | null;
     image?: string | null;
   };
-  credits: {
-    image: number;
-    video: number;
-  };
+  credits: number;
 }
 
 export function TopBar({ user, credits }: TopBarProps) {
@@ -35,14 +32,9 @@ export function TopBar({ user, credits }: TopBarProps) {
         {section}
       </span>
       <div className="flex items-center gap-5">
-        <div className="flex items-center gap-3 text-[var(--text-xs)]">
-          <span className="text-[var(--text-secondary)]">
-            <span className="font-medium text-[var(--text-primary)]">{credits.image}</span> img
-          </span>
-          <span className="text-[var(--border-default)]">|</span>
-          <span className="text-[var(--text-secondary)]">
-            <span className="font-medium text-[var(--text-primary)]">{credits.video}</span> vid
-          </span>
+        <div className="flex items-center gap-1 text-[var(--text-xs)]">
+          <span className="font-medium text-[var(--accent-amber)]">{credits.toLocaleString()}</span>
+          <span className="text-[var(--text-muted)]">credits</span>
         </div>
         {user.image ? (
           <img

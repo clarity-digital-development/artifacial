@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe, PLANS, CREDIT_PACKS, type PlanKey } from "@/lib/stripe";
+import { getStripe, PLANS, CREDIT_PACKS, type PlanKey, type CreditPackKey } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
-
-type CreditPackKey = keyof typeof CREDIT_PACKS;
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -25,49 +23,55 @@ export async function POST(req: NextRequest) {
       const userId = session.metadata?.userId;
       if (!userId) break;
 
-      // Only grant credits for paid sessions
       if (session.payment_status !== "paid") break;
 
       if (session.mode === "subscription") {
         const plan = (session.metadata?.plan ?? "free") as PlanKey;
         const planConfig = PLANS[plan];
+
+        // Set founding member status (Phase 1 beta perk)
+        const priceId = session.subscription
+          ? (await getStripe().subscriptions.retrieve(session.subscription as string))
+              .items.data[0]?.price?.id
+          : undefined;
+
         await prisma.user.update({
           where: { id: userId },
           data: {
             plan,
             stripeCustomerId: session.customer as string,
-            imageCredits: { increment: planConfig.imageCredits },
-            videoCredits: { increment: planConfig.videoCredits },
+            subscriptionCredits: planConfig.credits,
+            // Mark as founding member on first Phase 1 subscription
+            isFoundingMember: true,
+            foundingMemberPlan: plan,
+            ...(priceId ? { foundingMemberPriceId: priceId } : {}),
           },
         });
         await prisma.creditTransaction.create({
           data: {
             userId,
             type: "subscription_grant",
-            imageCredits: planConfig.imageCredits,
-            videoCredits: planConfig.videoCredits,
+            credits: planConfig.credits,
             description: `${planConfig.name} plan subscription`,
           },
         });
       } else if (session.mode === "payment") {
-        // Look up pack by key stored in metadata (not raw credit amounts)
         const packKey = session.metadata?.creditPackKey as CreditPackKey | undefined;
         const pack = packKey ? CREDIT_PACKS[packKey] : undefined;
         if (!pack) break;
 
+        // Credit packs go to purchasedCredits (roll over indefinitely)
         await prisma.user.update({
           where: { id: userId },
           data: {
-            imageCredits: { increment: pack.imageCredits },
-            videoCredits: { increment: pack.videoCredits },
+            purchasedCredits: { increment: pack.credits },
           },
         });
         await prisma.creditTransaction.create({
           data: {
             userId,
             type: "purchase",
-            imageCredits: pack.imageCredits,
-            videoCredits: pack.videoCredits,
+            credits: pack.credits,
             description: `${pack.name} purchase`,
           },
         });
@@ -91,20 +95,19 @@ export async function POST(req: NextRequest) {
       const planConfig = PLANS[plan];
       if (plan === "free") break;
 
+      // Reset subscription credits to plan amount (no rollover)
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          imageCredits: { increment: planConfig.imageCredits },
-          videoCredits: { increment: planConfig.videoCredits },
+          subscriptionCredits: planConfig.credits,
         },
       });
       await prisma.creditTransaction.create({
         data: {
           userId: user.id,
           type: "subscription_grant",
-          imageCredits: planConfig.imageCredits,
-          videoCredits: planConfig.videoCredits,
-          description: `Monthly ${planConfig.name} plan credit grant`,
+          credits: planConfig.credits,
+          description: `${planConfig.name} plan credit renewal`,
         },
       });
       break;
@@ -135,9 +138,10 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object;
       const customerId = subscription.customer as string;
+      // Revert to free, zero out subscription credits (purchased credits kept)
       await prisma.user.updateMany({
         where: { stripeCustomerId: customerId },
-        data: { plan: "free" },
+        data: { plan: "free", subscriptionCredits: 0 },
       });
       break;
     }

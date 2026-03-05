@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildCharacterPrompts, generateImageWithGemini } from "@/lib/gemini";
 import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } from "@/lib/r2";
+import { CREDIT_COSTS } from "@/lib/stripe";
+import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
 
 const ANGLE_NAMES = ["front", "left", "right", "full"];
 
@@ -13,20 +15,16 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id;
+  const cost = CREDIT_COSTS.characterCreation; // 40 credits (4 × 10)
 
   // Check credits
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { imageCredits: true },
-  });
-
-  if (!user || user.imageCredits < 4) {
+  const { total } = await getAvailableCredits(userId);
+  if (total < cost) {
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        type: "image",
-        required: 4,
-        available: user?.imageCredits ?? 0,
+        required: cost,
+        available: total,
       },
       { status: 403 }
     );
@@ -68,18 +66,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Debit credits upfront
-  await prisma.user.update({
-    where: { id: userId },
-    data: { imageCredits: { decrement: 4 } },
-  });
-  await prisma.creditTransaction.create({
-    data: {
-      userId,
-      type: "image_debit",
-      imageCredits: -4,
-      description: `Character generation: ${name.trim()}`,
-    },
-  });
+  await deductCredits(userId, cost, `Character generation: ${name.trim()}`, "character_debit");
 
   // Build prompts
   const promptDescription = description.trim() || name.trim();
@@ -134,23 +121,17 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Refund credits for failed generations
+      // Refund credits for failed generations (10 credits per failed angle)
       const failedCount = results.filter(
         (r) => r.status === "rejected"
       ).length;
       if (failedCount > 0) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { imageCredits: { increment: failedCount } },
-        });
-        await prisma.creditTransaction.create({
-          data: {
-            userId,
-            type: "refund",
-            imageCredits: failedCount,
-            description: `Refund for ${failedCount} failed generation(s)`,
-          },
-        });
+        const refundAmount = failedCount * CREDIT_COSTS.imageGeneration;
+        await refundCredits(
+          userId,
+          refundAmount,
+          `Refund for ${failedCount} failed generation(s)`
+        );
       }
 
       send({ type: "complete", characterId: character.id });

@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { enhanceVideoPrompt } from "@/lib/anthropic";
 import { getVideoQueue } from "@/lib/queue";
+import { CREDIT_COSTS } from "@/lib/stripe";
+import { getAvailableCredits, deductCredits } from "@/lib/credits";
 
 export async function POST(
   req: NextRequest,
@@ -43,19 +45,16 @@ export async function POST(
     );
   }
 
-  // Check video credits
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { videoCredits: true },
-  });
+  // Check credits (5-second video = 200 credits)
+  const cost = CREDIT_COSTS.video5s;
+  const { total } = await getAvailableCredits(userId);
 
-  if (!user || user.videoCredits < 1) {
+  if (total < cost) {
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        type: "video",
-        required: 1,
-        available: user?.videoCredits ?? 0,
+        required: cost,
+        available: total,
       },
       { status: 403 }
     );
@@ -97,7 +96,7 @@ export async function POST(
   });
 
   // Enqueue BullMQ job — do this BEFORE debiting credits
-  // so if Redis is down, the user doesn't lose a credit
+  // so if Redis is down, the user doesn't lose credits
   try {
     await getVideoQueue().add(
       `video-${projectId}`,
@@ -121,19 +120,8 @@ export async function POST(
     );
   }
 
-  // Debit 1 video credit (only after successful enqueue)
-  await prisma.user.update({
-    where: { id: userId },
-    data: { videoCredits: { decrement: 1 } },
-  });
-  await prisma.creditTransaction.create({
-    data: {
-      userId,
-      type: "video_debit",
-      videoCredits: -1,
-      description: `Video generation: ${project.name}`,
-    },
-  });
+  // Debit credits (only after successful enqueue)
+  await deductCredits(userId, cost, `Video generation: ${project.name}`, "video_debit");
 
   // Set project status to generating
   await prisma.project.update({

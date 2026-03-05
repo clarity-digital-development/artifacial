@@ -52,10 +52,13 @@ model User {
   emailVerified    DateTime?
   image            String?
   createdAt        DateTime    @default(now())
-  plan             String      @default("free")
-  imageCredits     Int         @default(8)
-  videoCredits     Int         @default(2)
-  stripeCustomerId String?
+  plan                  String   @default("free")
+  subscriptionCredits   Int      @default(100)
+  purchasedCredits      Int      @default(0)
+  stripeCustomerId      String?
+  isFoundingMember      Boolean  @default(false)
+  foundingMemberPriceId String?
+  foundingMemberPlan    String?
 
   accounts   Account[]
   sessions   Session[]
@@ -138,11 +141,10 @@ model GenerationJob {
 }
 
 model CreditTransaction {
-  id           String   @id @default(cuid())
-  userId       String
-  type         String
-  imageCredits Int      @default(0)
-  videoCredits Int      @default(0)
-  description  String
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  credits     Int      @default(0)
+  description String
+  createdAt   DateTime @default(now())
 }
