@@ -31,14 +31,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Copy static assets into standalone (critical for standalone mode)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy prisma files for db push at startup
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/src/generated ./src/generated
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./
-
 USER nextjs
 EXPOSE 8080
 
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push --skip-generate && node server.js"]
+CMD ["node", "server.js"]
