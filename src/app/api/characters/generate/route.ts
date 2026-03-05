@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
   const style = formData.get("style") as string;
   const mode = formData.get("mode") as string;
   const description = (formData.get("description") as string) ?? "";
+  const model = (formData.get("model") as string) ?? "";
   const photoFile = formData.get("photo") as File | null;
 
   if (!name?.trim()) {
@@ -90,7 +91,8 @@ export async function POST(req: NextRequest) {
           try {
             const imageBuffer = await generateImageWithGemini(
               prompt,
-              referenceImageBase64
+              referenceImageBase64,
+              model
             );
             const key = r2KeyForCharacterImage(
               userId,

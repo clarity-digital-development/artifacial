@@ -40,15 +40,27 @@ interface GeminiImageResponse {
   }[];
 }
 
+export const GEMINI_IMAGE_MODELS = [
+  { value: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash" },
+  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash (Preview)" },
+  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro (Preview)" },
+] as const;
+
+export type GeminiImageModel = (typeof GEMINI_IMAGE_MODELS)[number]["value"];
+
+const DEFAULT_MODEL: GeminiImageModel = "gemini-2.0-flash-exp-image-generation";
+
 export async function generateImageWithGemini(
   prompt: string,
-  referenceImageBase64?: string
+  referenceImageBase64?: string,
+  model?: string
 ): Promise<Buffer> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
 
-  const model = "gemini-2.0-flash-exp-image-generation";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const validModels = GEMINI_IMAGE_MODELS.map((m) => m.value) as string[];
+  const selectedModel = model && validModels.includes(model) ? model : DEFAULT_MODEL;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
   const parts: Record<string, unknown>[] = [];
 

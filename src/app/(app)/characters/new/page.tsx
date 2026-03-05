@@ -15,6 +15,12 @@ const STYLE_OPTIONS = [
   { value: "anime", label: "Anime" },
 ];
 
+const MODEL_OPTIONS = [
+  { value: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash" },
+  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash (Preview)" },
+  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro (Preview)" },
+];
+
 const TAB_OPTIONS = [
   { value: "photo", label: "From Photo" },
   { value: "description", label: "From Description" },
@@ -29,6 +35,7 @@ export default function NewCharacterPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
+  const [model, setModel] = useState("gemini-2.0-flash-exp-image-generation");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -82,6 +89,7 @@ export default function NewCharacterPage() {
       formData.append("name", name.trim());
       formData.append("style", style);
       formData.append("mode", tab);
+      formData.append("model", model);
       if (description.trim()) formData.append("description", description.trim());
       if (photo) formData.append("photo", photo);
 
@@ -222,6 +230,13 @@ export default function NewCharacterPage() {
           options={STYLE_OPTIONS}
           value={style}
           onChange={(e) => setStyle(e.target.value)}
+        />
+
+        <Select
+          label="AI Model"
+          options={MODEL_OPTIONS}
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
         />
 
         {error && (
