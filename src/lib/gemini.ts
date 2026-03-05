@@ -47,7 +47,7 @@ export async function generateImageWithGemini(
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
 
-  const model = "gemini-2.0-flash-exp";
+  const model = "gemini-2.0-flash-exp-image-generation";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const parts: Record<string, unknown>[] = [];
