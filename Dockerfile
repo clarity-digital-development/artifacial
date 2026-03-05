@@ -26,9 +26,6 @@ ENV PORT=8080
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public assets
-COPY --from=builder /app/public ./public
-
 # Copy standalone server
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Copy static assets into standalone (critical for standalone mode)
