@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
+    "db:deploy": "prisma db push --skip-generate",
     "lint": "eslint",
     "worker": "npx tsx src/workers/video-generator.ts",
     "worker:dev": "npx tsx --watch src/workers/video-generator.ts",
