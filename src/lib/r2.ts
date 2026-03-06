@@ -70,3 +70,8 @@ export function r2KeyForScene(userId: string, sceneId: string, type: "video" | "
 export function r2KeyForProject(userId: string, projectId: string) {
   return `users/${userId}/projects/${projectId}/final.mp4`;
 }
+
+export function r2KeyForProjectSource(userId: string, projectId: string, type: "video" | "image") {
+  const ext = type === "video" ? "mp4" : "jpg";
+  return `users/${userId}/projects/${projectId}/source.${ext}`;
+}

@@ -7,16 +7,21 @@ export async function getAvailableCredits(userId: string): Promise<{
   subscription: number;
   purchased: number;
   total: number;
+  isAdmin: boolean;
 }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { subscriptionCredits: true, purchasedCredits: true },
+    select: { subscriptionCredits: true, purchasedCredits: true, isAdmin: true },
   });
+
+  if (user?.isAdmin) {
+    return { subscription: 999999, purchased: 999999, total: 999999, isAdmin: true };
+  }
 
   const subscription = user?.subscriptionCredits ?? 0;
   const purchased = user?.purchasedCredits ?? 0;
 
-  return { subscription, purchased, total: subscription + purchased };
+  return { subscription, purchased, total: subscription + purchased, isAdmin: false };
 }
 
 /**
@@ -29,7 +34,10 @@ export async function deductCredits(
   description: string,
   type: string = "debit"
 ): Promise<boolean> {
-  const { subscription, purchased, total } = await getAvailableCredits(userId);
+  const { subscription, purchased, total, isAdmin } = await getAvailableCredits(userId);
+
+  // Admin users have unlimited credits — skip deduction
+  if (isAdmin) return true;
 
   if (total < amount) return false;
 

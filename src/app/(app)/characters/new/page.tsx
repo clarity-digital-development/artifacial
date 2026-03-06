@@ -21,6 +21,14 @@ const MODEL_OPTIONS = [
   { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro (Preview)" },
 ];
 
+const ASPECT_RATIO_OPTIONS = [
+  { value: "1:1", label: "1:1" },
+  { value: "3:4", label: "3:4" },
+  { value: "4:3", label: "4:3" },
+  { value: "9:16", label: "9:16" },
+  { value: "16:9", label: "16:9" },
+];
+
 const TAB_OPTIONS = [
   { value: "photo", label: "From Photo" },
   { value: "description", label: "From Description" },
@@ -36,6 +44,7 @@ export default function NewCharacterPage() {
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
   const [model, setModel] = useState("gemini-2.0-flash-exp-image-generation");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -90,6 +99,7 @@ export default function NewCharacterPage() {
       formData.append("style", style);
       formData.append("mode", tab);
       formData.append("model", model);
+      formData.append("aspectRatio", aspectRatio);
       if (description.trim()) formData.append("description", description.trim());
       if (photo) formData.append("photo", photo);
 
@@ -238,6 +248,17 @@ export default function NewCharacterPage() {
           value={model}
           onChange={(e) => setModel(e.target.value)}
         />
+
+        <div>
+          <label className="mb-1.5 block text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">
+            Aspect Ratio
+          </label>
+          <PillToggle
+            options={ASPECT_RATIO_OPTIONS}
+            value={aspectRatio}
+            onChange={setAspectRatio}
+          />
+        </div>
 
         {error && (
           <p className="text-[var(--text-sm)] text-[var(--error)]">{error}</p>

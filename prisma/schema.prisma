@@ -51,6 +51,8 @@ model User {
   email            String?     @unique
   emailVerified    DateTime?
   image            String?
+  hashedPassword   String?
+  isAdmin          Boolean     @default(false)
   createdAt        DateTime    @default(now())
   plan                  String   @default("free")
   subscriptionCredits   Int      @default(100)
@@ -88,10 +90,15 @@ model Project {
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String    @default("Untitled Project")
+  mode          String    @default("text2video") // text2video | image2video | faceswap
   characterId   String?
   character     Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
   prompt        String?   @db.Text
   enhancedPrompt String?  @db.Text
+  sourceVideoUrl String?  // R2 key for uploaded source video (face swap mode)
+  sourceImageUrl String?  // R2 key for uploaded source image (image2video mode)
+  duration       String?  @default("5") // "5" or "10"
+  aspectRatio    String?  @default("16:9")
   status        String    @default("draft")
   finalVideoUrl String?
   createdAt     DateTime  @default(now())

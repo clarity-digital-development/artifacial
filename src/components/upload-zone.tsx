@@ -90,25 +90,22 @@ export function UploadZone({
           : "border-[var(--border-default)] hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-glow)]"
       } ${className}`}
     >
-      <svg
-        width="40"
-        height="40"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-[var(--text-muted)]"
-      >
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </svg>
+      {accept.includes("video") ? (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)]">
+          <polygon points="23 7 16 12 23 17 23 7" />
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        </svg>
+      ) : (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)]">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+          <circle cx="12" cy="13" r="4" />
+        </svg>
+      )}
       <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-        Drop a photo here or click to upload
+        {accept.includes("video") ? "Drop a video here or click to upload" : "Drop a photo here or click to upload"}
       </span>
       <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
-        JPG, PNG, or WebP
+        {accept.includes("video") ? "MP4, MOV, or WebM" : "JPG, PNG, or WebP"}
       </span>
       <input
         type="file"

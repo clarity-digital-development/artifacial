@@ -1,5 +1,5 @@
 // Kling 2.6 Video Generation API client
-// Phase 1: Single video generation per project
+// Supports: text-to-video, image-to-video, face swap
 
 import { createHmac } from "crypto";
 
@@ -38,7 +38,9 @@ function generateJwt(): string {
 
 // ─── Types ───
 
-export interface KlingSubmitRequest {
+export type VideoMode = "text2video" | "image2video" | "faceswap";
+
+export interface KlingText2VideoRequest {
   prompt: string;
   negative_prompt?: string;
   cfg_scale?: number;
@@ -46,6 +48,22 @@ export interface KlingSubmitRequest {
   aspect_ratio?: "16:9" | "9:16" | "1:1";
   model_name?: string;
   image_url?: string; // Reference image for character consistency
+}
+
+export interface KlingImage2VideoRequest {
+  image_url: string; // Source image to animate
+  prompt?: string; // Motion prompt
+  negative_prompt?: string;
+  duration?: "5" | "10";
+  aspect_ratio?: "16:9" | "9:16" | "1:1";
+  model_name?: string;
+  mode?: "std" | "pro";
+}
+
+export interface KlingFaceSwapRequest {
+  source_face_url: string; // Character face image
+  target_video_url: string; // Video to swap into
+  model_name?: string;
 }
 
 export interface KlingTaskResponse {
@@ -90,8 +108,10 @@ async function klingFetch(path: string, options?: RequestInit): Promise<Response
   return res;
 }
 
-export async function submitVideoTask(
-  request: KlingSubmitRequest
+// ─── Text-to-Video ───
+
+export async function submitText2Video(
+  request: KlingText2VideoRequest
 ): Promise<string> {
   const body: Record<string, unknown> = {
     model_name: request.model_name ?? "kling-v2.6",
@@ -103,7 +123,7 @@ export async function submitVideoTask(
   if (request.negative_prompt) body.negative_prompt = request.negative_prompt;
   if (request.cfg_scale) body.cfg_scale = request.cfg_scale;
 
-  // Use image-to-video endpoint when a reference image is provided
+  // Use image-to-video endpoint when a reference image is provided for style
   let endpoint = "/videos/text2video";
   if (request.image_url) {
     endpoint = "/videos/image2video";
@@ -125,9 +145,69 @@ export async function submitVideoTask(
   return data.data.task_id;
 }
 
+// Backwards compatibility alias
+export const submitVideoTask = submitText2Video;
+
+// ─── Image-to-Video (Animate Image) ───
+
+export async function submitImage2Video(
+  request: KlingImage2VideoRequest
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    model_name: request.model_name ?? "kling-v2.6",
+    image: request.image_url,
+    duration: request.duration ?? "5",
+    mode: request.mode ?? "std",
+  };
+
+  if (request.prompt) body.prompt = request.prompt;
+  if (request.negative_prompt) body.negative_prompt = request.negative_prompt;
+  if (request.aspect_ratio) body.aspect_ratio = request.aspect_ratio;
+
+  const res = await klingFetch("/videos/image2video", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  const data: KlingTaskResponse = await res.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Kling submission failed: ${data.message}`);
+  }
+
+  return data.data.task_id;
+}
+
+// ─── Face Swap ───
+
+export async function submitFaceSwap(
+  request: KlingFaceSwapRequest
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    model_name: request.model_name ?? "kling-v2.6",
+    source_face_image_url: request.source_face_url,
+    target_video_url: request.target_video_url,
+  };
+
+  const res = await klingFetch("/videos/face-swap", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+  const data: KlingTaskResponse = await res.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Kling submission failed: ${data.message}`);
+  }
+
+  return data.data.task_id;
+}
+
+// ─── Task Status ───
+
 export async function getTaskStatus(
   taskId: string,
-  type: "text2video" | "image2video" = "text2video"
+  type: "text2video" | "image2video" | "face-swap" = "text2video"
 ): Promise<KlingTaskResponse["data"]> {
   const res = await klingFetch(`/videos/${type}/${taskId}`);
   const data: KlingTaskResponse = await res.json();
@@ -138,6 +218,8 @@ export async function getTaskStatus(
 
   return data.data;
 }
+
+// ─── Download ───
 
 export async function downloadVideo(url: string): Promise<Buffer> {
   const res = await fetch(url);

@@ -9,9 +9,14 @@ export interface VideoJobData {
   jobId: string; // GenerationJob.id in our DB
   projectId: string;
   userId: string;
+  mode: "text2video" | "image2video" | "faceswap";
   prompt: string;
   enhancedPrompt: string;
+  duration: "5" | "10";
+  aspectRatio: "16:9" | "9:16" | "1:1";
   characterImageKey?: string; // R2 key for reference image (worker signs fresh URL)
+  sourceVideoKey?: string; // R2 key for uploaded video (face swap)
+  sourceImageKey?: string; // R2 key for uploaded image (image2video)
 }
 
 export interface VideoJobResult {

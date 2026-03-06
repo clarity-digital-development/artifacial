@@ -47,24 +47,41 @@ export default async function SceneBuilderPage({
     }
   }
 
-  // Get all user characters for the character selector
-  const characters = await prisma.character.findMany({
+  // Get all user characters with thumbnails for the character selector
+  const rawCharacters = await prisma.character.findMany({
     where: { userId: session.user.id },
-    select: { id: true, name: true, style: true },
+    select: { id: true, name: true, style: true, referenceImages: true },
     orderBy: { createdAt: "desc" },
   });
+
+  const characters = await Promise.all(
+    rawCharacters.map(async (c) => {
+      let thumbnail: string | null = null;
+      if (c.referenceImages[0]) {
+        try {
+          thumbnail = await getSignedR2Url(c.referenceImages[0], 86400);
+        } catch {
+          // ignore
+        }
+      }
+      return { id: c.id, name: c.name, style: c.style, thumbnail };
+    })
+  );
 
   return (
     <SceneBuilderClient
       project={{
         id: project.id,
         name: project.name,
+        mode: project.mode,
         status: project.status,
         characterId: project.characterId,
         characterName: project.character?.name ?? null,
         characterThumbnail,
         videoUrl,
         prompt: project.prompt,
+        duration: project.duration,
+        aspectRatio: project.aspectRatio,
       }}
       characters={characters}
     />

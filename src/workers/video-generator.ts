@@ -1,5 +1,5 @@
 // BullMQ Worker: Video Generation via Kling API
-// Phase 1: Single video per project
+// Supports: text-to-video, image-to-video, face swap
 //
 // Run separately from Next.js:
 //   npx tsx src/workers/video-generator.ts
@@ -10,7 +10,7 @@
 import "dotenv/config";
 import { type Job } from "bullmq";
 import { createVideoWorker, type VideoJobData, type VideoJobResult } from "../lib/queue";
-import { submitVideoTask, getTaskStatus, downloadVideo } from "../lib/kling";
+import { submitText2Video, submitImage2Video, submitFaceSwap, getTaskStatus, downloadVideo } from "../lib/kling";
 import { uploadToR2, r2KeyForProject, getSignedR2Url } from "../lib/r2";
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -24,15 +24,26 @@ const prisma = new PrismaClient({ adapter });
 
 // ─── Constants ───
 
-const POLL_INTERVAL_MS = 10_000; // Check Kling every 10s
-const MAX_POLL_ATTEMPTS = 180; // 30 min max wait (180 * 10s)
+const POLL_INTERVAL_MS = 10_000;
+const MAX_POLL_ATTEMPTS = 180; // 30 min max wait
 
 // ─── Processor ───
 
 async function processVideoJob(
   job: Job<VideoJobData, VideoJobResult>
 ): Promise<VideoJobResult> {
-  const { jobId, projectId, userId, enhancedPrompt, characterImageKey } = job.data;
+  const {
+    jobId,
+    projectId,
+    userId,
+    mode,
+    enhancedPrompt,
+    duration,
+    aspectRatio,
+    characterImageKey,
+    sourceVideoKey,
+    sourceImageKey,
+  } = job.data;
 
   // Mark job as processing
   await prisma.generationJob.update({
@@ -44,25 +55,57 @@ async function processVideoJob(
     data: { status: "generating" },
   });
 
-  // Sign a fresh URL for the character reference image (if any)
-  let characterImageUrl: string | undefined;
-  if (characterImageKey) {
+  // Sign fresh URLs for any R2 keys
+  const signUrl = async (key?: string) => {
+    if (!key) return undefined;
     try {
-      characterImageUrl = await getSignedR2Url(characterImageKey, 3600);
+      return await getSignedR2Url(key, 3600);
     } catch {
-      // Continue without reference image
+      return undefined;
     }
+  };
+
+  const characterImageUrl = await signUrl(characterImageKey);
+  const sourceVideoUrl = await signUrl(sourceVideoKey);
+  const sourceImageUrl = await signUrl(sourceImageKey);
+
+  // Submit to Kling based on mode
+  let taskId: string;
+  let statusType: "text2video" | "image2video" | "face-swap";
+
+  const jobMode = mode ?? "text2video"; // backwards compat
+
+  if (jobMode === "faceswap") {
+    if (!sourceVideoUrl) throw new Error("Source video URL not available");
+    if (!characterImageUrl) throw new Error("Character image URL not available");
+
+    taskId = await submitFaceSwap({
+      source_face_url: characterImageUrl,
+      target_video_url: sourceVideoUrl,
+    });
+    statusType = "face-swap";
+  } else if (jobMode === "image2video") {
+    // Use uploaded image or character reference
+    const imageUrl = sourceImageUrl ?? characterImageUrl;
+    if (!imageUrl) throw new Error("No source image available");
+
+    taskId = await submitImage2Video({
+      image_url: imageUrl,
+      prompt: enhancedPrompt || undefined,
+      duration: duration as "5" | "10",
+      aspect_ratio: aspectRatio as "16:9" | "9:16" | "1:1",
+    });
+    statusType = "image2video";
+  } else {
+    // text2video (default)
+    taskId = await submitText2Video({
+      prompt: enhancedPrompt,
+      image_url: characterImageUrl,
+      duration: duration as "5" | "10",
+      aspect_ratio: aspectRatio as "16:9" | "9:16" | "1:1",
+    });
+    statusType = characterImageUrl ? "image2video" : "text2video";
   }
-
-  const useImageMode = !!characterImageUrl;
-
-  // Submit to Kling
-  const taskId = await submitVideoTask({
-    prompt: enhancedPrompt,
-    image_url: characterImageUrl,
-    duration: "5",
-    aspect_ratio: "16:9",
-  });
 
   // Store external task ID
   await prisma.generationJob.update({
@@ -71,7 +114,6 @@ async function processVideoJob(
   });
 
   // Poll for completion
-  const statusType = useImageMode ? "image2video" : "text2video";
   let videoUrl: string | null = null;
 
   for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
@@ -89,7 +131,6 @@ async function processVideoJob(
       throw new Error(status.task_status_msg ?? "Kling generation failed");
     }
 
-    // Update progress
     await job.updateProgress(Math.min(90, (attempt / MAX_POLL_ATTEMPTS) * 100));
   }
 
@@ -108,7 +149,7 @@ async function processVideoJob(
     data: {
       status: "complete",
       completedAt: new Date(),
-      meta: { externalTaskId: taskId, r2Key },
+      meta: { externalTaskId: taskId, r2Key, mode: jobMode },
     },
   });
   await prisma.project.update({
@@ -116,7 +157,7 @@ async function processVideoJob(
     data: { status: "complete", finalVideoUrl: r2Key },
   });
 
-  console.log(`[video-generator] Completed: project=${projectId} task=${taskId}`);
+  console.log(`[video-generator] Completed: project=${projectId} mode=${jobMode} task=${taskId}`);
   return { videoUrl: r2Key, externalTaskId: taskId };
 }
 
@@ -124,7 +165,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ─── Failure Handler (refunds credits after all retries exhausted) ───
+// ─── Failure Handler ───
 
 async function handleJobFailure(jobId: string, projectId: string, userId: string, errorMessage: string) {
   console.error(`[video-generator] Failed: project=${projectId} error=${errorMessage}`);
@@ -138,8 +179,7 @@ async function handleJobFailure(jobId: string, projectId: string, userId: string
     data: { status: "failed" },
   });
 
-  // Refund 200 credits (5-second video) to purchasedCredits
-  // (refunds go to purchased pool since subscription may have been reset)
+  // Refund credits to purchasedCredits pool
   const REFUND_AMOUNT = 200;
   await prisma.user.update({
     where: { id: userId },

@@ -53,7 +53,8 @@ const DEFAULT_MODEL: GeminiImageModel = "gemini-2.0-flash-exp-image-generation";
 export async function generateImageWithGemini(
   prompt: string,
   referenceImageBase64?: string,
-  model?: string
+  model?: string,
+  aspectRatio?: string
 ): Promise<Buffer> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
@@ -73,8 +74,11 @@ export async function generateImageWithGemini(
     });
   }
 
+  const arSuffix = aspectRatio && aspectRatio !== "1:1"
+    ? ` Output the image in ${aspectRatio} aspect ratio.`
+    : "";
   parts.push({
-    text: prompt + "\n\nGenerate an image based on this description.",
+    text: prompt + "\n\nGenerate an image based on this description." + arSuffix,
   });
 
   const body = {
