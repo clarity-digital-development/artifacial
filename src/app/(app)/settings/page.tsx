@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PLANS, type PlanKey } from "@/lib/stripe";
-import { Card } from "@/components/ui";
 import { BillingClient } from "./billing-client";
 
 export default async function SettingsPage() {
@@ -38,19 +37,19 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-10">
         <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
           Settings
         </h1>
-        <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+        <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
           Account and billing
         </p>
       </div>
 
       <div className="max-w-2xl space-y-6">
         {/* Account */}
-        <Card className="p-6">
-          <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Account
           </h2>
           <div className="flex items-center gap-4">
@@ -58,25 +57,24 @@ export default async function SettingsPage() {
               <img
                 src={session.user.image}
                 alt={session.user.name ?? "User"}
-                className="h-14 w-14 rounded-full"
+                className="h-14 w-14 rounded-full ring-2 ring-[var(--border-default)]"
               />
             ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-lg text-[var(--text-secondary)]">
-                {session.user.name?.[0] ?? "U"}
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-lg font-medium text-[var(--text-secondary)] ring-2 ring-[var(--border-default)]">
+                {session.user.name?.[0]?.toUpperCase() ?? "U"}
               </div>
             )}
             <div>
               <p className="font-medium text-[var(--text-primary)]">
                 {session.user.name ?? "User"}
               </p>
-              <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+              <p className="text-sm text-[var(--text-secondary)]">
                 {session.user.email}
               </p>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Credits + Billing (interactive) */}
         <BillingClient
           plan={plan}
           planName={planConfig.name}

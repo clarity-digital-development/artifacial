@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Button } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 
@@ -97,9 +96,9 @@ export function BillingClient({
       )}
 
       {/* Current Credits */}
-      <Card className="p-6">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[var(--text-base)] font-medium text-[var(--text-primary)]">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Credits
           </h2>
           {isFoundingMember && (
@@ -129,12 +128,12 @@ export function BillingClient({
             )}
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Plan */}
-      <Card className="p-6">
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[var(--text-base)] font-medium text-[var(--text-primary)]">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Plan
           </h2>
           {hasStripeCustomer && (
@@ -198,11 +197,11 @@ export function BillingClient({
             ))}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Credit Packs — only for subscribed users */}
       {plan !== "free" && (
-        <Card className="p-6">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
           <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
             Credit Packs
           </h2>
@@ -211,25 +210,23 @@ export function BillingClient({
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {CREDIT_PACKS.map((pack) => (
-              <Button
+              <button
                 key={pack.key}
-                variant="secondary"
-                size="sm"
                 onClick={() => handleCheckout("credit_pack", pack.key)}
                 disabled={loading === pack.key}
-                className="justify-between"
+                className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--border-default)] px-4 py-3 text-sm transition-all duration-200 hover:border-[var(--accent-amber)] hover:bg-[var(--bg-elevated)] disabled:pointer-events-none disabled:opacity-40"
               >
-                <span>{pack.name}</span>
-                <span className="text-[var(--accent-amber)]">{pack.price}</span>
-              </Button>
+                <span className="text-[var(--text-primary)]">{pack.name}</span>
+                <span className="font-medium text-[var(--accent-amber)]">{pack.price}</span>
+              </button>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Recent Transactions */}
       {transactions.length > 0 && (
-        <Card className="p-6">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
           <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
             Recent Activity
           </h2>
@@ -258,7 +255,7 @@ export function BillingClient({
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
     </>
   );

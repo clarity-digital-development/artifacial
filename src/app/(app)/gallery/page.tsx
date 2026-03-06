@@ -21,7 +21,6 @@ export default async function GalleryPage() {
     },
   });
 
-  // Sign video URLs and character thumbnails in parallel
   const items = await Promise.all(
     projects.map(async (p) => {
       let videoUrl: string | null = null;
@@ -61,41 +60,44 @@ export default async function GalleryPage() {
   if (items.length === 0) {
     return (
       <div>
-        <div className="mb-8">
+        <div className="mb-10">
           <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
             Gallery
           </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
+          <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
             Your completed videos
           </p>
         </div>
 
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-[var(--border-default)]">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="text-[var(--text-muted)]"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-            </svg>
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="relative mb-8">
+            <div className="absolute -inset-4 rounded-full bg-[var(--accent-amber)] opacity-[0.03] blur-[40px]" />
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)]">
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-[var(--text-muted)]"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+            </div>
           </div>
-          <h2 className="font-display text-xl font-semibold text-[var(--text-primary)]">
+          <h2 className="font-display text-xl font-bold text-[var(--text-primary)]">
             No videos yet
           </h2>
-          <p className="mt-2 max-w-sm text-center text-[var(--text-sm)] text-[var(--text-secondary)]">
+          <p className="mt-3 max-w-sm text-center text-sm leading-relaxed text-[var(--text-secondary)]">
             Your completed videos will appear here. Create a project and
             generate your first video to get started.
           </p>
           <Link
             href="/projects"
-            className="mt-6 inline-flex items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2.5 text-[var(--text-base)] font-medium text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--accent-amber-dim)]"
+            className="mt-8 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-6 py-3 font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 hover:bg-[var(--accent-amber-dim)]"
           >
             Go to Projects
           </Link>
@@ -106,12 +108,12 @@ export default async function GalleryPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-10">
         <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
           Gallery
         </h1>
-        <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Your completed videos
+        <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+          {items.length} completed video{items.length !== 1 ? "s" : ""}
         </p>
       </div>
 

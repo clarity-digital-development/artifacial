@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
 
 const PLACEHOLDER_PROMPTS = [
   "A warrior queen standing on a cliff at sunset...",
@@ -51,8 +50,12 @@ export function QuickCreateBar() {
   };
 
   return (
-    <div className="group relative">
-      <div className="relative flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:border-[var(--accent-amber)] focus-within:shadow-[0_0_24px_rgba(232,166,52,0.12)]">
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]" />
+        <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Quick Create</span>
+      </div>
+      <div className="relative flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:border-[var(--accent-amber)] focus-within:shadow-[0_0_32px_rgba(232,166,52,0.1)]">
         <div className="relative flex-1">
           <input
             ref={inputRef}
@@ -60,12 +63,12 @@ export function QuickCreateBar() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-transparent px-4 py-3 text-[var(--text-lg)] text-[var(--text-primary)] placeholder-transparent outline-none"
+            className="w-full bg-transparent px-4 py-3.5 text-[var(--text-base)] text-[var(--text-primary)] placeholder-transparent outline-none lg:text-lg"
             placeholder={PLACEHOLDER_PROMPTS[placeholderIndex]}
           />
           {!prompt && (
             <span
-              className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-lg)] text-[var(--text-muted)] transition-opacity duration-300 ${
+              className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-base)] text-[var(--text-muted)] transition-opacity duration-300 lg:text-lg ${
                 placeholderVisible ? "opacity-100" : "opacity-0"
               }`}
             >
@@ -73,10 +76,13 @@ export function QuickCreateBar() {
             </span>
           )}
         </div>
-        <Button size="md" className="shrink-0" onClick={handleCreateCharacter}>
+        <button
+          onClick={handleCreateCharacter}
+          className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--accent-amber-dim)]"
+        >
           Create Character
-        </Button>
+        </button>
       </div>
-    </div>
+    </section>
   );
 }

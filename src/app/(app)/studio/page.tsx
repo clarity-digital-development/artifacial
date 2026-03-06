@@ -45,7 +45,7 @@ export default async function StudioPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-12">
       <QuickCreateBar />
       {characters.length > 0 && <CharacterReel characters={characterCards} />}
       {projects.length > 0 && <ProjectStrip projects={projectCards} />}

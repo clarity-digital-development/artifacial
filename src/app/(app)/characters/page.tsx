@@ -2,7 +2,6 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getCharactersWithSignedUrls } from "@/lib/characters";
-import { Card } from "@/components/ui/card";
 
 export default async function CharactersPage() {
   const session = await auth();
@@ -12,96 +11,111 @@ export default async function CharactersPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-10 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
             Characters
           </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Your character library
+          <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+            {characters.length > 0
+              ? `${characters.length} character${characters.length !== 1 ? "s" : ""} in your library`
+              : "Your character library"}
           </p>
         </div>
         <Link
           href="/characters/new"
-          className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2.5 text-[var(--text-base)] font-medium text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
+          className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-2.5 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 hover:bg-[var(--accent-amber-dim)]"
         >
-          + New Character
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New Character
         </Link>
       </div>
 
       {characters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-[var(--border-default)]">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="text-[var(--text-muted)]"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="relative mb-8">
+            <div className="absolute -inset-4 rounded-full bg-[var(--accent-amber)] opacity-[0.03] blur-[40px]" />
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)]">
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-[var(--text-muted)]"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
           </div>
-          <h2 className="font-display text-xl font-semibold text-[var(--text-primary)]">
+          <h2 className="font-display text-xl font-bold text-[var(--text-primary)]">
             Cast your first character
           </h2>
-          <p className="mt-2 max-w-sm text-center text-[var(--text-sm)] text-[var(--text-secondary)]">
-            Upload a selfie or describe who you want to be
+          <p className="mt-3 max-w-sm text-center text-sm leading-relaxed text-[var(--text-secondary)]">
+            Upload a selfie or describe who you want to be. Your character will star in every video you create.
           </p>
-          <div className="mt-6 flex gap-3">
-            <Link
-              href="/characters/new"
-              className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-2.5 font-medium text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
-            >
-              Create Character
-            </Link>
-          </div>
+          <Link
+            href="/characters/new"
+            className="mt-8 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-6 py-3 font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 hover:bg-[var(--accent-amber-dim)]"
+          >
+            Create Character
+          </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {/* New character card */}
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           <Link href="/characters/new">
-            <Card
-              hover
-              className="flex aspect-[3/4] flex-col items-center justify-center gap-2 border-dashed"
-            >
-              <span className="text-2xl text-[var(--accent-amber)]">+</span>
-              <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+            <div className="group flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--accent-amber)]/40 hover:bg-[var(--bg-elevated)]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-[var(--accent-amber)]/40 text-[var(--accent-amber)] transition-all duration-300 group-hover:border-[var(--accent-amber)] group-hover:bg-[var(--accent-amber-glow)]">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-[var(--text-secondary)]">
                 New Character
               </span>
-            </Card>
+            </div>
           </Link>
 
           {characters.map((character) => (
             <Link key={character.id} href={`/characters/${character.id}`}>
-              <Card hover className="overflow-hidden">
-                <div className="aspect-[3/4] bg-[var(--bg-input)]">
+              <div className="group overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--border-default)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+                <div className="relative aspect-[3/4] overflow-hidden bg-[var(--bg-input)]">
                   {character.signedUrls[0] ? (
                     <img
                       src={character.signedUrls[0]}
                       alt={character.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center">
-                      <span className="text-3xl text-[var(--text-muted)]">
+                      <span className="font-display text-4xl text-[var(--text-muted)]">
                         {character.name[0]}
                       </span>
                     </div>
                   )}
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[var(--bg-surface)] to-transparent" />
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-[var(--accent-amber)]/50" />
+                    <span className="absolute right-3 top-3 h-3 w-3 border-r border-t border-[var(--accent-amber)]/50" />
+                    <span className="absolute bottom-3 left-3 h-3 w-3 border-b border-l border-[var(--accent-amber)]/50" />
+                    <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[var(--accent-amber)]/50" />
+                  </div>
                 </div>
-                <div className="p-3">
-                  <p className="truncate text-[var(--text-sm)] font-medium text-[var(--text-primary)]">
+                <div className="p-3.5">
+                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">
                     {character.name}
                   </p>
-                  <p className="text-[var(--text-xs)] capitalize text-[var(--text-muted)]">
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
                     {character.style}
                   </p>
                 </div>
-              </Card>
+              </div>
             </Link>
           ))}
         </div>
