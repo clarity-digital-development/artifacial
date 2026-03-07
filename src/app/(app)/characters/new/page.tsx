@@ -12,9 +12,9 @@ const STYLE_OPTIONS = [
 ];
 
 const MODEL_OPTIONS = [
-  { value: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash" },
-  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash" },
-  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro" },
+  { value: "gemini-2.0-flash-exp-image-generation", label: "Flash", cost: 10 },
+  { value: "gemini-2.5-flash-preview-05-20", label: "Nano Banana", cost: 15 },
+  { value: "gemini-2.5-pro-preview-06-05", label: "Nano Banana Pro", cost: 25 },
 ];
 
 const ASPECT_RATIO_OPTIONS = [
@@ -66,7 +66,7 @@ function Dropdown({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] py-1.5 pl-2.5 pr-2 text-[11px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)]"
+        className="flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] px-3.5 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)]"
       >
         {icon && <span className="text-[var(--text-muted)]">{icon}</span>}
         <span>{selected?.label ?? value}</span>
@@ -93,7 +93,7 @@ function Dropdown({
                 onChange(opt.value);
                 setOpen(false);
               }}
-              className={`flex w-full items-center px-3 py-1.5 text-left text-[11px] font-medium transition-colors duration-100 ${
+              className={`flex w-full items-center px-3.5 py-2 text-left text-[12px] font-medium transition-colors duration-100 ${
                 opt.value === value
                   ? "bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
@@ -130,7 +130,7 @@ function PillGroup({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 ${
+          className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-all duration-150 ${
             value === opt.value
               ? "bg-[var(--accent-amber)] text-[var(--bg-deep)]"
               : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -166,7 +166,8 @@ export default function NewCharacterPage() {
 
   const photoPreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const creditCost = parseInt(count) * 10;
+  const modelCost = MODEL_OPTIONS.find((m) => m.value === model)?.cost ?? 10;
+  const creditCost = parseInt(count) * modelCost;
 
   const hasImages = images.some((img) => img !== null);
   const generatedImages = images.filter(Boolean) as string[];
@@ -357,7 +358,7 @@ export default function NewCharacterPage() {
 
         <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           {/* Controls row */}
-          <div className="mb-2.5 flex items-center justify-center gap-2">
+          <div className="mb-2.5 flex items-center gap-2">
             <Dropdown
               value={model}
               onChange={setModel}
@@ -386,9 +387,9 @@ export default function NewCharacterPage() {
               }}
             />
 
-            {/* Photo thumbnail — inline left of textarea */}
+            {/* Photo thumbnail or add-image button — top-left of textarea */}
             {photoPreview ? (
-              <div className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2">
+              <div className="absolute left-2.5 top-2.5 z-10">
                 <div className="group relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
                   <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
                   <button
@@ -402,7 +403,7 @@ export default function NewCharacterPage() {
             ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 flex items-center gap-0.5 rounded-lg px-1 py-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+                className="absolute left-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-lg px-1 py-1 text-[var(--accent-amber)] transition-colors hover:bg-[var(--accent-amber)]/10 hover:text-[var(--accent-amber)]"
                 title="Add reference image"
                 type="button"
               >
@@ -424,7 +425,7 @@ export default function NewCharacterPage() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
               rows={2}
-              className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-36 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${photoPreview ? "pl-14" : "pl-12"}`}
+              className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-40 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${photoPreview ? "pl-14" : "pl-12"}`}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !generating) {
                   e.preventDefault();
@@ -437,7 +438,7 @@ export default function NewCharacterPage() {
             <button
               onClick={handleGenerate}
               disabled={generating}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-4 py-2 text-[12px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-5 py-2.5 text-[13px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {generating ? (
                 <>
