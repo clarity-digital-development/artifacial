@@ -36,6 +36,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
+# Copy worker source + lib dependencies (for worker service)
+COPY --from=builder --chown=nextjs:nodejs /app/src/workers ./src/workers
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib ./src/lib
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./
+
+# Copy public assets
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
 USER nextjs
 EXPOSE 8080
 
