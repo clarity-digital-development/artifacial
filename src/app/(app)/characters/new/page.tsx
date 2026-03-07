@@ -163,6 +163,7 @@ export default function NewCharacterPage() {
   const [saveName, setSaveName] = useState("");
   const [selectedSaveImage, setSelectedSaveImage] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [generatedCharacterId, setGeneratedCharacterId] = useState<string | null>(null);
 
   const photoPreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -216,6 +217,7 @@ export default function NewCharacterPage() {
 
     setError(null);
     setGenerating(true);
+    setGeneratedCharacterId(null);
     const n = parseInt(count);
     setImages(Array(n).fill(null));
 
@@ -266,6 +268,7 @@ export default function NewCharacterPage() {
               return next;
             });
           } else if (data.type === "complete") {
+            if (data.characterId) setGeneratedCharacterId(data.characterId);
             setGenerating(false);
           } else if (data.type === "error") {
             throw new Error(data.message);
@@ -290,20 +293,32 @@ export default function NewCharacterPage() {
     if (!saveName.trim() || saving) return;
     setSaving(true);
     try {
-      const referenceImages = images.filter(Boolean) as string[];
-      const res = await fetch("/api/characters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: saveName.trim(),
-          description: description.trim() || null,
-          style,
-          referenceImages,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to save character");
-      const character = await res.json();
-      router.push(`/characters/${character.id}`);
+      if (generatedCharacterId) {
+        // Update the character that was already created during generation
+        const res = await fetch(`/api/characters/${generatedCharacterId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: saveName.trim() }),
+        });
+        if (!res.ok) throw new Error("Failed to save character");
+        router.push(`/characters/${generatedCharacterId}`);
+      } else {
+        // Fallback: create new character if no generation was done
+        const referenceImages = images.filter(Boolean) as string[];
+        const res = await fetch("/api/characters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: saveName.trim(),
+            description: description.trim() || null,
+            style,
+            referenceImages,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to save character");
+        const character = await res.json();
+        router.push(`/characters/${character.id}`);
+      }
     } catch {
       setError("Failed to save character");
       setSaving(false);

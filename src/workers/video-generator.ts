@@ -47,6 +47,8 @@ async function processVideoJob(
     sourceImageKey,
   } = job.data;
 
+  console.log(`[video-generator] Processing: project=${projectId} mode=${mode} jobId=${jobId}`);
+
   // Mark job as processing
   await prisma.generationJob.update({
     where: { id: jobId },
@@ -108,6 +110,8 @@ async function processVideoJob(
     });
     statusType = characterImageUrl ? "image2video" : "text2video";
   }
+
+  console.log(`[video-generator] Submitted to Kling: taskId=${taskId} statusType=${statusType}`);
 
   // Store external task ID
   await prisma.generationJob.update({

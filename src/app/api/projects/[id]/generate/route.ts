@@ -52,10 +52,27 @@ export async function POST(
     }
 
     if (project.status === "generating") {
-      return NextResponse.json(
-        { error: "Generation already in progress" },
-        { status: 409 }
+      // Allow retry if the last job is stale (>10 min old, likely failed silently)
+      const staleJob = await prisma.generationJob.findFirst({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, status: true },
+      });
+      const isStale = staleJob && (
+        staleJob.status === "failed" ||
+        Date.now() - new Date(staleJob.createdAt).getTime() > 10 * 60 * 1000
       );
+      if (!isStale) {
+        return NextResponse.json(
+          { error: "Generation already in progress" },
+          { status: 409 }
+        );
+      }
+      // Reset project status so we can retry
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { status: "draft" },
+      });
     }
 
     // Calculate credit cost

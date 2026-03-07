@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { type ReactNode } from "react";
@@ -75,7 +76,7 @@ export function Sidebar() {
         href="/studio"
         className="mb-10 flex h-9 w-9 items-center justify-center"
       >
-        <img src="/logo.svg" alt="Artifacial" className="h-9 w-9" />
+        <Image src="/logo.svg" alt="Artifacial" width={36} height={36} unoptimized />
       </Link>
       <nav className="flex flex-1 flex-col gap-2">
         {NAV_ITEMS.map((item) => {
