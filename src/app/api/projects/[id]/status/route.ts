@@ -30,7 +30,7 @@ export async function GET(
 
   // Get the latest generation job for progress info
   const latestJob = await prisma.generationJob.findFirst({
-    where: { projectId, type: "video" },
+    where: { projectId },
     orderBy: { createdAt: "desc" },
     select: { id: true, status: true, error: true, createdAt: true },
   });

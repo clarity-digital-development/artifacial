@@ -114,6 +114,7 @@ export function SceneBuilderClient({
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCountRef = useRef(0);
   const pickerRef = useRef<HTMLDivElement>(null);
   const videoPreviewRef = useRef<string | null>(null);
 
@@ -144,6 +145,17 @@ export function SceneBuilderClient({
 
   const pollStatus = useCallback(async () => {
     try {
+      pollCountRef.current += 1;
+
+      // Timeout after ~5 minutes of no status change (75 polls * 4s)
+      if (pollCountRef.current > 75) {
+        stopPolling();
+        setGenerating(false);
+        setError("Generation timed out — the worker may not be running. Check that Redis and the video worker are started.");
+        setProject((p) => ({ ...p, status: "failed" }));
+        return;
+      }
+
       const res = await fetch(`/api/projects/${projectId}/status`);
       if (!res.ok) return;
       const data = await res.json();
@@ -165,6 +177,7 @@ export function SceneBuilderClient({
 
   const startPolling = useCallback(() => {
     stopPolling();
+    pollCountRef.current = 0;
     pollRef.current = setInterval(pollStatus, POLL_INTERVAL);
   }, [pollStatus, stopPolling]);
 

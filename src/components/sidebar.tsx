@@ -73,9 +73,9 @@ export function Sidebar() {
     <aside className="flex h-full w-[72px] flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6">
       <Link
         href="/studio"
-        className="mb-10 font-display text-xl font-bold text-[var(--accent-amber)]"
+        className="mb-10 flex h-9 w-9 items-center justify-center"
       >
-        A
+        <img src="/logo.svg" alt="Artifacial" className="h-9 w-9" />
       </Link>
       <nav className="flex flex-1 flex-col gap-2">
         {NAV_ITEMS.map((item) => {

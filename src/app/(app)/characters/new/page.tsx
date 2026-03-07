@@ -84,7 +84,7 @@ function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 min-w-[140px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+        <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
           {options.map((opt) => (
             <button
               key={opt.value}

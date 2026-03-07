@@ -7,7 +7,9 @@
 // Or in dev alongside Next.js:
 //   npx tsx --watch src/workers/video-generator.ts
 
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 import { type Job } from "bullmq";
 import { createVideoWorker, type VideoJobData, type VideoJobResult } from "../lib/queue";
 import { submitText2Video, submitImage2Video, submitFaceSwap, getTaskStatus, downloadVideo } from "../lib/kling";
