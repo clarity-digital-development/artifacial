@@ -115,7 +115,7 @@ export async function submitText2Video(
   request: KlingText2VideoRequest
 ): Promise<string> {
   const body: Record<string, unknown> = {
-    model_name: request.model_name ?? "kling-v2.6-std",
+    model_name: request.model_name ?? "kling-v2-6",
     prompt: request.prompt,
     duration: request.duration ?? "5",
     aspect_ratio: request.aspect_ratio ?? "16:9",
@@ -155,7 +155,7 @@ export async function submitImage2Video(
   request: KlingImage2VideoRequest
 ): Promise<string> {
   const body: Record<string, unknown> = {
-    model_name: request.model_name ?? "kling-v2.6-std",
+    model_name: request.model_name ?? "kling-v2-6",
     image: request.image_url,
     duration: request.duration ?? "5",
     mode: request.mode ?? "std",
@@ -185,7 +185,7 @@ export async function submitFaceSwap(
   request: KlingFaceSwapRequest
 ): Promise<string> {
   const body: Record<string, unknown> = {
-    model_name: request.model_name ?? "kling-v2.6-std",
+    model_name: request.model_name ?? "kling-v2-6",
     source_face_image_url: request.source_face_url,
     target_video_url: request.target_video_url,
   };
