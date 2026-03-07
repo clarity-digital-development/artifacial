@@ -21,6 +21,10 @@ const ASPECT_RATIO_OPTIONS = [
   { value: "1:1", label: "1:1" },
   { value: "3:4", label: "3:4" },
   { value: "4:3", label: "4:3" },
+  { value: "2:3", label: "2:3" },
+  { value: "3:2", label: "3:2" },
+  { value: "4:5", label: "4:5" },
+  { value: "5:4", label: "5:4" },
   { value: "9:16", label: "9:16" },
   { value: "16:9", label: "16:9" },
 ];
@@ -31,7 +35,8 @@ const COUNT_OPTIONS = [
   { value: "4", label: "4" },
 ];
 
-function InlineSelect({
+/* ── Custom Dropdown ── */
+function Dropdown({
   value,
   onChange,
   options,
@@ -42,27 +47,73 @@ function InlineSelect({
   options: { value: string; label: string }[];
   icon?: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
   return (
-    <div className="relative flex items-center">
-      {icon && <span className="pointer-events-none absolute left-2.5 text-[var(--text-muted)]">{icon}</span>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`appearance-none rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] py-1.5 pr-7 text-[var(--text-xs)] font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${icon ? "pl-8" : "pl-3"}`}
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238A8690' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "right 8px center",
-        }}
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] py-1.5 pl-2.5 pr-2 text-[11px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)]"
       >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
+        {icon && <span className="text-[var(--text-muted)]">{icon}</span>}
+        <span>{selected?.label ?? value}</span>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          className={`ml-0.5 text-[var(--text-muted)] transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1.5 min-w-[140px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center px-3 py-1.5 text-left text-[11px] font-medium transition-colors duration-100 ${
+                opt.value === value
+                  ? "bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              {opt.value === value && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="mr-2 flex-shrink-0">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+              <span className={opt.value === value ? "" : "ml-[18px]"}>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+/* ── Pill Group ── */
 function PillGroup({
   options,
   value,
@@ -96,12 +147,7 @@ export default function NewCharacterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialPrompt = searchParams.get("prompt") ?? "";
-  const initialTab =
-    searchParams.get("tab") === "description" || initialPrompt
-      ? "description"
-      : "photo";
 
-  const [tab, setTab] = useState(initialTab);
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
   const [model, setModel] = useState("gemini-2.0-flash-exp-image-generation");
@@ -124,6 +170,7 @@ export default function NewCharacterPage() {
 
   const hasImages = images.some((img) => img !== null);
   const generatedImages = images.filter(Boolean) as string[];
+  const mode = photo ? "photo" : "description";
 
   useEffect(() => {
     return () => {
@@ -147,7 +194,6 @@ export default function NewCharacterPage() {
     const url = URL.createObjectURL(file);
     photoPreviewRef.current = url;
     setPhotoPreview(url);
-    setTab("photo");
   }, []);
 
   const removePhoto = useCallback(() => {
@@ -158,11 +204,11 @@ export default function NewCharacterPage() {
   }, []);
 
   const handleGenerate = async () => {
-    if (tab === "photo" && !photo) {
+    if (mode === "photo" && !photo) {
       setError("Upload a reference photo");
       return;
     }
-    if (tab === "description" && !description.trim()) {
+    if (mode === "description" && !description.trim()) {
       setError("Describe your character");
       return;
     }
@@ -176,7 +222,7 @@ export default function NewCharacterPage() {
       const formData = new FormData();
       formData.append("name", description.trim().slice(0, 40) || "Character");
       formData.append("style", style);
-      formData.append("mode", tab);
+      formData.append("mode", mode);
       formData.append("model", model);
       formData.append("aspectRatio", aspectRatio);
       if (description.trim()) formData.append("description", description.trim());
@@ -301,45 +347,49 @@ export default function NewCharacterPage() {
         )}
       </div>
 
-      {/* ═══ Toolbar ═══ */}
-      <div className="relative z-10 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]/95 backdrop-blur-md">
+      {/* ═══ Floating Toolbar ═══ */}
+      <div className="relative z-10 flex justify-center pb-5 pt-2">
         {error && (
-          <div className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-red-500/20 bg-red-950/90 px-4 py-1.5 text-[var(--text-xs)] text-red-400 backdrop-blur-sm">
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-red-500/20 bg-red-950/90 px-4 py-1.5 text-[var(--text-xs)] text-red-400 backdrop-blur-sm">
             {error}
           </div>
         )}
 
-        <div className="mx-auto max-w-4xl px-5 py-3">
+        <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           {/* Controls row */}
-          <div className="flex items-center justify-center gap-2.5">
-            <PillGroup
-              options={[
-                { value: "description", label: "Text" },
-                { value: "photo", label: "Photo" },
-              ]}
-              value={tab}
-              onChange={setTab}
-            />
-            <div className="h-5 w-px bg-[var(--border-default)]" />
-            <InlineSelect
+          <div className="mb-2.5 flex items-center justify-center gap-2">
+            <Dropdown
               value={model}
               onChange={setModel}
               options={MODEL_OPTIONS}
               icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>}
             />
-            <InlineSelect value={style} onChange={setStyle} options={STYLE_OPTIONS} />
-            <div className="h-5 w-px bg-[var(--border-default)]" />
-            <PillGroup options={ASPECT_RATIO_OPTIONS} value={aspectRatio} onChange={setAspectRatio} />
-            <div className="h-5 w-px bg-[var(--border-default)]" />
+            <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
+            <div className="h-4 w-px bg-[var(--border-default)]" />
+            <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
+            <div className="h-4 w-px bg-[var(--border-default)]" />
             <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
           </div>
 
           {/* Prompt row */}
-          <div className="mt-2.5">
-            {/* Photo thumbnail above textarea */}
-            {photoPreview && (
-              <div className="mb-2 flex items-center gap-2">
-                <div className="group relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg">
+          <div className="relative">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handlePhotoSelect(file);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Photo thumbnail — inline left of textarea */}
+            {photoPreview ? (
+              <div className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2">
+                <div className="group relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
                   <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
                   <button
                     onClick={removePhoto}
@@ -348,28 +398,11 @@ export default function NewCharacterPage() {
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
-                <span className="text-[var(--text-xs)] text-[var(--text-muted)]">Reference photo</span>
               </div>
-            )}
-
-            <div className="relative">
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handlePhotoSelect(file);
-                  e.target.value = "";
-                }}
-              />
-
-              {/* Add image button — left inside textarea */}
+            ) : (
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-2.5 left-2.5 flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+                className="absolute left-2.5 top-1/2 z-10 -translate-y-1/2 flex items-center gap-0.5 rounded-lg px-1 py-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
                 title="Add reference image"
                 type="button"
               >
@@ -378,45 +411,49 @@ export default function NewCharacterPage() {
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
               </button>
+            )}
 
-              {/* Textarea */}
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={tab === "photo" ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
-                rows={2}
-                className="w-full resize-none rounded-2xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pl-11 pr-36 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !generating) {
-                    e.preventDefault();
-                    handleGenerate();
-                  }
-                }}
-              />
+            {/* Textarea */}
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
+              rows={2}
+              className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-36 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${photoPreview ? "pl-14" : "pl-12"}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !generating) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
+            />
 
-              {/* Generate button — vertically centered right */}
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-4 py-2 text-[12px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {generating ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
-                    <span>Generating</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Generate</span>
-                    <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-                      {creditCost}
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Generate button — vertically centered right */}
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-4 py-2 text-[12px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {generating ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
+                  <span>Generating</span>
+                </>
+              ) : (
+                <>
+                  <span>Generate</span>
+                  <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                    {creditCost}
+                  </span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
