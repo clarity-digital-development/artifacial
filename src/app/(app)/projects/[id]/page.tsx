@@ -68,6 +68,45 @@ export default async function SceneBuilderPage({
     })
   );
 
+  // Fetch recent projects for history (last 20, excluding current)
+  const recentProjects = await prisma.project.findMany({
+    where: {
+      userId: session.user.id,
+      id: { not: id },
+      status: { in: ["complete", "generating", "failed"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 20,
+    include: {
+      character: { select: { name: true } },
+    },
+  });
+
+  const history = await Promise.all(
+    recentProjects.map(async (p) => {
+      let thumbUrl: string | null = null;
+      if (p.finalVideoUrl) {
+        try {
+          thumbUrl = await getSignedR2Url(p.finalVideoUrl, 86400);
+        } catch {
+          // ignore
+        }
+      }
+      return {
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        mode: p.mode,
+        prompt: p.prompt,
+        duration: p.duration,
+        aspectRatio: p.aspectRatio,
+        characterName: p.character?.name ?? null,
+        videoUrl: thumbUrl,
+        createdAt: p.createdAt.toISOString(),
+      };
+    })
+  );
+
   return (
     <SceneBuilderClient
       project={{
@@ -84,6 +123,7 @@ export default async function SceneBuilderPage({
         aspectRatio: project.aspectRatio,
       }}
       characters={characters}
+      history={history}
     />
   );
 }
