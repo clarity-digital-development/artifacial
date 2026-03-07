@@ -151,7 +151,7 @@ export default function LandingPage() {
 
         <div className="grid gap-6 md:grid-cols-3">
           {[
-            { name: "Free", price: "$0", credits: "100 credits", note: "one-time", featured: false },
+            { name: "Starter", price: "$15", credits: "750 credits/mo", note: "great for beginners", featured: false },
             { name: "Creator", price: "$50", credits: "2,500 credits/mo", note: "most popular", featured: true },
             { name: "Pro", price: "$100", credits: "6,000 credits/mo", note: "for power users", featured: false },
           ].map((plan) => (
@@ -171,7 +171,7 @@ export default function LandingPage() {
               <h3 className="font-display text-lg font-bold text-[var(--text-primary)]">{plan.name}</h3>
               <p className="mt-2 font-display text-3xl font-extrabold text-[var(--text-primary)]">
                 {plan.price}
-                {plan.price !== "$0" && <span className="text-base font-normal text-[var(--text-muted)]">/mo</span>}
+                <span className="text-base font-normal text-[var(--text-muted)]">/mo</span>
               </p>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">{plan.credits}</p>
               {!plan.featured && <p className="mt-1 text-xs text-[var(--text-muted)]">{plan.note}</p>}
