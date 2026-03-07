@@ -19,8 +19,9 @@ function generateJwt(): string {
   const header = { alg: "HS256", typ: "JWT" };
   const payload = {
     iss: ACCESS_KEY(),
-    iat: now,
+    iat: now - 5,
     exp: now + 1800, // 30 minutes
+    nbf: now - 5,
   };
 
   const segments = [
