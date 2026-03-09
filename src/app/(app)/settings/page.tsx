@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { PLANS, type PlanKey } from "@/lib/stripe";
 import { BillingClient } from "./billing-client";
+import { ContentModeClient } from "./content-mode-client";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -11,16 +12,18 @@ export default async function SettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
-      plan: true,
+      subscriptionTier: true,
       subscriptionCredits: true,
       purchasedCredits: true,
       stripeCustomerId: true,
       isFoundingMember: true,
+      contentMode: true,
+      dateOfBirth: true,
     },
   });
 
-  const plan = (user?.plan ?? "free") as PlanKey;
-  const planConfig = PLANS[plan];
+  const tier = (user?.subscriptionTier ?? "FREE") as PlanKey;
+  const planConfig = PLANS[tier];
 
   const recentTransactions = await prisma.creditTransaction.findMany({
     where: { userId: session.user.id },
@@ -75,8 +78,13 @@ export default async function SettingsPage() {
           </div>
         </div>
 
+        <ContentModeClient
+          contentMode={user?.contentMode ?? "SFW"}
+          hasDateOfBirth={!!user?.dateOfBirth}
+        />
+
         <BillingClient
-          plan={plan}
+          tier={tier}
           planName={planConfig.name}
           subscriptionCredits={user?.subscriptionCredits ?? 0}
           purchasedCredits={user?.purchasedCredits ?? 0}

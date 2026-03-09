@@ -7,6 +7,41 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ───
+
+enum ContentMode {
+  SFW
+  NSFW
+}
+
+enum SubscriptionTier {
+  FREE
+  STARTER
+  CREATOR
+  PRO
+  STUDIO
+}
+
+enum GenerationStatus {
+  QUEUED
+  PROCESSING
+  UPLOADING
+  COMPLETED
+  BLOCKED
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowType {
+  FACE_SWAP
+  IMAGE_TO_VIDEO
+  TEXT_TO_VIDEO
+  MOTION_TRANSFER
+  TALKING_HEAD
+  UPSCALE
+  STYLE_TRANSFER
+}
+
 // ─── NextAuth Required Models ───
 
 model Account {
@@ -46,66 +81,88 @@ model VerificationToken {
 // ─── Application Models ───
 
 model User {
-  id               String      @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String?
-  email            String?     @unique
+  email            String?          @unique
   emailVerified    DateTime?
   image            String?
   hashedPassword   String?
-  isAdmin          Boolean     @default(false)
-  createdAt        DateTime    @default(now())
-  plan                  String   @default("free")
-  subscriptionCredits   Int      @default(100)
-  purchasedCredits      Int      @default(0)
-  stripeCustomerId      String?
-  isFoundingMember      Boolean  @default(false)
+  isAdmin          Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt @default(now())
+
+  // Subscription & credits (two-pool system)
+  subscriptionTier      SubscriptionTier @default(FREE)
+  subscriptionCredits   Int              @default(100)
+  purchasedCredits      Int              @default(0)
+  stripeCustomerId      String?          @unique
+  stripeSubscriptionId  String?
+  isFoundingMember      Boolean          @default(false)
   foundingMemberPriceId String?
   foundingMemberPlan    String?
 
-  accounts   Account[]
-  sessions   Session[]
-  characters Character[]
-  projects   Project[]
+  // Content moderation
+  contentMode      ContentMode      @default(SFW)
+  dateOfBirth      DateTime?
+  strikeCount      Int              @default(0)
+  bannedAt         DateTime?
+  banReason        String?
+
+  accounts            Account[]
+  sessions            Session[]
+  characters          Character[]
+  projects            Project[]
+  generations         Generation[]
+  creditTransactions  CreditTransaction[]
+  moderationEvents    ModerationEvent[]
 }
 
 model Character {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name            String
-  description     String?  @db.Text
-  style           String
-  sourceImage     String?
-  referenceImages String[]
-  faceEmbedding   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?  @db.Text
+  style            String   @default("realistic")
+  sourceImage      String?
+  faceImageUrl     String?
+  referenceImages  String[]
+  faceEmbedding    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  scenes   Scene[]
-  projects Project[]
+  // Moderation
+  nsfwEligible     Boolean  @default(false)
+  estimatedAgeLow  Int?
+  estimatedAgeHigh Int?
+
+  scenes      Scene[]
+  projects    Project[]
+  generations Generation[]
 }
 
 model Project {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String    @default("Untitled Project")
-  mode          String    @default("text2video") // text2video | image2video | faceswap
-  characterId   String?
-  character     Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
-  prompt        String?   @db.Text
-  enhancedPrompt String?  @db.Text
-  sourceVideoUrl String?  // R2 key for uploaded source video (face swap mode)
-  sourceImageUrl String?  // R2 key for uploaded source image (image2video mode)
-  duration       String?  @default("5") // "5" or "10"
-  aspectRatio    String?  @default("16:9")
-  status        String    @default("draft")
-  finalVideoUrl String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String    @default("Untitled Project")
+  mode           String    @default("text2video")
+  characterId    String?
+  character      Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  prompt         String?   @db.Text
+  enhancedPrompt String?   @db.Text
+  sourceVideoUrl String?
+  sourceImageUrl String?
+  duration       String?   @default("5")
+  aspectRatio    String?   @default("16:9")
+  status         String    @default("draft")
+  finalVideoUrl  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  scenes Scene[]
-  jobs   GenerationJob[]
+  scenes      Scene[]
+  jobs        GenerationJob[]
+  generations Generation[]
 }
 
 model Scene {
@@ -127,8 +184,11 @@ model Scene {
   generationMeta   Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  generations Generation[]
 }
 
+// Phase 1 legacy — kept for backward compatibility during migration
 model GenerationJob {
   id            String    @id @default(cuid())
   userId        String
@@ -147,11 +207,83 @@ model GenerationJob {
   createdAt     DateTime  @default(now())
 }
 
+// ─── Phase 2: Generation System ───
+
+model Generation {
+  id            String           @id @default(cuid())
+  userId        String
+  characterId   String?
+  projectId     String?
+  sceneId       String?
+  workflowType  WorkflowType
+  status        GenerationStatus @default(QUEUED)
+  contentMode   ContentMode      @default(SFW)
+  inputParams   Json
+  outputUrl     String?
+  thumbnailUrl  String?
+  errorMessage  String?
+  promptId      String?
+  progress      Int              @default(0)
+  creditsCost   Int              @default(0)
+  retryCount    Int              @default(0)
+  resolution    String           @default("720p")
+  durationSec   Float?
+  queuedAt      DateTime         @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  generationTimeMs Int?
+
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character          Character?       @relation(fields: [characterId], references: [id])
+  project            Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  scene              Scene?           @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  moderation         GenerationModeration?
+  creditTransactions CreditTransaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([workflowType])
+}
+
+model GenerationModeration {
+  id                    String     @id @default(cuid())
+  generationId          String     @unique
+  promptClassification  Json
+  outputScanResult      Json?
+  flagged               Boolean    @default(false)
+  createdAt             DateTime   @default(now())
+
+  generation            Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+}
+
 model CreditTransaction {
-  id          String   @id @default(cuid())
-  userId      String
-  type        String
-  credits     Int      @default(0)
-  description String
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  credits      Int      @default(0)
+  description  String
+  generationId String?
+  createdAt    DateTime @default(now())
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generation   Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ModerationEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  reason    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }

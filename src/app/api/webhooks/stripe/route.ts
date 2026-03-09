@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, PLANS, CREDIT_PACKS, type PlanKey, type CreditPackKey } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
+import type { SubscriptionTier } from "@/generated/prisma/client";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -26,10 +27,10 @@ export async function POST(req: NextRequest) {
       if (session.payment_status !== "paid") break;
 
       if (session.mode === "subscription") {
-        const plan = (session.metadata?.plan ?? "free") as PlanKey;
-        const planConfig = PLANS[plan];
+        const tier = (session.metadata?.tier ?? "FREE") as PlanKey;
+        const planConfig = PLANS[tier];
 
-        // Set founding member status (Phase 1 beta perk)
+        // Get the subscription price ID for founding member tracking
         const priceId = session.subscription
           ? (await getStripe().subscriptions.retrieve(session.subscription as string))
               .items.data[0]?.price?.id
@@ -38,12 +39,14 @@ export async function POST(req: NextRequest) {
         await prisma.user.update({
           where: { id: userId },
           data: {
-            plan,
+            subscriptionTier: tier as SubscriptionTier,
             stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: typeof session.subscription === "string"
+              ? session.subscription
+              : null,
             subscriptionCredits: planConfig.credits,
-            // Mark as founding member on first Phase 1 subscription
             isFoundingMember: true,
-            foundingMemberPlan: plan,
+            foundingMemberPlan: tier,
             ...(priceId ? { foundingMemberPriceId: priceId } : {}),
           },
         });
@@ -60,7 +63,6 @@ export async function POST(req: NextRequest) {
         const pack = packKey ? CREDIT_PACKS[packKey] : undefined;
         if (!pack) break;
 
-        // Credit packs go to purchasedCredits (roll over indefinitely)
         await prisma.user.update({
           where: { id: userId },
           data: {
@@ -91,9 +93,9 @@ export async function POST(req: NextRequest) {
       });
       if (!user) break;
 
-      const plan = user.plan as PlanKey;
-      const planConfig = PLANS[plan];
-      if (plan === "free") break;
+      const tier = user.subscriptionTier as PlanKey;
+      const planConfig = PLANS[tier];
+      if (tier === "FREE") break;
 
       // Reset subscription credits to plan amount (no rollover)
       await prisma.user.update({
@@ -121,15 +123,18 @@ export async function POST(req: NextRequest) {
       });
       if (!user) break;
 
-      // Resolve plan from the subscription's price ID
+      // Resolve tier from the subscription's price ID
       const priceId = subscription.items.data[0]?.price?.id;
-      const newPlan = Object.entries(PLANS).find(
-        ([, config]) => config.stripePriceId === priceId
+      const matchedTier = (Object.entries(PLANS) as [PlanKey, typeof PLANS[PlanKey]][]).find(
+        ([, config]) => config.stripePriceId === priceId || config.stripeAnnualPriceId === priceId
       );
-      if (newPlan) {
+      if (matchedTier) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { plan: newPlan[0] },
+          data: {
+            subscriptionTier: matchedTier[0] as SubscriptionTier,
+            stripeSubscriptionId: subscription.id,
+          },
         });
       }
       break;
@@ -141,7 +146,7 @@ export async function POST(req: NextRequest) {
       // Revert to free, zero out subscription credits (purchased credits kept)
       await prisma.user.updateMany({
         where: { stripeCustomerId: customerId },
-        data: { plan: "free", subscriptionCredits: 0 },
+        data: { subscriptionTier: "FREE", subscriptionCredits: 0, stripeSubscriptionId: null },
       });
       break;
     }

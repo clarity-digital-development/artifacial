@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
       metadata: {
         userId: session.user.id,
-        plan: key,
+        tier: key,
       },
       success_url: `${origin}/settings?upgraded=true`,
       cancel_url: `${origin}/settings`,
@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
     // Credit packs only available to subscribed users
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { plan: true },
+      select: { subscriptionTier: true },
     });
 
-    if (!user || user.plan === "free") {
+    if (!user || user.subscriptionTier === "FREE") {
       return NextResponse.json(
         { error: "Subscribe to a plan before purchasing credit packs" },
         { status: 403 }

@@ -15,7 +15,7 @@ interface Transaction {
 }
 
 interface BillingClientProps {
-  plan: string;
+  tier: string;
   planName: string;
   subscriptionCredits: number;
   purchasedCredits: number;
@@ -26,20 +26,20 @@ interface BillingClientProps {
 }
 
 const PLANS = [
-  { key: "starter", name: "Starter", price: "$15", credits: 750, baseCredits: 500, bonusLabel: "+50% bonus" },
-  { key: "creator", name: "Creator", price: "$50", credits: 2500, baseCredits: 1750, bonusLabel: "+43% bonus" },
-  { key: "pro", name: "Pro", price: "$100", credits: 6000, baseCredits: 4000, bonusLabel: "+50% bonus" },
+  { key: "STARTER", name: "Starter", price: "$15", credits: 1500, baseCredits: 1000, bonusLabel: "+50% bonus" },
+  { key: "CREATOR", name: "Creator", price: "$50", credits: 5000, baseCredits: 3500, bonusLabel: "+43% bonus" },
+  { key: "PRO", name: "Pro", price: "$100", credits: 15000, baseCredits: 10000, bonusLabel: "+50% bonus" },
 ];
 
 const CREDIT_PACKS = [
-  { key: "credit_pack", name: "400 Credits", price: "$9.99" },
-  { key: "credit_pack_plus", name: "1,000 Credits", price: "$24.99" },
+  { key: "credit_pack", name: "500 Credits", price: "$9.99" },
+  { key: "credit_pack_plus", name: "1,250 Credits", price: "$24.99" },
 ];
 
 // ─── Component ───
 
 export function BillingClient({
-  plan,
+  tier,
   planName,
   subscriptionCredits,
   purchasedCredits,
@@ -151,12 +151,12 @@ export function BillingClient({
           <span className="font-medium text-[var(--text-primary)]">
             {planName}
           </span>
-          <Badge variant={plan === "free" ? "default" : "amber"}>
-            {plan === "free" ? "Free" : "Active"}
+          <Badge variant={tier === "FREE" ? "default" : "amber"}>
+            {tier === "FREE" ? "Free" : "Active"}
           </Badge>
         </div>
 
-        {plan === "free" ? (
+        {tier === "FREE" ? (
           <p className="mb-5 text-[var(--text-sm)] text-[var(--text-secondary)]">
             100 credits one-time. Subscribe for monthly credits.
           </p>
@@ -166,7 +166,7 @@ export function BillingClient({
           </p>
         )}
 
-        {plan === "free" && (
+        {tier === "FREE" && (
           <div className="grid gap-3 sm:grid-cols-3">
             {PLANS.map((p) => (
               <button
@@ -200,7 +200,7 @@ export function BillingClient({
       </div>
 
       {/* Credit Packs — only for subscribed users */}
-      {plan !== "free" && (
+      {tier !== "FREE" && (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
           <h2 className="mb-4 text-[var(--text-base)] font-medium text-[var(--text-primary)]">
             Credit Packs

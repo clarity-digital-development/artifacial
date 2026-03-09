@@ -7,6 +7,7 @@ export const config = {
   matcher: [
     "/studio/:path*",
     "/characters/:path*",
+    "/generate/:path*",
     "/projects/:path*",
     "/gallery/:path*",
     "/settings/:path*",

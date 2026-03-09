@@ -40,6 +40,14 @@ function IconProjects({ className }: { className?: string }) {
   );
 }
 
+function IconGenerate({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
 function IconGallery({ className }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,6 +70,7 @@ function IconSettings({ className }: { className?: string }) {
 const NAV_ITEMS: { href: string; label: string; icon: (props: { className?: string }) => ReactNode }[] = [
   { href: "/studio", label: "Studio", icon: IconStudio },
   { href: "/characters", label: "Characters", icon: IconCharacters },
+  { href: "/generate", label: "Create Video", icon: IconGenerate },
   { href: "/projects", label: "Projects", icon: IconProjects },
   { href: "/gallery", label: "Gallery", icon: IconGallery },
   { href: "/settings", label: "Settings", icon: IconSettings },
