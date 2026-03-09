@@ -161,7 +161,6 @@ model Project {
   updatedAt      DateTime  @updatedAt
 
   scenes      Scene[]
-  jobs        GenerationJob[]
   generations Generation[]
 }
 
@@ -188,26 +187,7 @@ model Scene {
   generations Generation[]
 }
 
-// Phase 1 legacy — kept for backward compatibility during migration
-model GenerationJob {
-  id            String    @id @default(cuid())
-  userId        String
-  type          String
-  status        String    @default("queued")
-  projectId     String?
-  project       Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sceneId       String?
-  characterId   String?
-  externalJobId String?
-  queuePosition Int?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  error         String?   @db.Text
-  meta          Json?
-  createdAt     DateTime  @default(now())
-}
-
-// ─── Phase 2: Generation System ───
+// ─── Generation System ───
 
 model Generation {
   id            String           @id @default(cuid())

@@ -28,11 +28,11 @@ export async function GET(
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  // Get the latest generation job for progress info
-  const latestJob = await prisma.generationJob.findFirst({
+  // Get the latest generation for progress info
+  const latestGeneration = await prisma.generation.findFirst({
     where: { projectId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, status: true, error: true, createdAt: true },
+    orderBy: { queuedAt: "desc" },
+    select: { id: true, status: true, errorMessage: true, progress: true, queuedAt: true },
   });
 
   // Generate signed URL for completed videos
@@ -48,7 +48,8 @@ export async function GET(
   return NextResponse.json({
     status: project.status,
     videoUrl: signedVideoUrl,
-    error: latestJob?.status === "failed" ? latestJob.error : null,
-    jobId: latestJob?.id ?? null,
+    error: latestGeneration?.status === "FAILED" ? latestGeneration.errorMessage : null,
+    generationId: latestGeneration?.id ?? null,
+    progress: latestGeneration?.progress ?? 0,
   });
 }
