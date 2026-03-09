@@ -147,12 +147,12 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Horizontally scrollable strip */}
-            <div className="flex gap-4 overflow-x-auto px-8 pb-4 lg:px-16 scrollbar-hide">
+            {/* Centered card grid */}
+            <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-5 px-8 py-2 lg:px-16">
               {section.cards.map((card, cardIdx) => (
                 <div
                   key={card.title}
-                  className="group relative flex-shrink-0 w-[280px] aspect-[16/10] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden transition-all duration-300 hover:border-[var(--accent-amber)]/30 hover:shadow-[0_0_24px_rgba(232,166,52,0.08)] hover:scale-[1.02]"
+                  className="group relative w-[340px] aspect-[16/10] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden transition-all duration-300 hover:border-[var(--accent-amber)]/30 hover:shadow-[0_0_24px_rgba(232,166,52,0.08)] hover:scale-[1.02]"
                   style={{
                     animationDelay: `${sectionIdx * 100 + cardIdx * 50}ms`,
                   }}
