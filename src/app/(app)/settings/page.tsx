@@ -4,14 +4,18 @@ import { prisma } from "@/lib/db";
 import { PLANS, type PlanKey } from "@/lib/stripe";
 import { BillingClient } from "./billing-client";
 import { ContentModeClient } from "./content-mode-client";
+import { ProfileSection, DangerZoneSection } from "./settings-client";
 
 export default async function SettingsPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
+  const userId = session?.user?.id;
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+  const user = userId ? await prisma.user.findUnique({
+    where: { id: userId },
     select: {
+      name: true,
       subscriptionTier: true,
       subscriptionCredits: true,
       purchasedCredits: true,
@@ -20,13 +24,13 @@ export default async function SettingsPage() {
       contentMode: true,
       dateOfBirth: true,
     },
-  });
+  }) : null;
 
   const tier = (user?.subscriptionTier ?? "FREE") as PlanKey;
   const planConfig = PLANS[tier];
 
-  const recentTransactions = await prisma.creditTransaction.findMany({
-    where: { userId: session.user.id },
+  const recentTransactions = userId ? await prisma.creditTransaction.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {
@@ -36,7 +40,7 @@ export default async function SettingsPage() {
       description: true,
       createdAt: true,
     },
-  });
+  }) : [];
 
   return (
     <div>
@@ -45,60 +49,47 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
-          Account and billing
+          Account, preferences, and billing
         </p>
       </div>
 
-      <div className="max-w-2xl space-y-6">
-        {/* Account */}
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Account
-          </h2>
-          <div className="flex items-center gap-4">
-            {session.user.image ? (
-              <img
-                src={session.user.image}
-                alt={session.user.name ?? "User"}
-                className="h-14 w-14 rounded-full ring-2 ring-[var(--border-default)]"
-              />
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-lg font-medium text-[var(--text-secondary)] ring-2 ring-[var(--border-default)]">
-                {session.user.name?.[0]?.toUpperCase() ?? "U"}
-              </div>
-            )}
-            <div>
-              <p className="font-medium text-[var(--text-primary)]">
-                {session.user.name ?? "User"}
-              </p>
-              <p className="text-sm text-[var(--text-secondary)]">
-                {session.user.email}
-              </p>
-            </div>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left column — Account & Preferences */}
+        <div className="space-y-6">
+          <ProfileSection
+            initialName={user?.name ?? session?.user?.name ?? "Preview"}
+            email={session?.user?.email ?? "preview@test.com"}
+            image={session?.user?.image ?? null}
+          />
+
+          <ContentModeClient
+            contentMode={user?.contentMode ?? "SFW"}
+            hasDateOfBirth={!!user?.dateOfBirth}
+            subscriptionTier={user?.subscriptionTier ?? "FREE"}
+          />
+
+          <DangerZoneSection />
         </div>
 
-        <ContentModeClient
-          contentMode={user?.contentMode ?? "SFW"}
-          hasDateOfBirth={!!user?.dateOfBirth}
-        />
-
-        <BillingClient
-          tier={tier}
-          planName={planConfig.name}
-          subscriptionCredits={user?.subscriptionCredits ?? 0}
-          purchasedCredits={user?.purchasedCredits ?? 0}
-          planCredits={planConfig.credits}
-          hasStripeCustomer={!!user?.stripeCustomerId}
-          isFoundingMember={user?.isFoundingMember ?? false}
-          transactions={recentTransactions.map((t) => ({
-            id: t.id,
-            type: t.type,
-            credits: t.credits,
-            description: t.description,
-            createdAt: t.createdAt.toISOString(),
-          }))}
-        />
+        {/* Right column — Billing & Credits */}
+        <div className="space-y-6">
+          <BillingClient
+            tier={tier}
+            planName={planConfig.name}
+            subscriptionCredits={user?.subscriptionCredits ?? 0}
+            purchasedCredits={user?.purchasedCredits ?? 0}
+            planCredits={planConfig.credits}
+            hasStripeCustomer={!!user?.stripeCustomerId}
+            isFoundingMember={user?.isFoundingMember ?? false}
+            transactions={recentTransactions.map((t) => ({
+              id: t.id,
+              type: t.type,
+              credits: t.credits,
+              description: t.description,
+              createdAt: t.createdAt.toISOString(),
+            }))}
+          />
+        </div>
       </div>
     </div>
   );

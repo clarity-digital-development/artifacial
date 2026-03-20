@@ -1,0 +1,214 @@
+{
+  "_comment": "Wan2.2 MoE Style Transfer via VACE — Reference image style applied to character video via WanVideoVACEEncode. Replaces IPAdapter style path.",
+
+  "1": {
+    "class_type": "WanVideoModelLoader",
+    "inputs": {
+      "model": "Wan2_2-I2V-A14B-HIGH_fp8_e4m3fn_scaled_KJ.safetensors",
+      "base_precision": "bf16",
+      "quantization": "disabled",
+      "load_device": "offload_device",
+      "compile_args": ["11", 0],
+      "extra_model": ["20", 0]
+    },
+    "_meta": { "title": "Load Wan2.2 High-Noise Expert (+ VACE)" }
+  },
+  "2": {
+    "class_type": "WanVideoModelLoader",
+    "inputs": {
+      "model": "Wan2_2-I2V-A14B-LOW_fp8_e4m3fn_scaled_KJ.safetensors",
+      "base_precision": "bf16",
+      "quantization": "disabled",
+      "load_device": "offload_device",
+      "compile_args": ["11", 0],
+      "extra_model": ["20", 0]
+    },
+    "_meta": { "title": "Load Wan2.2 Low-Noise Expert (+ VACE)" }
+  },
+  "3": {
+    "class_type": "WanVideoVAELoader",
+    "inputs": {
+      "model_name": "Wan2_1_VAE_bf16.safetensors",
+      "precision": "bf16"
+    },
+    "_meta": { "title": "Load Wan VAE" }
+  },
+  "4": {
+    "class_type": "LoadWanVideoT5TextEncoder",
+    "inputs": {
+      "model_name": "umt5-xxl-enc-bf16.safetensors",
+      "precision": "bf16"
+    },
+    "_meta": { "title": "Load T5 Text Encoder" }
+  },
+  "5": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "style_reference.png"
+    },
+    "_meta": { "title": "Load Style Reference Image" }
+  },
+  "6": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "character_image.png"
+    },
+    "_meta": { "title": "Load Character Image" }
+  },
+  "7": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "_meta": { "title": "Load CLIP Vision" }
+  },
+  "8": {
+    "class_type": "WanVideoClipVisionEncode",
+    "inputs": {
+      "clip_vision": ["7", 0],
+      "image_1": ["6", 0],
+      "strength_1": 1.0,
+      "strength_2": 1.0,
+      "crop": "center",
+      "combine_embeds": "average",
+      "force_offload": true
+    },
+    "_meta": { "title": "CLIP Vision Encode Character" }
+  },
+  "9": {
+    "class_type": "WanVideoVACEEncode",
+    "inputs": {
+      "vae": ["3", 0],
+      "ref_images": ["5", 0],
+      "input_frames": ["6", 0],
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "strength": 0.85,
+      "vace_start_percent": 0.0,
+      "vace_end_percent": 1.0
+    },
+    "_meta": { "title": "VACE Encode (style reference → embeds)" }
+  },
+  "10": {
+    "class_type": "WanVideoImageToVideoEncode",
+    "inputs": {
+      "vae": ["3", 0],
+      "clip_embeds": ["8", 0],
+      "start_image": ["6", 0],
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "noise_aug_strength": 0.0,
+      "start_latent_strength": 1.0,
+      "end_latent_strength": 1.0,
+      "force_offload": true
+    },
+    "_meta": { "title": "I2V Encode Character Start Frame" }
+  },
+  "11": {
+    "class_type": "WanVideoTorchCompileSettings",
+    "inputs": {
+      "backend": "inductor",
+      "fullgraph": false,
+      "mode": "default",
+      "dynamic": false,
+      "dynamo_cache_size_limit": 64,
+      "compile_transformer_blocks_only": true
+    },
+    "_meta": { "title": "Torch Compile Settings" }
+  },
+  "12": {
+    "class_type": "WanVideoTextEncode",
+    "inputs": {
+      "positive_prompt": "A cinematic video in artistic style, smooth motion, high quality",
+      "negative_prompt": "blurry, low quality, distorted, deformed, static, watermark, text",
+      "t5": ["4", 0]
+    },
+    "_meta": { "title": "Encode Text Prompts" }
+  },
+  "13": {
+    "class_type": "WanVideoSLG",
+    "inputs": {
+      "blocks": "9",
+      "start_percent": 0.1,
+      "end_percent": 1.0
+    },
+    "_meta": { "title": "Skip Layer Guidance" }
+  },
+  "14": {
+    "class_type": "WanVideoSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "image_embeds": ["10", 0],
+      "text_embeds": ["12", 0],
+      "seed": 42,
+      "steps": 24,
+      "cfg": 5.0,
+      "shift": 5.0,
+      "force_offload": true,
+      "scheduler": "euler/beta",
+      "riflex_freq_index": 0,
+      "slg_args": ["13", 0],
+      "start_step": 0,
+      "end_step": 14,
+      "rope_function": "comfy"
+    },
+    "_meta": { "title": "Sample High-Noise Expert (Steps 0→14)" }
+  },
+  "15": {
+    "class_type": "WanVideoSampler",
+    "inputs": {
+      "model": ["2", 0],
+      "image_embeds": ["10", 0],
+      "text_embeds": ["12", 0],
+      "seed": 42,
+      "steps": 24,
+      "cfg": 5.0,
+      "shift": 5.0,
+      "force_offload": true,
+      "scheduler": "dpm++/beta",
+      "riflex_freq_index": 0,
+      "slg_args": ["13", 0],
+      "samples": ["14", 0],
+      "start_step": 14,
+      "end_step": -1,
+      "rope_function": "comfy"
+    },
+    "_meta": { "title": "Sample Low-Noise Expert (Steps 14→24)" }
+  },
+  "16": {
+    "class_type": "WanVideoDecode",
+    "inputs": {
+      "vae": ["3", 0],
+      "samples": ["15", 0],
+      "enable_vae_tiling": true,
+      "tile_x": 272,
+      "tile_y": 272,
+      "tile_stride_x": 144,
+      "tile_stride_y": 128
+    },
+    "_meta": { "title": "Decode Latent to Frames" }
+  },
+  "17": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": ["16", 0],
+      "frame_rate": 16,
+      "loop_count": 0,
+      "filename_prefix": "artifacial_style",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true
+    },
+    "_meta": { "title": "Save Output Video" }
+  },
+
+  "20": {
+    "class_type": "WanVideoVACEModelSelect",
+    "inputs": {
+      "vace_model": "Wan2_1-I2V-14B-720P_fp8_e4m3fn.safetensors"
+    },
+    "_meta": { "title": "VACE Model Select (placeholder — update after Wan2.2 VACE download)" }
+  }
+}

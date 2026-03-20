@@ -647,7 +647,7 @@ export function SceneBuilderClient({
           {/* Video player */}
           <div className="flex flex-1 items-center justify-center p-6">
             <div className="relative w-full max-w-2xl overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-deep)] shadow-[0_0_80px_rgba(0,0,0,0.4)]">
-              <div className="pointer-events-none absolute inset-0 vignette" />
+              <div className="pointer-events-none absolute inset-0" />
 
               {activeVideoUrl ? (
                 <video

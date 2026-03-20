@@ -70,14 +70,18 @@ function IconSettings({ className }: { className?: string }) {
 const NAV_ITEMS: { href: string; label: string; icon: (props: { className?: string }) => ReactNode }[] = [
   { href: "/studio", label: "Studio", icon: IconStudio },
   { href: "/characters", label: "Characters", icon: IconCharacters },
-  { href: "/generate", label: "Create Video", icon: IconGenerate },
-  { href: "/projects", label: "Projects", icon: IconProjects },
+  { href: "/generate", label: "Create", icon: IconGenerate },
   { href: "/gallery", label: "Gallery", icon: IconGallery },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  contentMode?: string;
+}
+
+export function Sidebar({ contentMode }: SidebarProps) {
   const pathname = usePathname();
+  const isNsfw = contentMode === "NSFW";
 
   return (
     <aside className="flex h-full w-[72px] flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6">
@@ -95,7 +99,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                 isActive
                   ? "bg-[var(--accent-amber-glow)] text-[var(--accent-amber)] shadow-[0_0_12px_rgba(232,166,52,0.1)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
@@ -103,6 +107,9 @@ export function Sidebar() {
               title={item.label}
             >
               <Icon />
+              {isNsfw && item.href === "/settings" && (
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--bg-surface)] bg-[var(--accent-amber)]" />
+              )}
             </Link>
           );
         })}

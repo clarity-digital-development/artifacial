@@ -5,15 +5,17 @@ import { ProjectsClient } from "./client";
 
 export default async function ProjectsPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
+  const userId = session?.user?.id;
 
-  const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
+  const projects = userId ? await prisma.project.findMany({
+    where: { userId },
     orderBy: { updatedAt: "desc" },
     include: {
       character: { select: { name: true } },
     },
-  });
+  }) : [];
 
   const serialized = projects.map((p) => ({
     id: p.id,

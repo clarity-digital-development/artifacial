@@ -29,6 +29,7 @@ const PLANS = [
   { key: "STARTER", name: "Starter", price: "$15", credits: 1500, baseCredits: 1000, bonusLabel: "+50% bonus" },
   { key: "CREATOR", name: "Creator", price: "$50", credits: 5000, baseCredits: 3500, bonusLabel: "+43% bonus" },
   { key: "PRO", name: "Pro", price: "$100", credits: 15000, baseCredits: 10000, bonusLabel: "+50% bonus" },
+  { key: "STUDIO", name: "Studio", price: "$165", credits: 50000, baseCredits: 35000, bonusLabel: "+43% bonus" },
 ];
 
 const CREDIT_PACKS = [
@@ -98,7 +99,7 @@ export function BillingClient({
       {/* Current Credits */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Credits
           </h2>
           {isFoundingMember && (
@@ -133,7 +134,7 @@ export function BillingClient({
       {/* Plan */}
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Plan
           </h2>
           {hasStripeCustomer && (
@@ -167,7 +168,7 @@ export function BillingClient({
         )}
 
         {tier === "FREE" && (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {PLANS.map((p) => (
               <button
                 key={p.key}

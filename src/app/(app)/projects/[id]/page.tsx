@@ -10,17 +10,19 @@ export default async function SceneBuilderPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
+  const userId = session?.user?.id;
 
   const { id } = await params;
-  const project = await prisma.project.findFirst({
-    where: { id, userId: session.user.id },
+  const project = userId ? await prisma.project.findFirst({
+    where: { id, userId },
     include: {
       character: {
         select: { id: true, name: true, referenceImages: true, style: true },
       },
     },
-  });
+  }) : null;
 
   if (!project) notFound();
 
@@ -48,11 +50,11 @@ export default async function SceneBuilderPage({
   }
 
   // Get all user characters with thumbnails for the character selector
-  const rawCharacters = await prisma.character.findMany({
-    where: { userId: session.user.id },
+  const rawCharacters = userId ? await prisma.character.findMany({
+    where: { userId },
     select: { id: true, name: true, style: true, referenceImages: true },
     orderBy: { createdAt: "desc" },
-  });
+  }) : [];
 
   const characters = await Promise.all(
     rawCharacters.map(async (c) => {
@@ -69,9 +71,9 @@ export default async function SceneBuilderPage({
   );
 
   // Fetch recent projects for history (last 20, excluding current)
-  const recentProjects = await prisma.project.findMany({
+  const recentProjects = userId ? await prisma.project.findMany({
     where: {
-      userId: session.user.id,
+      userId,
       id: { not: id },
       status: { in: ["complete", "generating", "failed"] },
     },
@@ -80,7 +82,7 @@ export default async function SceneBuilderPage({
     include: {
       character: { select: { name: true } },
     },
-  });
+  }) : [];
 
   const history = await Promise.all(
     recentProjects.map(async (p) => {

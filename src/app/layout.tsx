@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans } from "next/font/google";
+import { Suspense } from "react";
+import { DM_Sans, Goldman } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { PostHogProvider } from "@/components/posthog-provider";
 import "./globals.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+const goldman = Goldman({
+  variable: "--font-goldman",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["700"],
 });
 
 const dmSans = DM_Sans({
@@ -29,9 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${syne.variable} ${dmSans.variable} antialiased`}
+        className={`${goldman.variable} ${dmSans.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense fallback={null}>
+            <PostHogProvider>{children}</PostHogProvider>
+          </Suspense>
+        </Providers>
       </body>
     </html>
   );

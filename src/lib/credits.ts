@@ -27,44 +27,66 @@ export async function getAvailableCredits(userId: string): Promise<{
 /**
  * Deduct credits from a user's balance. Consumes subscription credits first,
  * then purchased credits. Returns false if insufficient credits.
+ *
+ * Uses a Prisma transaction to prevent race conditions — the balance check
+ * and decrement happen atomically. If generationId is provided, it's linked
+ * to the credit transaction for traceability.
  */
 export async function deductCredits(
   userId: string,
   amount: number,
   description: string,
-  type: string = "debit"
+  type: string = "debit",
+  generationId?: string
 ): Promise<boolean> {
-  const { subscription, purchased, total, isAdmin } = await getAvailableCredits(userId);
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Read inside transaction — holds a row-level lock
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { subscriptionCredits: true, purchasedCredits: true, isAdmin: true },
+      });
 
-  // Admin users have unlimited credits — skip deduction
-  if (isAdmin) return true;
+      // Admin users have unlimited credits — skip deduction
+      if (user.isAdmin) return;
 
-  if (total < amount) return false;
+      const total = user.subscriptionCredits + user.purchasedCredits;
+      if (total < amount) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
 
-  // Calculate split: subscription credits consumed first
-  const fromSubscription = Math.min(subscription, amount);
-  const fromPurchased = amount - fromSubscription;
+      // Calculate split: subscription credits consumed first
+      const fromSubscription = Math.min(user.subscriptionCredits, amount);
+      const fromPurchased = amount - fromSubscription;
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscriptionCredits: { decrement: fromSubscription },
-      ...(fromPurchased > 0
-        ? { purchasedCredits: { decrement: fromPurchased } }
-        : {}),
-    },
-  });
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          subscriptionCredits: { decrement: fromSubscription },
+          ...(fromPurchased > 0
+            ? { purchasedCredits: { decrement: fromPurchased } }
+            : {}),
+        },
+      });
 
-  await prisma.creditTransaction.create({
-    data: {
-      userId,
-      type,
-      credits: -amount,
-      description,
-    },
-  });
+      await tx.creditTransaction.create({
+        data: {
+          userId,
+          type,
+          credits: -amount,
+          description,
+          generationId: generationId || undefined,
+        },
+      });
+    });
 
-  return true;
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+      return false;
+    }
+    throw error;
+  }
 }
 
 /**

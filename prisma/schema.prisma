@@ -36,10 +36,18 @@ enum WorkflowType {
   FACE_SWAP
   IMAGE_TO_VIDEO
   TEXT_TO_VIDEO
+  TEXT_TO_IMAGE
   MOTION_TRANSFER
   TALKING_HEAD
+  LIP_SYNC
   UPSCALE
   STYLE_TRANSFER
+}
+
+enum GenerationProvider {
+  FAL_AI
+  SELF_HOSTED
+  COMFYUI_POST_PROCESS
 }
 
 // ─── NextAuth Required Models ───
@@ -107,6 +115,7 @@ model User {
   strikeCount      Int              @default(0)
   bannedAt         DateTime?
   banReason        String?
+  deletedAt        DateTime?
 
   accounts            Account[]
   sessions            Session[]
@@ -195,9 +204,14 @@ model Generation {
   characterId   String?
   projectId     String?
   sceneId       String?
+  parentGenerationId String?
   workflowType  WorkflowType
   status        GenerationStatus @default(QUEUED)
   contentMode   ContentMode      @default(SFW)
+  provider      GenerationProvider @default(FAL_AI)
+  modelId       String?
+  apiCost       Float?
+  withAudio     Boolean          @default(false)
   inputParams   Json
   outputUrl     String?
   thumbnailUrl  String?
@@ -217,6 +231,8 @@ model Generation {
   character          Character?       @relation(fields: [characterId], references: [id])
   project            Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   scene              Scene?           @relation(fields: [sceneId], references: [id], onDelete: SetNull)
+  parentGeneration   Generation?      @relation("PostProcessChain", fields: [parentGenerationId], references: [id], onDelete: SetNull)
+  childGenerations   Generation[]     @relation("PostProcessChain")
   moderation         GenerationModeration?
   creditTransactions CreditTransaction[]
 
@@ -224,6 +240,7 @@ model Generation {
   @@index([status])
   @@index([userId, status])
   @@index([workflowType])
+  @@index([parentGenerationId])
 }
 
 model GenerationModeration {
@@ -232,6 +249,8 @@ model GenerationModeration {
   promptClassification  Json
   outputScanResult      Json?
   flagged               Boolean    @default(false)
+  promptText            String?
+  ipAddress             String?
   createdAt             DateTime   @default(now())
 
   generation            Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)

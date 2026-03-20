@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildCharacterPrompts, generateImageWithGemini } from "@/lib/gemini";
+import { isFalImageModel, generateImageWithFal, getFalImageModel, type FalImageModelId } from "@/lib/fal-image";
 import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } from "@/lib/r2";
 import { CREDIT_COSTS } from "@/lib/stripe";
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
@@ -15,7 +16,21 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id;
-  const cost = CREDIT_COSTS.characterCreation; // 40 credits (4 × 10)
+
+  const formData = await req.formData();
+  const name = formData.get("name") as string;
+  const style = formData.get("style") as string;
+  const mode = formData.get("mode") as string;
+  const description = (formData.get("description") as string) ?? "";
+  const model = (formData.get("model") as string) ?? "";
+  const aspectRatio = (formData.get("aspectRatio") as string) ?? "1:1";
+  const photoFile = formData.get("photo") as File | null;
+
+  // Calculate cost based on model
+  const useFal = isFalImageModel(model);
+  const falModel = useFal ? getFalImageModel(model) : null;
+  const perImageCost = falModel?.creditCost ?? CREDIT_COSTS.imageGeneration;
+  const cost = 4 * perImageCost; // 4 angles
 
   // Check credits
   const { total } = await getAvailableCredits(userId);
@@ -29,15 +44,6 @@ export async function POST(req: NextRequest) {
       { status: 403 }
     );
   }
-
-  const formData = await req.formData();
-  const name = formData.get("name") as string;
-  const style = formData.get("style") as string;
-  const mode = formData.get("mode") as string;
-  const description = (formData.get("description") as string) ?? "";
-  const model = (formData.get("model") as string) ?? "";
-  const aspectRatio = (formData.get("aspectRatio") as string) ?? "1:1";
-  const photoFile = formData.get("photo") as File | null;
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -90,12 +96,14 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(
         prompts.map(async (prompt, index) => {
           try {
-            const imageBuffer = await generateImageWithGemini(
-              prompt,
-              referenceImageBase64,
-              model,
-              aspectRatio
-            );
+            const imageBuffer = useFal
+              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio)
+              : await generateImageWithGemini(
+                  prompt,
+                  referenceImageBase64,
+                  model,
+                  aspectRatio
+                );
             const key = r2KeyForCharacterImage(
               userId,
               character.id,
@@ -125,12 +133,12 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Refund credits for failed generations (10 credits per failed angle)
+      // Refund credits for failed generations
       const failedCount = results.filter(
         (r) => r.status === "rejected"
       ).length;
       if (failedCount > 0) {
-        const refundAmount = failedCount * CREDIT_COSTS.imageGeneration;
+        const refundAmount = failedCount * perImageCost;
         await refundCredits(
           userId,
           refundAmount,

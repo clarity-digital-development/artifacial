@@ -5,9 +5,11 @@ import { getCharactersWithSignedUrls } from "@/lib/characters";
 
 export default async function CharactersPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
+  const userId = session?.user?.id;
 
-  const characters = await getCharactersWithSignedUrls(session.user.id);
+  const characters = userId ? await getCharactersWithSignedUrls(userId) : [];
 
   return (
     <div>

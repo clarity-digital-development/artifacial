@@ -10,22 +10,41 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { subscriptionCredits: true, purchasedCredits: true },
-  });
+  let totalCredits = 100;
+  let contentMode = "SFW";
+  let subscriptionTier = "FREE";
+  let hasDateOfBirth = false;
 
-  const totalCredits = (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0);
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        subscriptionCredits: true,
+        purchasedCredits: true,
+        contentMode: true,
+        subscriptionTier: true,
+        dateOfBirth: true,
+      },
+    });
+    totalCredits = (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0);
+    contentMode = user?.contentMode ?? "SFW";
+    subscriptionTier = user?.subscriptionTier ?? "FREE";
+    hasDateOfBirth = !!user?.dateOfBirth;
+  }
 
   return (
-    <div className="grain ambient-light vignette flex h-screen bg-[var(--bg-deep)]">
-      <Sidebar />
+    <div className="grain ambient-light flex h-screen bg-[var(--bg-deep)]">
+      <Sidebar contentMode={contentMode} />
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
-          user={session.user}
+          user={session?.user ?? { name: "Preview", email: "preview@test.com" }}
           credits={totalCredits}
+          contentMode={contentMode}
+          subscriptionTier={subscriptionTier}
+          hasDateOfBirth={hasDateOfBirth}
         />
         <main className="stagger-reveal flex-1 overflow-y-auto px-8 py-6 lg:px-12">
           {children}

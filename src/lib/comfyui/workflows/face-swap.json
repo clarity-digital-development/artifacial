@@ -1,0 +1,96 @@
+{
+  "_comment": "Face swap pipeline: VHS_LoadVideo → ReActorFaceSwapOpt (reswapper_256 + GPEN-BFR-512 + FaceBoost) → ReActorMaskHelper (YOLOv8m + SAM ViT-L for occlusion) → Pixel Deflicker → VHS_VideoCombine. Commercial-safe (reswapper_256 is AGPL-3.0, not InsightFace non-commercial). Peak VRAM: ~5-7 GB on A6000.",
+
+  "1": {
+    "class_type": "VHS_LoadVideo",
+    "inputs": {
+      "video": "input_video.mp4",
+      "force_rate": 0,
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 0,
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+    },
+    "_meta": { "title": "Load Target Video" }
+  },
+
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "source_face.png"
+    },
+    "_meta": { "title": "Load Source Face Image" }
+  },
+
+  "3": {
+    "class_type": "ReActorFaceSwapOpt",
+    "inputs": {
+      "enabled": true,
+      "input_image": ["1", 0],
+      "source_image": ["2", 0],
+      "swap_model": "reswapper_256.onnx",
+      "facedetection": "retinaface_resnet50",
+      "face_restore_model": "GPEN-BFR-512.onnx",
+      "face_restore_visibility": 1.0,
+      "codeformer_weight": 0.7,
+      "face_boost_enabled": true,
+      "boost_model": "GPEN-BFR-512.onnx",
+      "boost_cf_weight": 0.65,
+      "detect_gender_input": "no",
+      "detect_gender_source": "no",
+      "input_faces_index": "0",
+      "source_faces_index": "0",
+      "console_log_level": 1
+    },
+    "_meta": { "title": "ReActor Face Swap (ReSwapper 256 + GPEN FaceBoost)" }
+  },
+
+  "4": {
+    "class_type": "ReActorMaskHelper",
+    "inputs": {
+      "image": ["3", 0],
+      "swapped_image": ["3", 0],
+      "bbox_model_name": "face_yolov8m.pt",
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3.0,
+      "sam_model_name": "sam_vit_l_0b3195.pth",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "bbox_expansion": 0,
+      "mask_hint_threshold": 0.7,
+      "mask_hint_use_negative": "False",
+      "morphology_distance": 0,
+      "morphology_operation": "dilate",
+      "blur_radius": 9,
+      "sigma_factor": 1.0
+    },
+    "_meta": { "title": "MaskHelper (YOLOv8m + SAM ViT-L occlusion handling)" }
+  },
+
+  "5": {
+    "class_type": "Pixel Deflicker",
+    "inputs": {
+      "images": ["4", 0],
+      "window_size": 5,
+      "smooth_strength": 0.5
+    },
+    "_meta": { "title": "Pixel Deflicker (temporal brightness/color smoothing)" }
+  },
+
+  "6": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": ["5", 0],
+      "audio": ["1", 2],
+      "frame_rate": 16,
+      "loop_count": 0,
+      "filename_prefix": "artifacial_faceswap",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true
+    },
+    "_meta": { "title": "Save Output Video (preserves original audio)" }
+  }
+}

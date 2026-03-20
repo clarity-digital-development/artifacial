@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const PLACEHOLDER_PROMPTS = [
   "A warrior queen standing on a cliff at sunset...",
-  "Me as a cyberpunk detective in neon-lit Tokyo...",
+  "A cyberpunk detective in neon-lit Tokyo streets...",
   "A mysterious stranger in a noir film scene...",
   "An astronaut exploring ancient ruins on Mars...",
   "A jazz musician in a smoky 1920s speakeasy...",
@@ -30,22 +30,19 @@ export function QuickCreateBar() {
     return () => clearInterval(interval);
   }, [prompt]);
 
-  const handleCreateCharacter = () => {
+  const handleGenerate = () => {
     if (!prompt.trim()) {
-      router.push("/characters/new");
+      router.push("/generate");
       return;
     }
-    const params = new URLSearchParams({
-      prompt: prompt.trim(),
-      tab: "description",
-    });
-    router.push(`/characters/new?${params.toString()}`);
+    const params = new URLSearchParams({ prompt: prompt.trim() });
+    router.push(`/generate?${params.toString()}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleCreateCharacter();
+      handleGenerate();
     }
   };
 
@@ -53,7 +50,7 @@ export function QuickCreateBar() {
     <section>
       <div className="mb-3 flex items-center gap-2">
         <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]" />
-        <span className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Quick Create</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quick Generate</span>
       </div>
       <div className="relative flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:border-[var(--accent-amber)] focus-within:shadow-[0_0_32px_rgba(232,166,52,0.1)]">
         <div className="relative flex-1">
@@ -77,10 +74,10 @@ export function QuickCreateBar() {
           )}
         </div>
         <button
-          onClick={handleCreateCharacter}
+          onClick={handleGenerate}
           className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--accent-amber-dim)]"
         >
-          Create Character
+          Generate Video
         </button>
       </div>
     </section>

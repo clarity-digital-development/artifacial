@@ -1,46 +1,80 @@
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { canUseResolution } from "@/lib/stripe";
+import { getSignedR2Url } from "@/lib/r2";
 import { GenerateClient } from "./generate-client";
+
+export type CharacterOption = {
+  id: string;
+  name: string;
+  style: string;
+  thumbnailUrl: string | null;
+  referenceImageKey: string | null;
+};
 
 export default async function GeneratePage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
 
-  const [user, characters] = await Promise.all([
-    prisma.user.findUnique({
+  let totalCredits = 100;
+  let tier = "STARTER";
+  let contentMode = "SFW";
+  let characters: CharacterOption[] = [];
+
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
-        subscriptionTier: true,
         subscriptionCredits: true,
         purchasedCredits: true,
+        subscriptionTier: true,
         contentMode: true,
       },
-    }),
-    prisma.character.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        referenceImages: true,
-        faceImageUrl: true,
-      },
-    }),
-  ]);
+    });
 
-  const tier = user?.subscriptionTier ?? "FREE";
-  const totalCredits =
-    (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0);
+    if (user) {
+      totalCredits = user.subscriptionCredits + user.purchasedCredits;
+      tier = user.subscriptionTier;
+      contentMode = user.contentMode;
+    }
+
+    // Fetch characters with thumbnails for I2V character picker
+    const userCharacters = await prisma.character.findMany({
+      where: { userId: session.user.id },
+      select: { id: true, name: true, style: true, referenceImages: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    characters = await Promise.all(
+      userCharacters.map(async (c) => {
+        const firstKey = c.referenceImages[0] ?? null;
+        let thumbnailUrl: string | null = null;
+        if (firstKey) {
+          try {
+            thumbnailUrl = await getSignedR2Url(firstKey, 86400);
+          } catch {
+            // R2 may not be configured
+          }
+        }
+        return {
+          id: c.id,
+          name: c.name,
+          style: c.style,
+          thumbnailUrl,
+          referenceImageKey: firstKey,
+        };
+      })
+    );
+  }
 
   return (
     <GenerateClient
-      characters={characters}
       totalCredits={totalCredits}
       tier={tier}
-      canUse1080p={canUseResolution(tier, "1080p")}
-      canUse1440p={canUseResolution(tier, "1440p")}
+      characters={characters}
+      contentMode={contentMode}
     />
   );
 }

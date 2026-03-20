@@ -123,7 +123,7 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <div className="grain ambient-light vignette relative flex min-h-screen items-center justify-center bg-[var(--bg-deep)] px-4">
+    <div className="grain ambient-light relative flex min-h-screen items-center justify-center bg-[var(--bg-deep)] px-4">
       <div className="relative z-10 w-full max-w-[400px]">
         <div className="mb-10 text-center">
           <Link href="/" className="inline-block">

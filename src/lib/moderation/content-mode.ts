@@ -25,6 +25,7 @@ export async function resolveContentMode(
       contentMode: true,
       dateOfBirth: true,
       bannedAt: true,
+      subscriptionTier: true,
     },
   });
 
@@ -39,6 +40,15 @@ export async function resolveContentMode(
   // If user hasn't opted into NSFW, stay SFW
   if (user.contentMode !== "NSFW") {
     return { effectiveMode: "SFW" };
+  }
+
+  // Auto-heal: if user has NSFW enabled but downgraded to FREE tier, force SFW
+  if (user.subscriptionTier === "FREE") {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { contentMode: "SFW" },
+    });
+    return { effectiveMode: "SFW", reason: "Subscription required for NSFW content" };
   }
 
   // Verify age confirmation (18+)

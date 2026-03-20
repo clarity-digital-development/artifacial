@@ -30,6 +30,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    async signIn({ user }) {
+      if (!user?.id || !user?.email) return;
+      const adminEmails = (process.env.ADMIN_EMAILS ?? "tanner@claritydigital.dev")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      const shouldBeAdmin = adminEmails.includes(user.email.toLowerCase());
+      // Sync isAdmin flag on every sign-in
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { isAdmin: shouldBeAdmin },
+      }).catch(() => {}); // ignore if user doesn't exist yet (adapter creates after)
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     jwt({ token, user }) {

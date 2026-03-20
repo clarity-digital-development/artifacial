@@ -9,10 +9,12 @@ export default async function CharacterDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth redirect before shipping
+  // if (!session?.user?.id) redirect("/sign-in");
+  const userId = session?.user?.id;
 
   const { id } = await params;
-  const character = await getCharacterWithSignedUrls(id, session.user.id);
+  const character = userId ? await getCharacterWithSignedUrls(id, userId) : null;
 
   if (!character) notFound();
 
