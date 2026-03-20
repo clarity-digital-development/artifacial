@@ -95,11 +95,9 @@ async function generateTextToImage(
 async function generateWithReference(
   model: (typeof FAL_IMAGE_MODELS)[number],
   prompt: string,
-  referenceImageBase64: string,
+  referenceImageUrl: string,
   dims: { width: number; height: number }
 ): Promise<Buffer> {
-  const dataUri = `data:image/jpeg;base64,${referenceImageBase64}`;
-
   let result;
 
   if (model.id === "flux-2-pro") {
@@ -107,8 +105,7 @@ async function generateWithReference(
     result = await fal.subscribe(model.editEndpoint, {
       input: {
         prompt: `Using this reference photo as the character's face and identity: ${prompt}`,
-        image_urls: [dataUri],
-        image_size: { width: dims.width, height: dims.height },
+        image_urls: [referenceImageUrl],
       },
     });
   } else if (model.id === "recraft-v3") {
@@ -116,7 +113,7 @@ async function generateWithReference(
     result = await fal.subscribe(model.editEndpoint, {
       input: {
         prompt,
-        image_url: dataUri,
+        image_url: referenceImageUrl,
         strength: 0.65,
       },
     });
@@ -125,8 +122,7 @@ async function generateWithReference(
     result = await fal.subscribe(model.editEndpoint, {
       input: {
         prompt,
-        reference_image_urls: [dataUri],
-        image_size: { width: dims.width, height: dims.height },
+        reference_image_urls: [referenceImageUrl],
       },
     });
   } else {
@@ -149,15 +145,15 @@ export async function generateImageWithFal(
   prompt: string,
   modelId: FalImageModelId,
   aspectRatio: string = "1:1",
-  referenceImageBase64?: string
+  referenceImageUrl?: string
 ): Promise<Buffer> {
   const model = getFalImageModel(modelId);
   if (!model) throw new Error(`Unknown fal image model: ${modelId}`);
 
   const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
 
-  if (referenceImageBase64) {
-    return generateWithReference(model, prompt, referenceImageBase64, dims);
+  if (referenceImageUrl) {
+    return generateWithReference(model, prompt, referenceImageUrl, dims);
   }
 
   return generateTextToImage(model, prompt, dims);

@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
 
   // Upload source photo if provided
   let referenceImageBase64: string | undefined;
+  let referenceImageUrl: string | undefined;
   if (mode === "photo" && photoFile) {
     const bytes = new Uint8Array(await photoFile.arrayBuffer());
     const key = r2KeyForUpload(userId, character.id, "source.jpg");
@@ -71,6 +72,8 @@ export async function POST(req: NextRequest) {
       data: { sourceImage: key },
     });
     referenceImageBase64 = Buffer.from(bytes).toString("base64");
+    // Signed URL for fal.ai models (they need a public URL, not base64)
+    referenceImageUrl = await getSignedR2Url(key, 3600);
   }
 
   // Debit credits upfront
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
         prompts.map(async (prompt, index) => {
           try {
             const imageBuffer = useFal
-              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio, referenceImageBase64)
+              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio, referenceImageUrl)
               : await generateImageWithGemini(
                   prompt,
                   referenceImageBase64,
