@@ -1,6 +1,7 @@
 /**
  * fal.ai image generation for character creation.
  * Supports Flux 2 Pro, Recraft V3, and Ideogram V3.
+ * All models support reference image input for character consistency.
  */
 
 import { fal } from "@fal-ai/client";
@@ -16,25 +17,28 @@ export const FAL_IMAGE_MODELS = [
     id: "flux-2-pro",
     name: "Flux 2 Pro",
     endpoint: "fal-ai/flux-2-pro",
+    editEndpoint: "fal-ai/flux-2-pro/edit",
     costPerImage: 0.03,
     creditCost: 10,
-    supportsImageRef: false,
+    supportsImageRef: true,
   },
   {
     id: "recraft-v3",
     name: "Recraft V3",
     endpoint: "fal-ai/recraft/v3/text-to-image",
+    editEndpoint: "fal-ai/recraft/v3/image-to-image",
     costPerImage: 0.04,
     creditCost: 10,
-    supportsImageRef: false,
+    supportsImageRef: true,
   },
   {
     id: "ideogram-v3",
     name: "Ideogram V3",
     endpoint: "fal-ai/ideogram/v3/text-to-image",
+    editEndpoint: "fal-ai/ideogram/character",
     costPerImage: 0.05,
     creditCost: 15,
-    supportsImageRef: false,
+    supportsImageRef: true,
   },
 ] as const;
 
@@ -62,42 +66,99 @@ const ASPECT_RATIO_MAP: Record<string, { width: number; height: number }> = {
   "16:9": { width: 1024, height: 576 },
 };
 
-// ─── Generate ───
+// ─── Generate (text-to-image, no reference) ───
 
-export async function generateImageWithFal(
+async function generateTextToImage(
+  model: (typeof FAL_IMAGE_MODELS)[number],
   prompt: string,
-  modelId: FalImageModelId,
-  aspectRatio: string = "1:1"
+  dims: { width: number; height: number }
 ): Promise<Buffer> {
-  const model = getFalImageModel(modelId);
-  if (!model) throw new Error(`Unknown fal image model: ${modelId}`);
-
-  const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
-
   const result = await fal.subscribe(model.endpoint, {
     input: {
       prompt,
-      image_size: {
-        width: dims.width,
-        height: dims.height,
-      },
+      image_size: { width: dims.width, height: dims.height },
       num_images: 1,
     },
   });
 
   const data = result.data as { images?: { url: string }[] };
   const imageUrl = data?.images?.[0]?.url;
+  if (!imageUrl) throw new Error("No image returned from fal.ai");
 
-  if (!imageUrl) {
-    throw new Error("No image returned from fal.ai");
-  }
-
-  // Download the image to a buffer
   const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download generated image: ${response.status}`);
+  if (!response.ok) throw new Error(`Failed to download generated image: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// ─── Generate with reference image ───
+
+async function generateWithReference(
+  model: (typeof FAL_IMAGE_MODELS)[number],
+  prompt: string,
+  referenceImageBase64: string,
+  dims: { width: number; height: number }
+): Promise<Buffer> {
+  const dataUri = `data:image/jpeg;base64,${referenceImageBase64}`;
+
+  let result;
+
+  if (model.id === "flux-2-pro") {
+    // Flux 2 Pro Edit: image_urls + prompt
+    result = await fal.subscribe(model.editEndpoint, {
+      input: {
+        prompt: `Using this reference photo as the character's face and identity: ${prompt}`,
+        image_urls: [dataUri],
+        image_size: { width: dims.width, height: dims.height },
+      },
+    });
+  } else if (model.id === "recraft-v3") {
+    // Recraft V3 Image-to-Image: image_url + prompt + strength
+    result = await fal.subscribe(model.editEndpoint, {
+      input: {
+        prompt,
+        image_url: dataUri,
+        strength: 0.65,
+      },
+    });
+  } else if (model.id === "ideogram-v3") {
+    // Ideogram Character: reference_image_urls + prompt
+    result = await fal.subscribe(model.editEndpoint, {
+      input: {
+        prompt,
+        reference_image_urls: [dataUri],
+        image_size: { width: dims.width, height: dims.height },
+      },
+    });
+  } else {
+    // Fallback to text-to-image
+    return generateTextToImage(model, prompt, dims);
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  const data = result.data as { images?: { url: string }[] };
+  const imageUrl = data?.images?.[0]?.url;
+  if (!imageUrl) throw new Error("No image returned from fal.ai");
+
+  const response = await fetch(imageUrl);
+  if (!response.ok) throw new Error(`Failed to download generated image: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// ─── Public API ───
+
+export async function generateImageWithFal(
+  prompt: string,
+  modelId: FalImageModelId,
+  aspectRatio: string = "1:1",
+  referenceImageBase64?: string
+): Promise<Buffer> {
+  const model = getFalImageModel(modelId);
+  if (!model) throw new Error(`Unknown fal image model: ${modelId}`);
+
+  const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
+
+  if (referenceImageBase64) {
+    return generateWithReference(model, prompt, referenceImageBase64, dims);
+  }
+
+  return generateTextToImage(model, prompt, dims);
 }

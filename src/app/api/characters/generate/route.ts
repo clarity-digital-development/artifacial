@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         prompts.map(async (prompt, index) => {
           try {
             const imageBuffer = useFal
-              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio)
+              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio, referenceImageBase64)
               : await generateImageWithGemini(
                   prompt,
                   referenceImageBase64,
