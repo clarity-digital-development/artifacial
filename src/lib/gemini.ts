@@ -63,6 +63,8 @@ export async function generateImageWithGemini(
   const selectedModel = model && validModels.includes(model) ? model : DEFAULT_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
+  console.log(`[gemini] Request: model=${selectedModel}, hasRef=${!!referenceImageBase64}, aspectRatio=${aspectRatio}, prompt="${prompt.slice(0, 80)}..."`);
+
   const parts: Record<string, unknown>[] = [];
 
   if (referenceImageBase64) {
@@ -96,6 +98,7 @@ export async function generateImageWithGemini(
 
   if (!res.ok) {
     const errText = await res.text();
+    console.error(`[gemini] API error: model=${selectedModel}, status=${res.status}, body=${errText.slice(0, 500)}`);
     throw new Error(`Gemini API error (${res.status}): ${errText}`);
   }
 
@@ -105,8 +108,10 @@ export async function generateImageWithGemini(
   );
 
   if (!imagePart?.inlineData) {
+    console.error(`[gemini] No image in response: model=${selectedModel}, candidates=${data.candidates?.length ?? 0}, parts=${data.candidates?.[0]?.content?.parts?.length ?? 0}`);
     throw new Error("No image returned from Gemini");
   }
 
+  console.log(`[gemini] Success: model=${selectedModel}, imageSize=${imagePart.inlineData.data.length} chars`);
   return Buffer.from(imagePart.inlineData.data, "base64");
 }

@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
   const aspectRatio = (formData.get("aspectRatio") as string) ?? "1:1";
   const photoFile = formData.get("photo") as File | null;
 
+  console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
+
   // Calculate cost based on model
   const useFal = isFalImageModel(model);
   const falModel = useFal ? getFalImageModel(model) : null;
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
     referenceImageBase64 = Buffer.from(bytes).toString("base64");
     // Signed URL for fal.ai models (they need a public URL, not base64)
     referenceImageUrl = await getSignedR2Url(key, 3600);
+    console.log(`[char-gen] Uploaded source photo: key=${key}, base64Len=${referenceImageBase64.length}, signedUrl=${referenceImageUrl.slice(0, 80)}...`);
   }
 
   // Debit credits upfront
@@ -117,11 +120,15 @@ export async function POST(req: NextRequest) {
             referenceImageKeys[index] = key;
             send({ type: "image", index, url: signedUrl });
           } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            const errDetail = err instanceof Error && (err as unknown as Record<string, unknown>).body
+              ? JSON.stringify((err as unknown as Record<string, unknown>).body).slice(0, 500)
+              : "";
+            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, useFal=${useFal}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
             send({
               type: "error",
               index,
-              message:
-                err instanceof Error ? err.message : "Generation failed",
+              message: errMsg,
             });
           }
         })
