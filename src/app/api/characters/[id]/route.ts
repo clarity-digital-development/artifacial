@@ -42,11 +42,22 @@ export async function PATCH(
   }
 
   const body = await req.json();
+
+  // If a selectedImageIndex is provided, trim referenceImages to just that one
+  let referenceImagesUpdate: string[] | undefined;
+  if (typeof body.selectedImageIndex === "number" && character.referenceImages.length > 1) {
+    const selected = (character.referenceImages as string[])[body.selectedImageIndex];
+    if (selected) {
+      referenceImagesUpdate = [selected];
+    }
+  }
+
   const updated = await prisma.character.update({
     where: { id },
     data: {
       ...(body.name !== undefined && { name: body.name }),
       ...(body.description !== undefined && { description: body.description }),
+      ...(referenceImagesUpdate && { referenceImages: referenceImagesUpdate }),
     },
   });
 

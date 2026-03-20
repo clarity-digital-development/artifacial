@@ -415,10 +415,15 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
     try {
       if (generatedCharacterId) {
         // Update the character that was already created during generation
+        // Map selectedSaveImage (index into generatedImages) back to original image index
+        const originalIndex = images.reduce<number[]>((acc, img, i) => {
+          if (img !== null) acc.push(i);
+          return acc;
+        }, [])[selectedSaveImage] ?? 0;
         const res = await fetch(`/api/characters/${generatedCharacterId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: saveName.trim() }),
+          body: JSON.stringify({ name: saveName.trim(), selectedImageIndex: originalIndex }),
         });
         if (!res.ok) throw new Error("Failed to save character");
         router.push(`/characters/${generatedCharacterId}`);
@@ -610,11 +615,16 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
 
-            <h3 className="mb-4 text-center font-display text-base font-bold text-[var(--text-primary)]">
+            <h3 className="mb-1 text-center font-display text-base font-bold text-[var(--text-primary)]">
               Save Character
             </h3>
+            {generatedImages.length > 1 && (
+              <p className="mb-4 text-center text-[11px] text-[var(--text-muted)]">
+                Pick your favorite image
+              </p>
+            )}
 
-            <div className="mb-4 flex justify-center">
+            <div className={`mb-4 flex justify-center ${generatedImages.length <= 1 ? "mt-3" : ""}`}>
               {generatedImages.length > 1 ? (
                 <div className="flex gap-1.5">
                   {generatedImages.map((src, i) => (
