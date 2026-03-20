@@ -158,8 +158,9 @@ export async function routeGeneration(
     // 3. Check resolution gating
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { subscriptionTier: true },
+      select: { subscriptionTier: true, isAdmin: true },
     });
+    const isAdmin = !!user?.isAdmin;
 
     if (!user) {
       return { success: false, error: "User not found", errorCode: "SYSTEM_ERROR" };
@@ -173,14 +174,19 @@ export async function routeGeneration(
       };
     }
 
-    // 4. Run prompt classifier
+    // 4. Run prompt classifier (admins bypass classifier failures)
     const classification = await classifyPrompt(prompt, effectiveMode);
     if (!classification.allowed) {
-      return {
-        success: false,
-        error: classification.reason || "Content blocked by moderation",
-        errorCode: "MODERATION_BLOCK",
-      };
+      const isSystemError = classification.reason?.startsWith("SYSTEM_ERROR");
+      if (isSystemError && isAdmin) {
+        console.warn(`[router] Admin bypass: classifier failed but allowing admin user=${userId}`);
+      } else {
+        return {
+          success: false,
+          error: classification.reason || "Content blocked by moderation",
+          errorCode: "MODERATION_BLOCK",
+        };
+      }
     }
 
     // 4b. NSFW prompt laundering check — block NSFW prompts on SFW fal.ai models

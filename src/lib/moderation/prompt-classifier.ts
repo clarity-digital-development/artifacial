@@ -150,7 +150,9 @@ export async function classifyPrompt(
     };
   } catch (error) {
     // CRITICAL: Fail safe — never let an unclassified prompt through
-    console.error("Prompt classification failed:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errName = error instanceof Error ? error.constructor.name : "Unknown";
+    console.error(`[prompt-classifier] FAILED: type=${errName}, message=${errMsg}, hasApiKey=${!!process.env.ANTHROPIC_API_KEY}`);
     return {
       allowed: false,
       contentMode,
