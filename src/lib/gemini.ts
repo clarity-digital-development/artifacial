@@ -41,14 +41,14 @@ interface GeminiImageResponse {
 }
 
 export const GEMINI_IMAGE_MODELS = [
-  { value: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash" },
-  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash (Preview)" },
-  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro (Preview)" },
+  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash" },
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro" },
+  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2" },
 ] as const;
 
 export type GeminiImageModel = (typeof GEMINI_IMAGE_MODELS)[number]["value"];
 
-const DEFAULT_MODEL: GeminiImageModel = "gemini-2.0-flash-exp-image-generation";
+const DEFAULT_MODEL: GeminiImageModel = "gemini-2.5-flash-image";
 
 export async function generateImageWithGemini(
   prompt: string,

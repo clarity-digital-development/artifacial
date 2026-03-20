@@ -18,10 +18,10 @@ const SFW_MODEL_OPTIONS: ModelOption[] = [
   { value: "flux-2-pro", label: "Flux 2 Pro", cost: 10, tier: "budget" },
   { value: "recraft-v3", label: "Recraft V3", cost: 10, tier: "budget" },
   // Standard (15 cr/image)
-  { value: "gemini-2.5-flash-preview-05-20", label: "Nano Banana Flash", cost: 15, tier: "standard" },
+  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 15, tier: "standard" },
   { value: "ideogram-v3", label: "Ideogram V3", cost: 15, tier: "standard" },
   // Ultra (25 cr/image)
-  { value: "gemini-2.5-pro-preview-06-05", label: "Nano Banana Pro", cost: 25, tier: "ultra" },
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 25, tier: "ultra" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
@@ -266,7 +266,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const initialPrompt = searchParams.get("prompt") ?? "";
   const isNsfw = contentMode === "NSFW";
   const MODEL_OPTIONS = isNsfw ? NSFW_MODEL_OPTIONS : SFW_MODEL_OPTIONS;
-  const defaultModel = isNsfw ? "juggernaut-xl" : "gemini-2.5-pro-preview-06-05";
+  const defaultModel = isNsfw ? "juggernaut-xl" : "gemini-3-pro-image-preview";
 
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
