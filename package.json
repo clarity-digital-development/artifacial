@@ -8,8 +8,8 @@
     "start": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "db:deploy": "prisma db push --skip-generate",
     "lint": "eslint",
-    "worker": "npx tsx src/workers/video-generator.ts",
-    "worker:dev": "npx tsx --watch src/workers/video-generator.ts",
+    "worker": "echo 'Worker disabled — postprocess runs on dedicated GPU infrastructure' && exit 0",
+    "worker:dev": "npx tsx --watch src/lib/generation/postprocess-worker.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
