@@ -41,7 +41,11 @@ export function CharacterPreviewGrid({
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-3">
+      <div className={`grid gap-3 ${
+        images.length === 1 ? "grid-cols-1 max-w-xs mx-auto" :
+        images.length === 2 ? "grid-cols-2 max-w-lg mx-auto" :
+        "grid-cols-4"
+      }`}>
         {images.map((src, i) => (
           <div
             key={i}
