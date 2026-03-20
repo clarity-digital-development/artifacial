@@ -34,7 +34,7 @@ export const FAL_IMAGE_MODELS = [
   {
     id: "ideogram-v3",
     name: "Ideogram V3",
-    endpoint: "fal-ai/ideogram/v3/text-to-image",
+    endpoint: "fal-ai/ideogram/v3",
     editEndpoint: "fal-ai/ideogram/character",
     costPerImage: 0.05,
     creditCost: 15,
@@ -104,6 +104,18 @@ async function downloadImage(imageUrl: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
+// ─── Prompt helpers ───
+
+const RECRAFT_MAX_PROMPT = 1000;
+
+function clampPrompt(model: (typeof FAL_IMAGE_MODELS)[number], prompt: string): string {
+  if (model.id === "recraft-v3" && prompt.length > RECRAFT_MAX_PROMPT) {
+    console.warn(`[fal-image] Recraft prompt too long (${prompt.length} chars), truncating to ${RECRAFT_MAX_PROMPT}`);
+    return prompt.slice(0, RECRAFT_MAX_PROMPT);
+  }
+  return prompt;
+}
+
 // ─── Generate (text-to-image, no reference) ───
 
 async function generateTextToImage(
@@ -111,7 +123,8 @@ async function generateTextToImage(
   prompt: string,
   dims: { width: number; height: number }
 ): Promise<Buffer> {
-  console.log(`[fal-image] T2I: model=${model.id}, endpoint=${model.endpoint}, dims=${dims.width}x${dims.height}`);
+  prompt = clampPrompt(model, prompt);
+  console.log(`[fal-image] T2I: model=${model.id}, endpoint=${model.endpoint}, dims=${dims.width}x${dims.height}, promptLen=${prompt.length}`);
 
   try {
     const result = await fal.subscribe(model.endpoint, {
@@ -145,6 +158,7 @@ async function generateWithReference(
   falImageUrl: string,
   dims: { width: number; height: number }
 ): Promise<Buffer> {
+  prompt = clampPrompt(model, prompt);
   let input: Record<string, unknown>;
   let endpoint: string;
 
