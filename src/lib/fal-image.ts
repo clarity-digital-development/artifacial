@@ -70,7 +70,6 @@ const ASPECT_RATIO_MAP: Record<string, { width: number; height: number }> = {
 
 function extractFalError(err: unknown): string {
   if (err instanceof Error) {
-    // fal client errors often have a body property with details
     const anyErr = err as unknown as Record<string, unknown>;
     if (anyErr.body) {
       try {
@@ -88,6 +87,23 @@ function extractFalError(err: unknown): string {
   return String(err);
 }
 
+// ─── Upload image to fal.ai CDN ───
+
+async function uploadToFalStorage(imageBuffer: Buffer): Promise<string> {
+  const file = new File([new Uint8Array(imageBuffer)], "reference.jpg", { type: "image/jpeg" });
+  const url = await fal.storage.upload(file);
+  console.log(`[fal-image] Uploaded to fal storage: ${url.slice(0, 80)}...`);
+  return url;
+}
+
+// ─── Download result image ───
+
+async function downloadImage(imageUrl: string): Promise<Buffer> {
+  const response = await fetch(imageUrl);
+  if (!response.ok) throw new Error(`Failed to download generated image: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
 // ─── Generate (text-to-image, no reference) ───
 
 async function generateTextToImage(
@@ -95,30 +111,28 @@ async function generateTextToImage(
   prompt: string,
   dims: { width: number; height: number }
 ): Promise<Buffer> {
-  const input = {
-    prompt,
-    image_size: { width: dims.width, height: dims.height },
-    num_images: 1,
-  };
-  console.log(`[fal-image] T2I request: model=${model.id}, endpoint=${model.endpoint}, dims=${dims.width}x${dims.height}, prompt="${prompt.slice(0, 80)}..."`);
+  console.log(`[fal-image] T2I: model=${model.id}, endpoint=${model.endpoint}, dims=${dims.width}x${dims.height}`);
 
   try {
-    const result = await fal.subscribe(model.endpoint, { input });
+    const result = await fal.subscribe(model.endpoint, {
+      input: {
+        prompt,
+        image_size: { width: dims.width, height: dims.height },
+        num_images: 1,
+      },
+    });
 
     const data = result.data as { images?: { url: string }[] };
-    console.log(`[fal-image] T2I response: model=${model.id}, images=${data?.images?.length ?? 0}`);
-
     const imageUrl = data?.images?.[0]?.url;
     if (!imageUrl) {
       console.error(`[fal-image] T2I no image in response:`, JSON.stringify(result.data).slice(0, 500));
       throw new Error("No image returned from fal.ai");
     }
 
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error(`Failed to download generated image: ${response.status}`);
-    return Buffer.from(await response.arrayBuffer());
+    console.log(`[fal-image] T2I success: model=${model.id}`);
+    return downloadImage(imageUrl);
   } catch (err) {
-    console.error(`[fal-image] T2I error: model=${model.id}, endpoint=${model.endpoint}, error=${extractFalError(err)}`);
+    console.error(`[fal-image] T2I error: model=${model.id}, error=${extractFalError(err)}`);
     throw err;
   }
 }
@@ -128,11 +142,9 @@ async function generateTextToImage(
 async function generateWithReference(
   model: (typeof FAL_IMAGE_MODELS)[number],
   prompt: string,
-  referenceImageUrl: string,
+  falImageUrl: string,
   dims: { width: number; height: number }
 ): Promise<Buffer> {
-  console.log(`[fal-image] Ref request: model=${model.id}, endpoint=${model.editEndpoint}, refUrl=${referenceImageUrl.slice(0, 80)}..., prompt="${prompt.slice(0, 80)}..."`);
-
   let input: Record<string, unknown>;
   let endpoint: string;
 
@@ -140,42 +152,39 @@ async function generateWithReference(
     endpoint = model.editEndpoint;
     input = {
       prompt: `Using this reference photo as the character's face and identity: ${prompt}`,
-      image_urls: [referenceImageUrl],
+      image_urls: [falImageUrl],
     };
   } else if (model.id === "recraft-v3") {
     endpoint = model.editEndpoint;
     input = {
       prompt,
-      image_url: referenceImageUrl,
+      image_url: falImageUrl,
       strength: 0.65,
     };
   } else if (model.id === "ideogram-v3") {
     endpoint = model.editEndpoint;
     input = {
       prompt,
-      reference_image_urls: [referenceImageUrl],
+      reference_image_urls: [falImageUrl],
     };
   } else {
     return generateTextToImage(model, prompt, dims);
   }
 
-  console.log(`[fal-image] Ref input:`, JSON.stringify({ ...input, image_urls: input.image_urls ? ["[URL]"] : undefined, image_url: input.image_url ? "[URL]" : undefined, reference_image_urls: input.reference_image_urls ? ["[URL]"] : undefined }));
+  console.log(`[fal-image] Ref: model=${model.id}, endpoint=${endpoint}, falUrl=${falImageUrl.slice(0, 80)}...`);
 
   try {
     const result = await fal.subscribe(endpoint, { input });
 
     const data = result.data as { images?: { url: string }[] };
-    console.log(`[fal-image] Ref response: model=${model.id}, images=${data?.images?.length ?? 0}`);
-
     const imageUrl = data?.images?.[0]?.url;
     if (!imageUrl) {
       console.error(`[fal-image] Ref no image in response:`, JSON.stringify(result.data).slice(0, 500));
       throw new Error("No image returned from fal.ai");
     }
 
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error(`Failed to download generated image: ${response.status}`);
-    return Buffer.from(await response.arrayBuffer());
+    console.log(`[fal-image] Ref success: model=${model.id}`);
+    return downloadImage(imageUrl);
   } catch (err) {
     console.error(`[fal-image] Ref error: model=${model.id}, endpoint=${endpoint}, error=${extractFalError(err)}`);
     throw err;
@@ -188,17 +197,19 @@ export async function generateImageWithFal(
   prompt: string,
   modelId: FalImageModelId,
   aspectRatio: string = "1:1",
-  referenceImageUrl?: string
+  referenceImageBuffer?: Buffer
 ): Promise<Buffer> {
   const model = getFalImageModel(modelId);
   if (!model) throw new Error(`Unknown fal image model: ${modelId}`);
 
   const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
 
-  console.log(`[fal-image] generateImageWithFal: model=${modelId}, aspectRatio=${aspectRatio}, hasRef=${!!referenceImageUrl}`);
+  console.log(`[fal-image] generate: model=${modelId}, aspectRatio=${aspectRatio}, hasRef=${!!referenceImageBuffer}`);
 
-  if (referenceImageUrl) {
-    return generateWithReference(model, prompt, referenceImageUrl, dims);
+  if (referenceImageBuffer) {
+    // Upload to fal.ai's CDN so their models can access it
+    const falUrl = await uploadToFalStorage(referenceImageBuffer);
+    return generateWithReference(model, prompt, falUrl, dims);
   }
 
   return generateTextToImage(model, prompt, dims);

@@ -50,6 +50,8 @@ export type GeminiImageModel = (typeof GEMINI_IMAGE_MODELS)[number]["value"];
 
 const DEFAULT_MODEL: GeminiImageModel = "gemini-2.5-flash-image";
 
+const MAX_RETRIES = 2;
+
 export async function generateImageWithGemini(
   prompt: string,
   referenceImageBase64?: string,
@@ -62,8 +64,6 @@ export async function generateImageWithGemini(
   const validModels = GEMINI_IMAGE_MODELS.map((m) => m.value) as string[];
   const selectedModel = model && validModels.includes(model) ? model : DEFAULT_MODEL;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
-
-  console.log(`[gemini] Request: model=${selectedModel}, hasRef=${!!referenceImageBase64}, aspectRatio=${aspectRatio}, prompt="${prompt.slice(0, 80)}..."`);
 
   const parts: Record<string, unknown>[] = [];
 
@@ -90,28 +90,41 @@ export async function generateImageWithGemini(
     },
   };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    console.log(`[gemini] Request: model=${selectedModel}, attempt=${attempt + 1}/${MAX_RETRIES + 1}, hasRef=${!!referenceImageBase64}, aspectRatio=${aspectRatio}, prompt="${prompt.slice(0, 80)}..."`);
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error(`[gemini] API error: model=${selectedModel}, status=${res.status}, body=${errText.slice(0, 500)}`);
-    throw new Error(`Gemini API error (${res.status}): ${errText}`);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[gemini] API error: model=${selectedModel}, attempt=${attempt + 1}, status=${res.status}, body=${errText.slice(0, 500)}`);
+      // Don't retry HTTP errors — they're deterministic
+      throw new Error(`Gemini API error (${res.status}): ${errText}`);
+    }
+
+    const data: GeminiImageResponse = await res.json();
+    const imagePart = data.candidates?.[0]?.content?.parts?.find(
+      (p) => p.inlineData
+    );
+
+    if (imagePart?.inlineData) {
+      console.log(`[gemini] Success: model=${selectedModel}, attempt=${attempt + 1}, imageSize=${imagePart.inlineData.data.length} chars`);
+      return Buffer.from(imagePart.inlineData.data, "base64");
+    }
+
+    // No image in response — retry if we have attempts left
+    console.warn(`[gemini] No image in response (attempt ${attempt + 1}/${MAX_RETRIES + 1}): model=${selectedModel}, candidates=${data.candidates?.length ?? 0}, parts=${data.candidates?.[0]?.content?.parts?.length ?? 0}`);
+
+    if (attempt < MAX_RETRIES) {
+      const delay = 1000 * (attempt + 1);
+      console.log(`[gemini] Retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
   }
 
-  const data: GeminiImageResponse = await res.json();
-  const imagePart = data.candidates?.[0]?.content?.parts?.find(
-    (p) => p.inlineData
-  );
-
-  if (!imagePart?.inlineData) {
-    console.error(`[gemini] No image in response: model=${selectedModel}, candidates=${data.candidates?.length ?? 0}, parts=${data.candidates?.[0]?.content?.parts?.length ?? 0}`);
-    throw new Error("No image returned from Gemini");
-  }
-
-  console.log(`[gemini] Success: model=${selectedModel}, imageSize=${imagePart.inlineData.data.length} chars`);
-  return Buffer.from(imagePart.inlineData.data, "base64");
+  throw new Error("No image returned from Gemini after retries");
 }
