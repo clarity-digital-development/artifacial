@@ -38,10 +38,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean);
       const shouldBeAdmin = adminEmails.includes(user.email.toLowerCase());
-      // Sync isAdmin flag on every sign-in
+      // Sync isAdmin flag + ensure admin has a paid tier for full feature access
       await prisma.user.update({
         where: { id: user.id },
-        data: { isAdmin: shouldBeAdmin },
+        data: {
+          isAdmin: shouldBeAdmin,
+          ...(shouldBeAdmin ? { subscriptionTier: "PRO", isFoundingMember: true } : {}),
+        },
       }).catch(() => {}); // ignore if user doesn't exist yet (adapter creates after)
     },
   },
