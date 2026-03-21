@@ -31,6 +31,7 @@ export type GenerationRequest = {
   prompt: string;
   modelId?: string;
   imageUrl?: string;
+  endImageUrl?: string;
   videoUrl?: string;
   characterId?: string | null;
   projectId?: string | null;
@@ -90,6 +91,7 @@ export async function routeGeneration(
     prompt,
     modelId: requestedModel,
     imageUrl: rawImageUrl,
+    endImageUrl: rawEndImageUrl,
     videoUrl,
     characterId,
     projectId,
@@ -105,9 +107,14 @@ export async function routeGeneration(
   try {
     // Resolve R2 key references to signed URLs (from character picker)
     let imageUrl = rawImageUrl;
+    let endImageUrl = rawEndImageUrl;
     if (imageUrl?.startsWith("r2:")) {
       const { getSignedR2Url } = await import("@/lib/r2");
       imageUrl = await getSignedR2Url(imageUrl.slice(3), 3600);
+    }
+    if (endImageUrl?.startsWith("r2:")) {
+      const { getSignedR2Url } = await import("@/lib/r2");
+      endImageUrl = await getSignedR2Url(endImageUrl.slice(3), 3600);
     }
     // 1. Resolve content mode (checks user prefs, age, character eligibility)
     const { effectiveMode } = await resolveContentMode(userId, characterId);
@@ -240,8 +247,10 @@ export async function routeGeneration(
         inputParams: {
           prompt,
           imageUrl: imageUrl || null,
+          endImageUrl: endImageUrl || null,
           videoUrl: videoUrl || null,
           aspectRatio,
+          resolution,
           modelId,
           withAudio: audioEnabled,
           characterOrientation: mode === "MOTION_TRANSFER" ? characterOrientation : undefined,
@@ -328,8 +337,10 @@ export async function routeGeneration(
         falResult = await falSubmit(modelId, {
           prompt,
           imageUrl,
+          endImageUrl,
           durationSec,
           aspectRatio,
+          resolution,
           withAudio: audioEnabled,
         });
       }

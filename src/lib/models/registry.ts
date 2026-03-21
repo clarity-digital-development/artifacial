@@ -25,6 +25,12 @@ export interface ModelConfig {
   supportsAudio: boolean;
   contentMode: ModelContentMode;
   description: string;
+  // ─── Capability constraints ───
+  durations: number[];              // Allowed duration values in seconds
+  aspectRatios: string[];           // Allowed aspect ratios (empty = no aspect ratio param)
+  resolutions: string[];            // Allowed resolutions (empty = not configurable)
+  supportsEndFrame: boolean;        // Whether I2V supports an end/tail frame
+  endFrameParam?: string;           // API param name for end frame (end_image_url, tail_image_url, etc.)
 }
 
 // ─── SFW Models (fal.ai) ───
@@ -34,17 +40,22 @@ const LTX_19B: ModelConfig = {
   name: "LTX 19B",
   provider: "FAL",
   endpoints: {
-    t2v: "fal-ai/ltx-video/v2.0/19b",
-    i2v: "fal-ai/ltx-video/v2.0/19b/image-to-video",
+    t2v: "fal-ai/ltx-2-19b/text-to-video",
+    i2v: "fal-ai/ltx-2-19b/image-to-video",
   },
   tier: "BUDGET",
   creditCost: 1,
   supportedModes: ["T2V", "I2V"],
   maxDuration: 5,
   maxResolution: "1080p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "SFW",
   description: "Fast and affordable. Great for quick iterations.",
+  durations: [3, 4, 5],
+  aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+  resolutions: [],
+  supportsEndFrame: true,
+  endFrameParam: "end_image_url",
 };
 
 const WAN_26: ModelConfig = {
@@ -60,9 +71,13 @@ const WAN_26: ModelConfig = {
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "SFW",
   description: "Long-form budget option. Up to 15 seconds.",
+  durations: [5, 10, 15],
+  aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+  resolutions: ["720p", "1080p"],
+  supportsEndFrame: false,
 };
 
 const HAILUO_23: ModelConfig = {
@@ -81,6 +96,11 @@ const HAILUO_23: ModelConfig = {
   supportsAudio: false,
   contentMode: "SFW",
   description: "Smooth motion. Great for social content.",
+  durations: [6],
+  aspectRatios: [],
+  resolutions: [],
+  supportsEndFrame: true,
+  endFrameParam: "end_image_url",
 };
 
 const SEEDANCE_15: ModelConfig = {
@@ -88,17 +108,22 @@ const SEEDANCE_15: ModelConfig = {
   name: "Seedance 1.5 Pro",
   provider: "FAL",
   endpoints: {
-    t2v: "fal-ai/seedance/v1.5/pro/text-to-video",
-    i2v: "fal-ai/seedance/v1.5/pro/image-to-video",
+    t2v: "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+    i2v: "fal-ai/bytedance/seedance/v1.5/pro/image-to-video",
   },
   tier: "STANDARD",
   creditCost: 1,
   supportedModes: ["T2V", "I2V"],
   maxDuration: 12,
   maxResolution: "1080p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "SFW",
   description: "Versatile with long duration support.",
+  durations: [4, 5, 6, 7, 8, 9, 10, 11, 12],
+  aspectRatios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  resolutions: ["480p", "720p", "1080p"],
+  supportsEndFrame: true,
+  endFrameParam: "end_image_url",
 };
 
 const KLING_25_TURBO: ModelConfig = {
@@ -106,8 +131,8 @@ const KLING_25_TURBO: ModelConfig = {
   name: "Kling 2.5 Turbo",
   provider: "FAL",
   endpoints: {
-    t2v: "fal-ai/kling-video/v2.5/turbo/pro/text-to-video",
-    i2v: "fal-ai/kling-video/v2.5/turbo/pro/image-to-video",
+    t2v: "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+    i2v: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video",
   },
   tier: "STANDARD",
   creditCost: 1,
@@ -117,6 +142,11 @@ const KLING_25_TURBO: ModelConfig = {
   supportsAudio: false,
   contentMode: "SFW",
   description: "Fast and reliable. Our default model.",
+  durations: [5, 10],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: true,
+  endFrameParam: "tail_image_url",
 };
 
 const SORA_2_PRO: ModelConfig = {
@@ -124,17 +154,21 @@ const SORA_2_PRO: ModelConfig = {
   name: "Sora 2 Pro",
   provider: "FAL",
   endpoints: {
-    t2v: "fal-ai/sora-2/pro/text-to-video",
-    i2v: "fal-ai/sora-2/pro/image-to-video",
+    t2v: "fal-ai/sora-2/text-to-video/pro",
+    i2v: "fal-ai/sora-2/image-to-video/pro",
   },
   tier: "ULTRA",
   creditCost: 2,
   supportedModes: ["T2V", "I2V"],
-  maxDuration: 25,
+  maxDuration: 20,
   maxResolution: "1080p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "SFW",
-  description: "OpenAI's flagship. Up to 25 seconds.",
+  description: "OpenAI's flagship. Up to 20 seconds.",
+  durations: [4, 8, 12, 16, 20],
+  aspectRatios: ["16:9", "9:16"],
+  resolutions: ["720p", "1080p"],
+  supportsEndFrame: false,
 };
 
 const KLING_30_PRO: ModelConfig = {
@@ -149,10 +183,15 @@ const KLING_30_PRO: ModelConfig = {
   creditCost: 2,
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
-  maxResolution: "4K",
+  maxResolution: "1080p",
   supportsAudio: true,
   contentMode: "SFW",
-  description: "Premium quality. 4K with audio.",
+  description: "Premium quality. Best overall.",
+  durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: true,
+  endFrameParam: "end_image_url",
 };
 
 const VEO_31: ModelConfig = {
@@ -160,7 +199,7 @@ const VEO_31: ModelConfig = {
   name: "Veo 3.1",
   provider: "FAL",
   endpoints: {
-    t2v: "fal-ai/veo3.1/text-to-video",
+    t2v: "fal-ai/veo3.1",
     i2v: "fal-ai/veo3.1/image-to-video",
   },
   tier: "ULTRA",
@@ -171,6 +210,10 @@ const VEO_31: ModelConfig = {
   supportsAudio: true,
   contentMode: "SFW",
   description: "Google's best. 4K cinematic output.",
+  durations: [4, 6, 8],
+  aspectRatios: ["16:9", "9:16"],
+  resolutions: ["720p", "1080p"],
+  supportsEndFrame: false,
 };
 
 // ─── SFW Motion Control Models (fal.ai) ───
@@ -190,6 +233,10 @@ const KLING_26_MOTION_STD: ModelConfig = {
   supportsAudio: false,
   contentMode: "SFW",
   description: "Copy motion from reference video. Standard quality.",
+  durations: [5, 10],
+  aspectRatios: [],
+  resolutions: [],
+  supportsEndFrame: false,
 };
 
 const KLING_26_MOTION_PRO: ModelConfig = {
@@ -207,6 +254,10 @@ const KLING_26_MOTION_PRO: ModelConfig = {
   supportsAudio: false,
   contentMode: "SFW",
   description: "Copy motion from reference video. Pro quality.",
+  durations: [5, 10],
+  aspectRatios: [],
+  resolutions: [],
+  supportsEndFrame: false,
 };
 
 // ─── NSFW Models (Self-Hosted) ───
@@ -224,6 +275,10 @@ const WAN22_NSFW_T2V: ModelConfig = {
   supportsAudio: false,
   contentMode: "NSFW",
   description: "Unrestricted text-to-video. Self-hosted.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: ["720p"],
+  supportsEndFrame: false,
 };
 
 const WAN22_NSFW_I2V: ModelConfig = {
@@ -239,6 +294,10 @@ const WAN22_NSFW_I2V: ModelConfig = {
   supportsAudio: false,
   contentMode: "NSFW",
   description: "Unrestricted image-to-video. Self-hosted.",
+  durations: [5],
+  aspectRatios: [],
+  resolutions: ["720p"],
+  supportsEndFrame: false,
 };
 
 const WAN22_NSFW_T2V_LITE: ModelConfig = {
@@ -254,6 +313,10 @@ const WAN22_NSFW_T2V_LITE: ModelConfig = {
   supportsAudio: false,
   contentMode: "NSFW",
   description: "Fast unrestricted generation. Lower VRAM.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: ["720p"],
+  supportsEndFrame: false,
 };
 
 // ─── NSFW Image Models (Self-Hosted) ───
@@ -271,6 +334,10 @@ const CHROMA_HD: ModelConfig = {
   supportsAudio: false,
   contentMode: "NSFW",
   description: "Fast uncensored images. 1-4 steps. Best for stylized/fantasy.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
 };
 
 const JUGGERNAUT_XL: ModelConfig = {
@@ -286,6 +353,10 @@ const JUGGERNAUT_XL: ModelConfig = {
   supportsAudio: false,
   contentMode: "NSFW",
   description: "Best photorealism. SDXL architecture. Ideal for realistic subjects.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
 };
 
 // ─── Registry ───

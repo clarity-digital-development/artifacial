@@ -24,27 +24,31 @@ type ClientModel = {
   supportsAudio: boolean;
   contentMode: ModelContentMode;
   description: string;
+  durations: number[];
+  aspectRatios: string[];
+  resolutions: string[];
+  supportsEndFrame: boolean;
 };
 
 const MODELS: ClientModel[] = [
   // ── SFW Budget ──
-  { id: "ltx-19b", name: "LTX 19B", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Fast and affordable. Great for quick iterations." },
-  { id: "wan-26", name: "Wan 2.6", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Long-form budget option. Up to 15 seconds." },
+  { id: "ltx-19b", name: "LTX 19B", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Fast and affordable. Great for quick iterations.", durations: [3, 4, 5], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: [], supportsEndFrame: true },
+  { id: "wan-26", name: "Wan 2.6", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Long-form budget option. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   // ── SFW Standard ──
-  { id: "hailuo-23", name: "Hailuo 2.3", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 6, maxResolution: "768p", supportsAudio: false, contentMode: "SFW", description: "Smooth motion. Great for social content." },
-  { id: "seedance-15", name: "Seedance 1.5 Pro", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Versatile with long duration support." },
-  { id: "kling-25-turbo", name: "Kling 2.5 Turbo", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Fast and reliable. Our default model." },
+  { id: "hailuo-23", name: "Hailuo 2.3", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 6, maxResolution: "768p", supportsAudio: false, contentMode: "SFW", description: "Smooth motion. Great for social content.", durations: [6], aspectRatios: [], resolutions: [], supportsEndFrame: true },
+  { id: "seedance-15", name: "Seedance 1.5 Pro", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Versatile with long duration support.", durations: [4, 5, 6, 7, 8, 9, 10, 11, 12], aspectRatios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], resolutions: ["480p", "720p", "1080p"], supportsEndFrame: true },
+  { id: "kling-25-turbo", name: "Kling 2.5 Turbo", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Fast and reliable.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
   // ── SFW Ultra ──
-  { id: "sora-2-pro", name: "Sora 2 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 25, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "OpenAI's flagship. Up to 25 seconds." },
-  { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Premium quality. 4K with audio." },
-  { id: "veo-31", name: "Veo 3.1", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Google's best. 4K cinematic output." },
+  { id: "sora-2-pro", name: "Sora 2 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 20, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. Up to 20 seconds.", durations: [4, 8, 12, 16, 20], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium quality. Best overall.", durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "veo-31", name: "Veo 3.1", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Google's best. 4K cinematic output.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   // ── Motion Control ──
-  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality." },
-  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality." },
+  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
   // ── NSFW ──
-  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Self-hosted." },
-  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Self-hosted." },
-  { id: "wan22-nsfw-t2v-lite", name: "Wan 2.2 NSFW Lite", provider: "SELF_HOSTED", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Fast unrestricted generation. Lower VRAM." },
+  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Self-hosted.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p"], supportsEndFrame: false },
+  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Self-hosted.", durations: [5], aspectRatios: [], resolutions: ["720p"], supportsEndFrame: false },
+  { id: "wan22-nsfw-t2v-lite", name: "Wan 2.2 NSFW Lite", provider: "SELF_HOSTED", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Fast unrestricted generation. Lower VRAM.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p"], supportsEndFrame: false },
 ];
 
 const TIER_LABELS: Record<ModelTier, string> = {
@@ -121,11 +125,23 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [prompt, setPrompt] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [endImageFile, setEndImageFile] = useState<File | null>(null);
+  const [endImagePreview, setEndImagePreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState(5);
+  const [aspectRatio, setAspectRatio] = useState("16:9");
+  const [resolution, setResolution] = useState("720p");
   const [withAudio, setWithAudio] = useState(false);
   const [characterOrientation, setCharacterOrientation] = useState<"image" | "video">("image");
+
+  // Popup state for duration/aspect/quality pickers
+  const [durationPopupOpen, setDurationPopupOpen] = useState(false);
+  const [aspectPopupOpen, setAspectPopupOpen] = useState(false);
+  const [qualityPopupOpen, setQualityPopupOpen] = useState(false);
+  const durationPopupRef = useRef<HTMLDivElement>(null);
+  const aspectPopupRef = useRef<HTMLDivElement>(null);
+  const qualityPopupRef = useRef<HTMLDivElement>(null);
 
   // Character picker for I2V
   const [imageSource, setImageSource] = useState<"upload" | "character">("upload");
@@ -162,11 +178,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const creditCost = selectedModel ? selectedModel.creditCost * durationMultiplier : 1;
   const canAfford = credits >= creditCost;
 
-  // Available durations based on model
-  const allDurations = [3, 5, 6, 8, 10, 12, 15, 25];
-  const availableDurations = selectedModel
-    ? allDurations.filter((d) => d <= selectedModel.maxDuration)
-    : [3, 5];
+  // Available options based on model capabilities
+  const availableDurations = selectedModel?.durations ?? [5];
+  const availableAspectRatios = selectedModel?.aspectRatios ?? [];
+  const availableResolutions = selectedModel?.resolutions ?? [];
+  const modelSupportsEndFrame = selectedModel?.supportsEndFrame ?? false;
 
   const isMotionMode = mode === "MOTION_TRANSFER";
   const needsImage = isMotionMode || (selectedModel && mode === "I2V");
@@ -193,30 +209,45 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // When model changes, clamp duration
+  // When model changes, clamp duration, aspect ratio, resolution
   useEffect(() => {
-    if (selectedModel && durationSec > selectedModel.maxDuration) {
-      // Pick closest available
-      const closest = availableDurations[availableDurations.length - 1] ?? 5;
+    if (!selectedModel) return;
+    // Clamp duration to model's allowed values
+    if (!selectedModel.durations.includes(durationSec)) {
+      const closest = selectedModel.durations.find(d => d >= durationSec) ?? selectedModel.durations[selectedModel.durations.length - 1] ?? 5;
       setDurationSec(closest);
     }
-    if (selectedModel && !selectedModel.supportsAudio) {
-      setWithAudio(false);
+    // Clamp aspect ratio
+    if (selectedModel.aspectRatios.length > 0 && !selectedModel.aspectRatios.includes(aspectRatio)) {
+      setAspectRatio(selectedModel.aspectRatios.includes("16:9") ? "16:9" : selectedModel.aspectRatios[0]);
+    }
+    // Clamp resolution
+    if (selectedModel.resolutions.length > 0 && !selectedModel.resolutions.includes(resolution)) {
+      setResolution(selectedModel.resolutions.includes("720p") ? "720p" : selectedModel.resolutions[0]);
+    }
+    if (!selectedModel.supportsAudio) setWithAudio(false);
+    // Clear end frame if model doesn't support it
+    if (!selectedModel.supportsEndFrame && endImageFile) {
+      if (endImagePreview) URL.revokeObjectURL(endImagePreview);
+      setEndImageFile(null);
+      setEndImagePreview(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModelId]);
 
-  // Close dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
-    if (!modelDropdownOpen) return;
+    const anyOpen = modelDropdownOpen || durationPopupOpen || aspectPopupOpen || qualityPopupOpen;
+    if (!anyOpen) return;
     const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setModelDropdownOpen(false);
-      }
+      if (modelDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setModelDropdownOpen(false);
+      if (durationPopupOpen && durationPopupRef.current && !durationPopupRef.current.contains(e.target as Node)) setDurationPopupOpen(false);
+      if (aspectPopupOpen && aspectPopupRef.current && !aspectPopupRef.current.contains(e.target as Node)) setAspectPopupOpen(false);
+      if (qualityPopupOpen && qualityPopupRef.current && !qualityPopupRef.current.contains(e.target as Node)) setQualityPopupOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [modelDropdownOpen]);
+  }, [modelDropdownOpen, durationPopupOpen, aspectPopupOpen, qualityPopupOpen]);
 
   // Handle image file
   const handleImageFile = useCallback((file: File) => {
@@ -229,6 +260,18 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     setImageFile(null);
     setImagePreview(null);
   }, [imagePreview]);
+
+  // Handle end frame file
+  const handleEndImageFile = useCallback((file: File) => {
+    setEndImageFile(file);
+    setEndImagePreview(URL.createObjectURL(file));
+  }, []);
+
+  const clearEndImage = useCallback(() => {
+    if (endImagePreview) URL.revokeObjectURL(endImagePreview);
+    setEndImageFile(null);
+    setEndImagePreview(null);
+  }, [endImagePreview]);
 
   // Handle video file (motion transfer)
   const handleVideoFile = useCallback((file: File) => {
@@ -355,6 +398,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         videoUrl = await fileToDataUrl(videoFile);
       }
 
+      let endImageUrl: string | undefined;
+      if (mode === "I2V" && modelSupportsEndFrame && endImageFile) {
+        endImageUrl = await fileToDataUrl(endImageFile);
+      }
+
       const body: Record<string, unknown> = {
         prompt: prompt.trim(),
         modelId: selectedModel.id,
@@ -362,7 +410,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         withAudio: withAudio && selectedModel.supportsAudio,
       };
       if (imageUrl) body.imageUrl = imageUrl;
+      if (endImageUrl) body.endImageUrl = endImageUrl;
       if (videoUrl) body.videoUrl = videoUrl;
+      if (availableAspectRatios.length > 0) body.aspectRatio = aspectRatio;
+      if (availableResolutions.length > 0) body.resolution = resolution;
       if (isMotionMode) body.characterOrientation = characterOrientation;
 
       const res = await fetch("/api/generate", {
@@ -705,29 +756,63 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
             {/* Upload mode */}
             {imageSource === "upload" && (
-              <>
-                {imagePreview ? (
-                  <div className="relative inline-block">
-                    <img
-                      src={imagePreview}
-                      alt="Source"
-                      className="max-h-32 rounded-[var(--radius-md)] border border-[var(--border-default)] object-contain"
+              <div className={modelSupportsEndFrame ? "grid grid-cols-2 gap-3" : ""}>
+                {/* Start frame */}
+                <div>
+                  {modelSupportsEndFrame && (
+                    <p className="mb-1 text-[10px] font-medium text-[var(--text-muted)]">Start frame</p>
+                  )}
+                  {imagePreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Source"
+                        className="max-h-32 rounded-[var(--radius-md)] border border-[var(--border-default)] object-contain"
+                      />
+                      <button
+                        onClick={clearImage}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ) : (
+                    <UploadZone
+                      onFile={handleImageFile}
+                      accept="image/jpeg,image/png,image/webp"
+                      className="!p-4"
                     />
-                    <button
-                      onClick={clearImage}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
-                    >
-                      X
-                    </button>
+                  )}
+                </div>
+
+                {/* End frame — only for models that support it */}
+                {modelSupportsEndFrame && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium text-[var(--text-muted)]">End frame <span className="text-[var(--text-muted)]/60">(optional)</span></p>
+                    {endImagePreview ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={endImagePreview}
+                          alt="End frame"
+                          className="max-h-32 rounded-[var(--radius-md)] border border-[var(--border-default)] object-contain"
+                        />
+                        <button
+                          onClick={clearEndImage}
+                          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
+                        >
+                          X
+                        </button>
+                      </div>
+                    ) : (
+                      <UploadZone
+                        onFile={handleEndImageFile}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="!p-4"
+                      />
+                    )}
                   </div>
-                ) : (
-                  <UploadZone
-                    onFile={handleImageFile}
-                    accept="image/jpeg,image/png,image/webp"
-                    className="!p-4"
-                  />
                 )}
-              </>
+              </div>
             )}
 
             {/* Character picker mode */}
@@ -815,50 +900,132 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           </div>
         )}
 
-        {/* Duration pills */}
-        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Duration
-        </label>
+        {/* ── Settings Row: Duration, Aspect Ratio, Quality ── */}
         <div className="mb-4 flex flex-wrap gap-2">
-          {availableDurations.map((d) => (
-            <button
-              key={d}
-              onClick={() => setDurationSec(d)}
-              className={`min-w-[40px] rounded-[var(--radius-sm)] border px-2 py-1.5 text-center text-xs font-medium transition-all duration-150 ${
-                durationSec === d
-                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
-                  : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              {d}s
-            </button>
-          ))}
-        </div>
-
-        {/* Credit cost summary */}
-        <div className="mb-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[var(--text-secondary)]">Cost</span>
-            <span className="text-base font-bold tabular-nums text-[var(--accent-amber)]">
-              {creditCost} cr
-            </span>
-          </div>
-          {durationMultiplier > 1 && (
-            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-              {selectedModel?.creditCost} base &times; {durationMultiplier} ({durationSec}s)
-            </p>
+          {/* Duration button + popup */}
+          {availableDurations.length > 0 && (
+            <div ref={durationPopupRef} className="relative">
+              <button
+                type="button"
+                onClick={() => { setDurationPopupOpen(!durationPopupOpen); setAspectPopupOpen(false); setQualityPopupOpen(false); }}
+                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--text-muted)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {durationSec}s
+              </button>
+              {durationPopupOpen && (
+                <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Duration</p>
+                  {availableDurations.length > 3 ? (
+                    <>
+                      <input
+                        type="range"
+                        min={availableDurations[0]}
+                        max={availableDurations[availableDurations.length - 1]}
+                        step={1}
+                        value={durationSec}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          // Snap to nearest allowed value
+                          const closest = availableDurations.reduce((a, b) => Math.abs(b - val) < Math.abs(a - val) ? b : a);
+                          setDurationSec(closest);
+                        }}
+                        className="w-full accent-[var(--accent-amber)]"
+                      />
+                      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-[var(--text-muted)]">
+                        <span>{availableDurations[0]}s</span>
+                        <span className="font-medium text-[var(--accent-amber)]">{durationSec}s</span>
+                        <span>{availableDurations[availableDurations.length - 1]}s</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      {availableDurations.map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => { setDurationSec(d); setDurationPopupOpen(false); }}
+                          className={`flex-1 rounded-[var(--radius-sm)] border px-2 py-1.5 text-center text-xs font-medium transition-all duration-150 ${
+                            durationSec === d
+                              ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                              : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                          }`}
+                        >
+                          {d}s
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
-          <div className="mt-2 flex items-center justify-between border-t border-[var(--border-subtle)] pt-2 text-[11px]">
-            <span className="text-[var(--text-muted)]">Balance</span>
-            <span className={`font-medium tabular-nums ${canAfford ? "text-[var(--text-secondary)]" : "text-[var(--error)]"}`}>
-              {credits.toLocaleString()} credits
-            </span>
-          </div>
-          {!canAfford && (
-            <p className="mt-1.5 text-[11px] text-[var(--error)]">
-              Not enough credits.{" "}
-              <a href="/pricing" className="underline">Buy credits</a>
-            </p>
+
+          {/* Aspect ratio button + popup */}
+          {availableAspectRatios.length > 0 && (
+            <div ref={aspectPopupRef} className="relative">
+              <button
+                type="button"
+                onClick={() => { setAspectPopupOpen(!aspectPopupOpen); setDurationPopupOpen(false); setQualityPopupOpen(false); }}
+                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--text-muted)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+                {aspectRatio}
+              </button>
+              {aspectPopupOpen && (
+                <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[160px] rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                  <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</p>
+                  <div className="flex flex-wrap gap-1">
+                    {availableAspectRatios.map((ar) => (
+                      <button
+                        key={ar}
+                        onClick={() => { setAspectRatio(ar); setAspectPopupOpen(false); }}
+                        className={`rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] font-medium transition-all duration-150 ${
+                          aspectRatio === ar
+                            ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                            : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                        }`}
+                      >
+                        {ar}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quality/Resolution button + popup */}
+          {availableResolutions.length > 0 && (
+            <div ref={qualityPopupRef} className="relative">
+              <button
+                type="button"
+                onClick={() => { setQualityPopupOpen(!qualityPopupOpen); setDurationPopupOpen(false); setAspectPopupOpen(false); }}
+                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--text-muted)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                {resolution}
+              </button>
+              {qualityPopupOpen && (
+                <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[120px] rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                  <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quality</p>
+                  <div className="flex flex-col gap-1">
+                    {availableResolutions.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => { setResolution(r); setQualityPopupOpen(false); }}
+                        className={`rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-left text-[11px] font-medium transition-all duration-150 ${
+                          resolution === r
+                            ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                            : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

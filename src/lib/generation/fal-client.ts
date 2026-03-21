@@ -52,8 +52,10 @@ export async function submitGeneration(
   params: {
     prompt: string;
     imageUrl?: string;
+    endImageUrl?: string;
     durationSec?: number;
     aspectRatio?: string;
+    resolution?: string;
     withAudio?: boolean;
   }
 ): Promise<FalSubmitResult> {
@@ -76,16 +78,32 @@ export async function submitGeneration(
   };
 
   if (params.imageUrl) {
-    input.image_url = params.imageUrl;
+    // Kling 3.0 uses start_image_url for I2V
+    if (modelId === "kling-30-pro") {
+      input.start_image_url = params.imageUrl;
+    } else {
+      input.image_url = params.imageUrl;
+    }
   }
 
-  if (params.aspectRatio) {
+  // End frame support — different models use different param names
+  if (params.endImageUrl && model.supportsEndFrame && model.endFrameParam) {
+    input[model.endFrameParam] = params.endImageUrl;
+  }
+
+  if (params.aspectRatio && model.aspectRatios.length > 0) {
     input.aspect_ratio = params.aspectRatio;
+  }
+
+  if (params.resolution && model.resolutions.length > 0) {
+    input.resolution = params.resolution;
   }
 
   if (params.withAudio && model.supportsAudio) {
     input.with_audio = true;
   }
+
+  console.log(`[fal-client] submit: model=${modelId}, endpoint=${endpoint}, duration=${duration}, input_keys=${Object.keys(input).join(",")}`);
 
   const { request_id } = await fal.queue.submit(endpoint, { input });
 

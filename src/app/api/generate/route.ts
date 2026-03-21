@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     prompt?: string;
     modelId?: string;
     imageUrl?: string;
+    endImageUrl?: string;
     videoUrl?: string;
     characterId?: string;
     projectId?: string;
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
     prompt: body.prompt.trim(),
     modelId: body.modelId,
     imageUrl: body.imageUrl,
+    endImageUrl: body.endImageUrl,
     videoUrl: body.videoUrl,
     characterId: body.characterId,
     projectId: body.projectId,
