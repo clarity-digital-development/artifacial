@@ -343,7 +343,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
     try {
       const formData = new FormData();
-      formData.append("name", description.trim().slice(0, 40) || "Character");
+      formData.append("name", "Untitled Character");
       formData.append("style", style);
       formData.append("mode", mode);
       formData.append("model", model);
