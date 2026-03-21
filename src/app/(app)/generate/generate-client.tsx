@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -900,8 +899,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         )}
       </div>
 
-      {/* ─── CENTER PANEL (Feed) ─── */}
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* ─── CENTER PANEL ─── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
         {generations.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--border-default)] px-12 py-16 text-center">
@@ -921,16 +920,103 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-2xl space-y-4">
-            {generations.map((gen) => (
-              <GenerationCard
-                key={gen.id}
-                gen={gen}
-                isSelected={gen.id === selectedId}
-                onSelect={() => setSelectedId(gen.id)}
-              />
-            ))}
-          </div>
+          <>
+            {/* ── Main Preview ── */}
+            <div className="flex flex-1 items-center justify-center overflow-hidden p-4">
+              {selectedGeneration ? (
+                <div className="relative flex h-full w-full max-w-5xl items-center justify-center">
+                  {selectedGeneration.status === "completed" && selectedGeneration.outputUrl ? (
+                    <div className="relative max-h-full max-w-full">
+                      <video
+                        key={selectedGeneration.outputUrl}
+                        src={selectedGeneration.outputUrl}
+                        controls
+                        autoPlay
+                        loop
+                        playsInline
+                        className="max-h-[calc(100vh-var(--topbar-h,64px)-120px)] w-auto rounded-[var(--radius-lg)] border border-[var(--border-subtle)] shadow-[0_0_40px_rgba(0,0,0,0.4)]"
+                      />
+                      <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                        <Badge variant="default" className="!bg-black/70 !text-[10px] backdrop-blur-sm">{selectedGeneration.modelName}</Badge>
+                        <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur-sm">{selectedGeneration.durationSec}s</span>
+                        {selectedGeneration.generationTimeMs && (
+                          <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur-sm">{(selectedGeneration.generationTimeMs / 1000).toFixed(0)}s gen</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : selectedGeneration.status === "failed" ? (
+                    <div className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--error)]/20 bg-[var(--error)]/5 px-12 py-16">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--error)]/10">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-[var(--error)]">Generation Failed</p>
+                      {selectedGeneration.errorMessage && (
+                        <p className="max-w-sm text-center text-xs text-[var(--text-muted)]">{selectedGeneration.errorMessage}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative h-12 w-12">
+                        <svg className="h-12 w-12 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="var(--border-default)" strokeWidth="2" />
+                          <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--accent-amber)" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium capitalize text-[var(--text-secondary)]">
+                          {selectedGeneration.status === "submitting" ? "Submitting..." : selectedGeneration.status}
+                        </p>
+                        <p className="mt-1 text-xs tabular-nums text-[var(--text-muted)]">
+                          {formatElapsed(selectedGeneration.elapsedSec)}
+                        </p>
+                      </div>
+                      {selectedGeneration.progress > 0 && (
+                        <div className="w-48">
+                          <ProgressBar progress={selectedGeneration.progress} animated />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--text-muted)]">Select a generation to preview</p>
+              )}
+            </div>
+
+            {/* ── Thumbnail Strip ── */}
+            {generations.length > 1 && (
+              <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-deep)]/80 px-4 py-3">
+                <div className="flex gap-2 overflow-x-auto">
+                  {generations.map((gen) => (
+                    <button
+                      key={gen.id}
+                      onClick={() => setSelectedId(gen.id)}
+                      className={`group relative h-16 w-28 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 transition-all duration-150 ${
+                        gen.id === selectedId
+                          ? "border-[var(--accent-amber)] shadow-[0_0_12px_rgba(232,166,52,0.15)]"
+                          : "border-transparent opacity-60 hover:opacity-90"
+                      }`}
+                    >
+                      {gen.status === "completed" && gen.outputUrl ? (
+                        <video src={gen.outputUrl} muted preload="metadata" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className={`flex h-full w-full items-center justify-center text-[10px] font-medium ${
+                          gen.status === "failed" ? "bg-[var(--error)]/10 text-[var(--error)]" : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
+                        }`}>
+                          {gen.status === "failed" ? "Failed" : gen.status === "completed" ? "Done" : "..."}
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
+                        <p className="truncate text-[9px] font-medium text-white/90">{gen.modelName}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -1089,118 +1175,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         )}
       </div>
     </div>
-  );
-}
-
-// ─── Generation Card (center feed) ───
-
-function GenerationCard({
-  gen,
-  isSelected,
-  onSelect,
-}: {
-  gen: GenerationItem;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || gen.status !== "completed") return;
-
-    if (isHovered) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-      video.currentTime = 0;
-    }
-  }, [isHovered, gen.status]);
-
-  const isInFlight = gen.status === "submitting" || gen.status === "queued" || gen.status === "processing";
-
-  return (
-    <button
-      onClick={onSelect}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="block w-full text-left"
-    >
-      <Card
-        className={`overflow-hidden transition-all duration-200 ${
-          isSelected
-            ? "ring-1 ring-[var(--accent-amber)] shadow-[0_0_20px_rgba(232,166,52,0.1)]"
-            : "hover:border-[var(--text-muted)]"
-        }`}
-      >
-        <div className="relative aspect-video bg-[var(--bg-elevated)]">
-          {gen.status === "completed" && gen.outputUrl ? (
-            <video
-              ref={videoRef}
-              src={gen.outputUrl}
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              className="h-full w-full object-cover"
-            />
-          ) : gen.status === "failed" ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--error)]/10">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </div>
-              <p className="text-xs text-[var(--error)]">Failed</p>
-              {gen.errorMessage && (
-                <p className="max-w-[200px] truncate text-[10px] text-[var(--text-muted)]">{gen.errorMessage}</p>
-              )}
-            </div>
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3">
-              <div className="relative h-10 w-10">
-                <svg className="h-10 w-10 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="var(--border-default)" strokeWidth="2" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--accent-amber)" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-medium capitalize text-[var(--text-secondary)]">
-                  {gen.status === "submitting" ? "Submitting..." : gen.status}
-                </p>
-                <p className="mt-0.5 text-[10px] tabular-nums text-[var(--text-muted)]">
-                  {formatElapsed(gen.elapsedSec)}
-                </p>
-              </div>
-              {isInFlight && gen.progress > 0 && (
-                <div className="w-32">
-                  <ProgressBar progress={gen.progress} animated />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-2">
-          <Badge variant={gen.status === "completed" ? "success" : gen.status === "failed" ? "error" : "amber"}>
-            {gen.modelName}
-          </Badge>
-          <span className="text-[10px] text-[var(--text-muted)]">{gen.durationSec}s</span>
-          {gen.withAudio && (
-            <span className="text-[10px] text-[var(--accent-amber)]">audio</span>
-          )}
-          <span className="ml-auto text-[10px] tabular-nums text-[var(--text-muted)]">
-            {gen.status === "completed" && gen.generationTimeMs
-              ? `${(gen.generationTimeMs / 1000).toFixed(0)}s`
-              : isInFlight
-                ? formatElapsed(gen.elapsedSec)
-                : ""}
-          </span>
-        </div>
-      </Card>
-    </button>
   );
 }
 
