@@ -194,7 +194,7 @@ export function TopBar({
             </button>
 
             {menuOpen && (
-              <div className="animate-fade-in-scale absolute right-0 top-full mt-2 w-56 origin-top-right rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="animate-fade-in-scale absolute right-0 top-full z-[100] mt-2 w-56 origin-top-right rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 <div className="border-b border-[var(--border-subtle)] px-4 py-3">
                   {user.name && (
                     <p className="text-sm font-medium text-[var(--text-primary)]">{user.name}</p>

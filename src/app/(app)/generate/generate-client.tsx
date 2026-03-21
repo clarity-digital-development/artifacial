@@ -620,6 +620,12 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         </label>
         <div className="relative mb-1">
           <textarea
+            ref={(el) => {
+              if (!el) return;
+              el.style.height = "auto";
+              // Base height ~120px (5 rows), max ~160px (+1/3)
+              el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+            }}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={isMotionMode
@@ -629,6 +635,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             rows={5}
             maxLength={2000}
             className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
+            style={{ minHeight: "120px", maxHeight: "160px", overflow: "auto" }}
           />
           {submitting && (
             <div className="absolute right-2 top-2 rounded bg-[var(--accent-amber)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-amber)]">
