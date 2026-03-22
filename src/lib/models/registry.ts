@@ -212,7 +212,7 @@ const VEO_31: ModelConfig = {
   description: "Google's best. 4K cinematic output.",
   durations: [4, 6, 8],
   aspectRatios: ["16:9", "9:16"],
-  resolutions: ["720p", "1080p"],
+  resolutions: ["720p", "1080p", "4k"],
   supportsEndFrame: false,
 };
 

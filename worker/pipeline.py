@@ -35,12 +35,12 @@ I2V_BASE_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
 # NSFW transformer weights — swapped into the base pipelines
 T2V_NSFW_CHECKPOINT = "NSFW-API/NSFW_Wan_14b"
-T2V_NSFW_FILENAME = "wan_14B_e15.safetensors"
+T2V_NSFW_FILENAME = "nsfw_wan_14b_e15.safetensors"
 
 I2V_NSFW_REPO = "FX-FeiHou/wan2.2-Remix"
 I2V_NSFW_SUBFOLDER = "NSFW"
-I2V_NSFW_HIGH_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_high_lighting_v2.0.safetensors"
-I2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_low_lighting_v2.0.safetensors"
+I2V_NSFW_HIGH_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_high_lighting_fp16_v2.1.safetensors"
+I2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_low_lighting_fp16_v2.1.safetensors"
 
 FPS = 16
 DEFAULT_STEPS = 24

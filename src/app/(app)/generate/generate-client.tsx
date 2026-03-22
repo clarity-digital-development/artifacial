@@ -41,7 +41,7 @@ const MODELS: ClientModel[] = [
   // ── SFW Ultra ──
   { id: "sora-2-pro", name: "Sora 2 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 20, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. Up to 20 seconds.", durations: [4, 8, 12, 16, 20], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium quality. Best overall.", durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
-  { id: "veo-31", name: "Veo 3.1", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Google's best. 4K cinematic output.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "veo-31", name: "Veo 3.1", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Google's best. 4K cinematic output.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], supportsEndFrame: false },
   // ── Motion Control ──
   { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
   { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
@@ -637,11 +637,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
             style={{ minHeight: "120px", maxHeight: "160px", overflow: "auto" }}
           />
-          {submitting && (
-            <div className="absolute right-2 top-2 rounded bg-[var(--accent-amber)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-amber)]">
-              Generating...
-            </div>
-          )}
         </div>
         <p className="mb-4 text-right text-[10px] tabular-nums text-[var(--text-muted)]">
           {prompt.length}/2000
