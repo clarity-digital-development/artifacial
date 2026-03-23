@@ -28,6 +28,7 @@ from pipeline import (
     full_teardown,
     is_model_loaded,
     get_model_load_time,
+    get_active_pipeline_type,
     GenerationParams,
 )
 from image_pipeline import (
@@ -417,6 +418,7 @@ async def health():
     return {
         "status": "ok",
         "video_model_loaded": is_model_loaded(),
+        "active_pipeline": get_active_pipeline_type(),
         "video_model_load_time_sec": get_model_load_time(),
         "image_model_loaded": is_image_model_loaded(),
         "image_model_id": get_current_image_model(),

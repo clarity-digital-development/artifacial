@@ -10,6 +10,10 @@ Models:
 
 All NSFW weights from: https://huggingface.co/FX-FeiHou/wan2.2-Remix (NSFW/ subfolder)
 Requires: A100 80GB with CUDA, ffmpeg installed.
+
+Architecture: Lazy loading — only one pipeline (T2V or I2V) is held in memory at a time.
+When a job arrives for the other pipeline type, the current one is fully torn down first.
+This keeps peak CPU RAM under 90GB (fits Thunder Compute's 12 vCPU / 96GB tier).
 """
 
 import gc
@@ -25,9 +29,9 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Lazy imports — these are heavy and only needed on GPU instances
-_t2v_pipeline = None
-_i2v_pipeline = None
+# Currently loaded pipeline — only ONE at a time to stay within 90GB RAM
+_active_pipeline = None  # The actual Diffusers pipeline object
+_active_type: str | None = None  # "t2v" or "i2v"
 _model_loaded = False
 _model_load_time: float | None = None
 
@@ -81,34 +85,36 @@ def get_model_load_time() -> float | None:
     return _model_load_time
 
 
+def get_active_pipeline_type() -> str | None:
+    return _active_type
+
+
 def full_teardown() -> None:
     """
-    Full VRAM teardown — call before process exit or model reload.
+    Full VRAM + RAM teardown — call before process exit or model reload.
     Removes Accelerate hooks first (breaks reference chains), then deletes
     individual components, forces GC, and clears CUDA cache.
     """
-    global _t2v_pipeline, _i2v_pipeline, _model_loaded
+    global _active_pipeline, _active_type, _model_loaded
 
     import torch
 
-    for pipe in [_t2v_pipeline, _i2v_pipeline]:
-        if pipe is None:
-            continue
+    if _active_pipeline is not None:
         # 1. Remove Accelerate hooks FIRST (breaks reference chains)
-        if hasattr(pipe, "remove_all_hooks"):
-            pipe.remove_all_hooks()
+        if hasattr(_active_pipeline, "remove_all_hooks"):
+            _active_pipeline.remove_all_hooks()
         # 2. Delete individual components to break circular references
         for attr in [
             "transformer", "transformer_2", "unet", "vae",
             "text_encoder", "text_encoder_2", "text_encoder_3",
             "tokenizer", "tokenizer_2", "image_encoder",
         ]:
-            if hasattr(pipe, attr) and getattr(pipe, attr) is not None:
-                delattr(pipe, attr)
+            if hasattr(_active_pipeline, attr) and getattr(_active_pipeline, attr) is not None:
+                delattr(_active_pipeline, attr)
 
-    # 3. Delete pipeline objects
-    _t2v_pipeline = None
-    _i2v_pipeline = None
+    # 3. Delete pipeline object
+    _active_pipeline = None
+    _active_type = None
     _model_loaded = False
 
     # 4. Force Python GC BEFORE clearing CUDA cache (second pass catches cycles)
@@ -137,23 +143,76 @@ def _download_single_file(
 
 def load_models() -> None:
     """
-    Load Wan2.2 pipelines with NSFW transformer weights into VRAM.
-    Call once on startup. Expect 5-8 minutes for first load
-    (downloading checkpoints + VRAM allocation).
-
-    T2V: Single NSFW transformer swapped into base pipeline.
-    I2V: Dual NSFW transformers (high/low noise) swapped into base pipeline.
+    Pre-download all model weights so first job doesn't wait for downloads.
+    Does NOT load into RAM/VRAM — lazy loading handles that per-job.
     """
-    global _t2v_pipeline, _i2v_pipeline, _model_loaded, _model_load_time
+    global _model_loaded, _model_load_time
 
     if os.environ.get("SKIP_MODEL_LOAD") == "true":
-        logger.warning("SKIP_MODEL_LOAD=true — skipping Diffusers pipeline load")
+        logger.warning("SKIP_MODEL_LOAD=true — skipping model pre-download")
         _model_loaded = True
         _model_load_time = 0.0
         return
 
+    hf_token = os.environ.get("HF_TOKEN")
+    start = time.time()
+
+    # Pre-download NSFW transformer weights (cached by huggingface_hub)
+    logger.info("Pre-downloading NSFW transformer weights...")
+    for filename in [T2V_NSFW_LOW_NOISE, I2V_NSFW_HIGH_NOISE, I2V_NSFW_LOW_NOISE]:
+        logger.info(f"  Ensuring cached: {NSFW_REPO}/{NSFW_SUBFOLDER}/{filename}")
+        _download_single_file(NSFW_REPO, filename, hf_token, subfolder=NSFW_SUBFOLDER)
+
+    _model_load_time = time.time() - start
+    _model_loaded = True
+    logger.info(f"Model pre-download complete in {_model_load_time:.1f}s — ready for lazy loading")
+
+
+def _teardown_active_pipeline() -> None:
+    """Tear down the currently loaded pipeline to free RAM/VRAM for a different one."""
+    global _active_pipeline, _active_type
+
     import torch
-    from diffusers import WanPipeline, WanImageToVideoPipeline, WanTransformer3DModel
+
+    if _active_pipeline is None:
+        return
+
+    logger.info(f"Tearing down active {_active_type} pipeline to free memory")
+
+    if hasattr(_active_pipeline, "remove_all_hooks"):
+        _active_pipeline.remove_all_hooks()
+
+    for attr in [
+        "transformer", "transformer_2", "unet", "vae",
+        "text_encoder", "text_encoder_2", "text_encoder_3",
+        "tokenizer", "tokenizer_2", "image_encoder",
+    ]:
+        if hasattr(_active_pipeline, attr) and getattr(_active_pipeline, attr) is not None:
+            delattr(_active_pipeline, attr)
+
+    _active_pipeline = None
+    _active_type = None
+
+    gc.collect()
+    gc.collect()
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    logger.info("Active pipeline teardown complete")
+
+
+def _ensure_t2v() -> None:
+    """Lazy-load T2V pipeline. Tears down I2V first if loaded."""
+    global _active_pipeline, _active_type
+
+    if _active_type == "t2v" and _active_pipeline is not None:
+        return  # Already loaded
+
+    import torch
+    from diffusers import WanPipeline, WanTransformer3DModel
+
+    _teardown_active_pipeline()
 
     device = os.environ.get("DEVICE", "cuda")
     dtype = torch.float16 if device == "cuda" else torch.float32
@@ -161,91 +220,94 @@ def load_models() -> None:
 
     start = time.time()
 
-    # ── T2V: base pipeline + NSFW low-noise transformer swap ─────────────
-    # The base pipeline provides VAE, text encoder, scheduler, tokenizer,
-    # and both MoE transformer experts (high-noise + low-noise).
-    # We keep the base high-noise expert and only swap low-noise with NSFW.
-    # (NSFW T2V high-noise requires Lightning fp8 from a separate repo.)
-    logger.info(f"Loading T2V base pipeline: {T2V_BASE_ID}")
-    _t2v_pipeline = WanPipeline.from_pretrained(
+    logger.info(f"Lazy-loading T2V base pipeline: {T2V_BASE_ID}")
+    _active_pipeline = WanPipeline.from_pretrained(
         T2V_BASE_ID,
         torch_dtype=dtype,
         token=hf_token,
         low_cpu_mem_usage=True,
     )
 
-    # Delete only the low-noise transformer before loading NSFW replacement
-    logger.info("Deleting base T2V low-noise transformer before NSFW swap")
-    if hasattr(_t2v_pipeline, "transformer_2") and _t2v_pipeline.transformer_2 is not None:
-        del _t2v_pipeline.transformer_2
+    # Delete low-noise transformer before loading NSFW replacement
+    if hasattr(_active_pipeline, "transformer_2") and _active_pipeline.transformer_2 is not None:
+        del _active_pipeline.transformer_2
         gc.collect()
 
-    logger.info(f"Loading T2V NSFW low-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{T2V_NSFW_LOW_NOISE}")
+    logger.info(f"Swapping T2V NSFW low-noise transformer: {T2V_NSFW_LOW_NOISE}")
     t2v_nsfw_path = _download_single_file(NSFW_REPO, T2V_NSFW_LOW_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     t2v_nsfw_transformer = WanTransformer3DModel.from_single_file(
         t2v_nsfw_path,
         torch_dtype=dtype,
     )
-    _t2v_pipeline.transformer_2 = t2v_nsfw_transformer
+    _active_pipeline.transformer_2 = t2v_nsfw_transformer
 
     if device == "cuda":
-        _t2v_pipeline.enable_model_cpu_offload()
+        _active_pipeline.enable_model_cpu_offload()
 
-    t2v_time = time.time() - start
-    logger.info(f"T2V NSFW pipeline ready in {t2v_time:.1f}s")
+    _active_type = "t2v"
+    logger.info(f"T2V NSFW pipeline ready in {time.time() - start:.1f}s")
 
-    gc.collect()
 
-    # ── I2V: base pipeline + dual NSFW transformer swap ─────────────────
-    i2v_start = time.time()
+def _ensure_i2v() -> None:
+    """Lazy-load I2V pipeline. Tears down T2V first if loaded."""
+    global _active_pipeline, _active_type
 
-    logger.info(f"Loading I2V base pipeline: {I2V_BASE_ID}")
-    _i2v_pipeline = WanImageToVideoPipeline.from_pretrained(
+    if _active_type == "i2v" and _active_pipeline is not None:
+        return  # Already loaded
+
+    import torch
+    from diffusers import WanImageToVideoPipeline, WanTransformer3DModel
+
+    _teardown_active_pipeline()
+
+    device = os.environ.get("DEVICE", "cuda")
+    dtype = torch.float16 if device == "cuda" else torch.float32
+    hf_token = os.environ.get("HF_TOKEN")
+
+    start = time.time()
+
+    logger.info(f"Lazy-loading I2V base pipeline: {I2V_BASE_ID}")
+    _active_pipeline = WanImageToVideoPipeline.from_pretrained(
         I2V_BASE_ID,
         torch_dtype=dtype,
         token=hf_token,
         low_cpu_mem_usage=True,
     )
 
-    # Delete both base I2V transformers before loading NSFW replacements
-    logger.info("Deleting base I2V transformers to free CPU RAM before NSFW swap")
-    del _i2v_pipeline.transformer
-    if hasattr(_i2v_pipeline, "transformer_2"):
-        del _i2v_pipeline.transformer_2
+    # Delete both base transformers before loading NSFW replacements
+    del _active_pipeline.transformer
+    if hasattr(_active_pipeline, "transformer_2"):
+        del _active_pipeline.transformer_2
     gc.collect()
 
-    logger.info(f"Loading I2V NSFW high-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{I2V_NSFW_HIGH_NOISE}")
+    logger.info(f"Swapping I2V NSFW high-noise transformer: {I2V_NSFW_HIGH_NOISE}")
     i2v_high_path = _download_single_file(NSFW_REPO, I2V_NSFW_HIGH_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     i2v_high_transformer = WanTransformer3DModel.from_single_file(
         i2v_high_path,
         torch_dtype=dtype,
     )
-    _i2v_pipeline.transformer = i2v_high_transformer
+    _active_pipeline.transformer = i2v_high_transformer
 
     gc.collect()
 
-    logger.info(f"Loading I2V NSFW low-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{I2V_NSFW_LOW_NOISE}")
+    logger.info(f"Swapping I2V NSFW low-noise transformer: {I2V_NSFW_LOW_NOISE}")
     i2v_low_path = _download_single_file(NSFW_REPO, I2V_NSFW_LOW_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     i2v_low_transformer = WanTransformer3DModel.from_single_file(
         i2v_low_path,
         torch_dtype=dtype,
     )
-    _i2v_pipeline.transformer_2 = i2v_low_transformer
+    _active_pipeline.transformer_2 = i2v_low_transformer
 
     # Workaround: from_single_file misidentifies Wan2.2 as Wan2.1
     # See: https://github.com/huggingface/diffusers/issues/12329
-    _i2v_pipeline.transformer.config.image_dim = None
-    _i2v_pipeline.transformer_2.config.image_dim = None
+    _active_pipeline.transformer.config.image_dim = None
+    _active_pipeline.transformer_2.config.image_dim = None
 
     if device == "cuda":
-        _i2v_pipeline.enable_model_cpu_offload()
+        _active_pipeline.enable_model_cpu_offload()
 
-    i2v_time = time.time() - i2v_start
-    total_time = time.time() - start
-    logger.info(f"I2V NSFW pipeline ready in {i2v_time:.1f}s — total load time: {total_time:.1f}s")
-
-    _model_loaded = True
-    _model_load_time = total_time
+    _active_type = "i2v"
+    logger.info(f"I2V NSFW pipeline ready in {time.time() - start:.1f}s")
 
 
 def generate(params: GenerationParams) -> GenerationResult:
@@ -265,6 +327,12 @@ def generate(params: GenerationParams) -> GenerationResult:
     num_frames = int(params.duration_sec * FPS)
     is_i2v = params.image_path is not None
 
+    # Lazy-load the right pipeline (tears down the other if needed)
+    if is_i2v:
+        _ensure_i2v()
+    else:
+        _ensure_t2v()
+
     logger.info(
         f"Generating {'I2V' if is_i2v else 'T2V'}: "
         f"{num_frames} frames @ {params.width}x{params.height}, "
@@ -275,11 +343,11 @@ def generate(params: GenerationParams) -> GenerationResult:
 
     # inference_mode > no_grad: disables view tracking + version counters (~12% speed gain)
     with torch.inference_mode():
-        if is_i2v and _i2v_pipeline is not None:
+        if is_i2v:
             image = Image.open(params.image_path).convert("RGB")
             image = image.resize((params.width, params.height))
 
-            output = _i2v_pipeline(
+            output = _active_pipeline(
                 prompt=params.prompt,
                 negative_prompt=params.negative_prompt or None,
                 image=image,
@@ -289,8 +357,8 @@ def generate(params: GenerationParams) -> GenerationResult:
                 num_inference_steps=params.num_inference_steps,
                 guidance_scale=params.guidance_scale,
             )
-        elif _t2v_pipeline is not None:
-            output = _t2v_pipeline(
+        else:
+            output = _active_pipeline(
                 prompt=params.prompt,
                 negative_prompt=params.negative_prompt or None,
                 num_frames=num_frames,
@@ -299,8 +367,6 @@ def generate(params: GenerationParams) -> GenerationResult:
                 num_inference_steps=params.num_inference_steps,
                 guidance_scale=params.guidance_scale,
             )
-        else:
-            raise RuntimeError("No pipeline available for this generation type")
 
     inference_ms = int((time.time() - start) * 1000)
     logger.info(f"Inference complete in {inference_ms}ms")
