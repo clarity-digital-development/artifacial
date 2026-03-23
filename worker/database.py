@@ -6,7 +6,7 @@ Uses asyncpg for async operations within the FastAPI event loop.
 
 import os
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 import asyncpg
 
@@ -45,7 +45,7 @@ async def update_generation_processing(generation_id: str) -> None:
         WHERE id = $1
         """,
         generation_id,
-        datetime.now(timezone.utc),
+        datetime.utcnow(),
     )
     logger.info(f"Generation {generation_id} → PROCESSING")
 
@@ -74,7 +74,7 @@ async def update_generation_completed(
 ) -> None:
     """Mark a generation as COMPLETED with the R2 key and metadata."""
     pool = await get_pool()
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     await pool.execute(
         """
         UPDATE "Generation"
@@ -105,7 +105,7 @@ async def update_generation_failed(
 ) -> None:
     """Mark a generation as FAILED."""
     pool = await get_pool()
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     await pool.execute(
         """
         UPDATE "Generation"
