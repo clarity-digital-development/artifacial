@@ -24,6 +24,10 @@ boto3>=1.34.0
 Pillow>=10.0.0
 numpy>=1.26.0
 
+# Attention acceleration (install flash-attn separately: pip install flash-attn --no-build-isolation)
+# flash-attn>=2.5.0  # requires separate install due to CUDA compilation
+# sageattention>=1.0.0  # alternative, pip install sageattention
+
 # HuggingFace model downloads
 huggingface-hub>=0.25.0
 
