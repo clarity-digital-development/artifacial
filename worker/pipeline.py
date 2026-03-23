@@ -158,12 +158,22 @@ def load_models() -> None:
     start = time.time()
 
     # ── T2V: base pipeline + NSFW transformer swap ──────────────────────
+    # low_cpu_mem_usage=True loads weights shard-by-shard to avoid peak RAM spike.
+    # We delete the base transformer before loading the NSFW one to free RAM.
     logger.info(f"Loading T2V base pipeline: {T2V_BASE_ID}")
     _t2v_pipeline = WanPipeline.from_pretrained(
         T2V_BASE_ID,
         torch_dtype=dtype,
         token=hf_token,
+        low_cpu_mem_usage=True,
     )
+
+    # Delete base transformers before loading NSFW ones — frees ~56GB CPU RAM
+    logger.info("Deleting base T2V transformers to free CPU RAM before NSFW swap")
+    del _t2v_pipeline.transformer
+    if hasattr(_t2v_pipeline, "transformer_2"):
+        del _t2v_pipeline.transformer_2
+    gc.collect()
 
     logger.info(f"Loading T2V NSFW transformer: {T2V_NSFW_CHECKPOINT}/{T2V_NSFW_FILENAME}")
     t2v_nsfw_path = _download_single_file(T2V_NSFW_CHECKPOINT, T2V_NSFW_FILENAME, hf_token)
@@ -179,6 +189,9 @@ def load_models() -> None:
     t2v_time = time.time() - start
     logger.info(f"T2V NSFW pipeline ready in {t2v_time:.1f}s")
 
+    # Free T2V from CPU RAM — model_cpu_offload will reload from GPU as needed
+    gc.collect()
+
     # ── I2V: base pipeline + dual NSFW transformer swap ─────────────────
     i2v_start = time.time()
 
@@ -187,7 +200,15 @@ def load_models() -> None:
         I2V_BASE_ID,
         torch_dtype=dtype,
         token=hf_token,
+        low_cpu_mem_usage=True,
     )
+
+    # Delete base I2V transformers before loading NSFW replacements
+    logger.info("Deleting base I2V transformers to free CPU RAM before NSFW swap")
+    del _i2v_pipeline.transformer
+    if hasattr(_i2v_pipeline, "transformer_2"):
+        del _i2v_pipeline.transformer_2
+    gc.collect()
 
     logger.info(f"Loading I2V NSFW high-noise transformer: {I2V_NSFW_REPO}/{I2V_NSFW_SUBFOLDER}/{I2V_NSFW_HIGH_NOISE}")
     i2v_high_path = _download_single_file(I2V_NSFW_REPO, I2V_NSFW_HIGH_NOISE, hf_token, subfolder=I2V_NSFW_SUBFOLDER)
@@ -195,6 +216,10 @@ def load_models() -> None:
         i2v_high_path,
         torch_dtype=dtype,
     )
+    _i2v_pipeline.transformer = i2v_high_transformer
+
+    # GC before loading second transformer
+    gc.collect()
 
     logger.info(f"Loading I2V NSFW low-noise transformer: {I2V_NSFW_REPO}/{I2V_NSFW_SUBFOLDER}/{I2V_NSFW_LOW_NOISE}")
     i2v_low_path = _download_single_file(I2V_NSFW_REPO, I2V_NSFW_LOW_NOISE, hf_token, subfolder=I2V_NSFW_SUBFOLDER)
@@ -202,9 +227,6 @@ def load_models() -> None:
         i2v_low_path,
         torch_dtype=dtype,
     )
-
-    # Swap both transformers into the base I2V pipeline
-    _i2v_pipeline.transformer = i2v_high_transformer
     _i2v_pipeline.transformer_2 = i2v_low_transformer
 
     # Workaround: from_single_file misidentifies Wan2.2 as Wan2.1
