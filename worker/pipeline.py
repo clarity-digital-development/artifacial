@@ -3,10 +3,12 @@ Diffusers inference wrapper for Wan2.2 NSFW video generation.
 
 Models:
   T2V: Base scaffolding from Wan-AI/Wan2.2-T2V-A14B-Diffusers,
-       NSFW transformer from NSFW-API/NSFW_Wan_14b (single checkpoint).
+       NSFW low-noise transformer from FX-FeiHou/wan2.2-Remix.
+       High-noise expert stays base (NSFW T2V high-noise requires Lightning fp8).
   I2V: Base scaffolding from Wan-AI/Wan2.2-I2V-A14B-Diffusers,
        NSFW dual-transformers from FX-FeiHou/wan2.2-Remix (high/low noise stages).
 
+All NSFW weights from: https://huggingface.co/FX-FeiHou/wan2.2-Remix (NSFW/ subfolder)
 Requires: A100 80GB with CUDA, ffmpeg installed.
 """
 
@@ -33,14 +35,16 @@ _model_load_time: float | None = None
 T2V_BASE_ID = "Wan-AI/Wan2.2-T2V-A14B-Diffusers"
 I2V_BASE_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
-# NSFW transformer weights — swapped into the base pipelines
-T2V_NSFW_CHECKPOINT = "NSFW-API/NSFW_Wan_14b"
-T2V_NSFW_FILENAME = "nsfw_wan_14b_e15.safetensors"
+# All NSFW transformer weights live in FX-FeiHou/wan2.2-Remix under NSFW/ subfolder
+NSFW_REPO = "FX-FeiHou/wan2.2-Remix"
+NSFW_SUBFOLDER = "NSFW"
 
-I2V_NSFW_REPO = "FX-FeiHou/wan2.2-Remix"
-I2V_NSFW_SUBFOLDER = "NSFW"
-I2V_NSFW_HIGH_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_high_lighting_fp16_v2.1.safetensors"
-I2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_low_lighting_fp16_v2.1.safetensors"
+# T2V: only low-noise expert has an NSFW version; high-noise stays base
+T2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_t2v_14b_low_lighting_v2.0.safetensors"
+
+# I2V: both high-noise and low-noise have NSFW versions
+I2V_NSFW_HIGH_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_high_lighting_v2.0.safetensors"
+I2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_low_lighting_v2.0.safetensors"
 
 FPS = 16
 DEFAULT_STEPS = 24
@@ -157,9 +161,11 @@ def load_models() -> None:
 
     start = time.time()
 
-    # ── T2V: base pipeline + NSFW transformer swap ──────────────────────
-    # low_cpu_mem_usage=True loads weights shard-by-shard to avoid peak RAM spike.
-    # We delete the base transformer before loading the NSFW one to free RAM.
+    # ── T2V: base pipeline + NSFW low-noise transformer swap ─────────────
+    # The base pipeline provides VAE, text encoder, scheduler, tokenizer,
+    # and both MoE transformer experts (high-noise + low-noise).
+    # We keep the base high-noise expert and only swap low-noise with NSFW.
+    # (NSFW T2V high-noise requires Lightning fp8 from a separate repo.)
     logger.info(f"Loading T2V base pipeline: {T2V_BASE_ID}")
     _t2v_pipeline = WanPipeline.from_pretrained(
         T2V_BASE_ID,
@@ -168,20 +174,19 @@ def load_models() -> None:
         low_cpu_mem_usage=True,
     )
 
-    # Delete base transformers before loading NSFW ones — frees ~56GB CPU RAM
-    logger.info("Deleting base T2V transformers to free CPU RAM before NSFW swap")
-    del _t2v_pipeline.transformer
-    if hasattr(_t2v_pipeline, "transformer_2"):
+    # Delete only the low-noise transformer before loading NSFW replacement
+    logger.info("Deleting base T2V low-noise transformer before NSFW swap")
+    if hasattr(_t2v_pipeline, "transformer_2") and _t2v_pipeline.transformer_2 is not None:
         del _t2v_pipeline.transformer_2
-    gc.collect()
+        gc.collect()
 
-    logger.info(f"Loading T2V NSFW transformer: {T2V_NSFW_CHECKPOINT}/{T2V_NSFW_FILENAME}")
-    t2v_nsfw_path = _download_single_file(T2V_NSFW_CHECKPOINT, T2V_NSFW_FILENAME, hf_token)
+    logger.info(f"Loading T2V NSFW low-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{T2V_NSFW_LOW_NOISE}")
+    t2v_nsfw_path = _download_single_file(NSFW_REPO, T2V_NSFW_LOW_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     t2v_nsfw_transformer = WanTransformer3DModel.from_single_file(
         t2v_nsfw_path,
         torch_dtype=dtype,
     )
-    _t2v_pipeline.transformer = t2v_nsfw_transformer
+    _t2v_pipeline.transformer_2 = t2v_nsfw_transformer
 
     if device == "cuda":
         _t2v_pipeline.enable_model_cpu_offload()
@@ -189,7 +194,6 @@ def load_models() -> None:
     t2v_time = time.time() - start
     logger.info(f"T2V NSFW pipeline ready in {t2v_time:.1f}s")
 
-    # Free T2V from CPU RAM — model_cpu_offload will reload from GPU as needed
     gc.collect()
 
     # ── I2V: base pipeline + dual NSFW transformer swap ─────────────────
@@ -203,26 +207,25 @@ def load_models() -> None:
         low_cpu_mem_usage=True,
     )
 
-    # Delete base I2V transformers before loading NSFW replacements
+    # Delete both base I2V transformers before loading NSFW replacements
     logger.info("Deleting base I2V transformers to free CPU RAM before NSFW swap")
     del _i2v_pipeline.transformer
     if hasattr(_i2v_pipeline, "transformer_2"):
         del _i2v_pipeline.transformer_2
     gc.collect()
 
-    logger.info(f"Loading I2V NSFW high-noise transformer: {I2V_NSFW_REPO}/{I2V_NSFW_SUBFOLDER}/{I2V_NSFW_HIGH_NOISE}")
-    i2v_high_path = _download_single_file(I2V_NSFW_REPO, I2V_NSFW_HIGH_NOISE, hf_token, subfolder=I2V_NSFW_SUBFOLDER)
+    logger.info(f"Loading I2V NSFW high-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{I2V_NSFW_HIGH_NOISE}")
+    i2v_high_path = _download_single_file(NSFW_REPO, I2V_NSFW_HIGH_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     i2v_high_transformer = WanTransformer3DModel.from_single_file(
         i2v_high_path,
         torch_dtype=dtype,
     )
     _i2v_pipeline.transformer = i2v_high_transformer
 
-    # GC before loading second transformer
     gc.collect()
 
-    logger.info(f"Loading I2V NSFW low-noise transformer: {I2V_NSFW_REPO}/{I2V_NSFW_SUBFOLDER}/{I2V_NSFW_LOW_NOISE}")
-    i2v_low_path = _download_single_file(I2V_NSFW_REPO, I2V_NSFW_LOW_NOISE, hf_token, subfolder=I2V_NSFW_SUBFOLDER)
+    logger.info(f"Loading I2V NSFW low-noise transformer: {NSFW_REPO}/{NSFW_SUBFOLDER}/{I2V_NSFW_LOW_NOISE}")
+    i2v_low_path = _download_single_file(NSFW_REPO, I2V_NSFW_LOW_NOISE, hf_token, subfolder=NSFW_SUBFOLDER)
     i2v_low_transformer = WanTransformer3DModel.from_single_file(
         i2v_low_path,
         torch_dtype=dtype,
