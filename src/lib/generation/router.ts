@@ -123,9 +123,9 @@ export async function routeGeneration(
     if (effectiveMode === "NSFW") {
       const tierCheck = await prisma.user.findUnique({
         where: { id: userId },
-        select: { subscriptionTier: true },
+        select: { subscriptionTier: true, isAdmin: true },
       });
-      if (tierCheck?.subscriptionTier === "FREE") {
+      if (tierCheck?.subscriptionTier === "FREE" && !tierCheck?.isAdmin) {
         return {
           success: false,
           error: "NSFW generation requires a Starter plan or above.",

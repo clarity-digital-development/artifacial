@@ -26,6 +26,7 @@ export async function resolveContentMode(
       dateOfBirth: true,
       bannedAt: true,
       subscriptionTier: true,
+      isAdmin: true,
     },
   });
 
@@ -40,6 +41,11 @@ export async function resolveContentMode(
   // If user hasn't opted into NSFW, stay SFW
   if (user.contentMode !== "NSFW") {
     return { effectiveMode: "SFW" };
+  }
+
+  // Admins bypass all NSFW eligibility checks (tier, age, character)
+  if (user.isAdmin) {
+    return { effectiveMode: "NSFW" };
   }
 
   // Auto-heal: if user has NSFW enabled but downgraded to FREE tier, force SFW
