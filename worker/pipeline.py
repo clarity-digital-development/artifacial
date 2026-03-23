@@ -422,10 +422,16 @@ def _frames_to_mp4(frames: list, fps: int) -> Path:
     frame_dir = Path(tempfile.mkdtemp())
 
     try:
-        # Write frames as PNGs
+        # Write frames as PNGs (handle both PIL Images and numpy arrays)
+        from PIL import Image
+        import numpy as np
+
         for i, frame in enumerate(frames):
             frame_path = frame_dir / f"frame_{i:05d}.png"
-            frame.save(str(frame_path))
+            if isinstance(frame, np.ndarray):
+                Image.fromarray(frame).save(str(frame_path))
+            else:
+                frame.save(str(frame_path))
 
         # Encode with ffmpeg
         cmd = [
