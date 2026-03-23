@@ -429,6 +429,9 @@ def _frames_to_mp4(frames: list, fps: int) -> Path:
         for i, frame in enumerate(frames):
             frame_path = frame_dir / f"frame_{i:05d}.png"
             if isinstance(frame, np.ndarray):
+                # Convert float32 (0.0-1.0) to uint8 (0-255)
+                if frame.dtype != np.uint8:
+                    frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
                 Image.fromarray(frame).save(str(frame_path))
             else:
                 frame.save(str(frame_path))
