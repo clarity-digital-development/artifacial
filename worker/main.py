@@ -18,6 +18,9 @@ import tempfile
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import redis.asyncio as aioredis
 import torch
 from fastapi import FastAPI
