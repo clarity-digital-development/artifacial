@@ -43,8 +43,8 @@ const WAN_26_SFW: ModelConfig = {
   name: "Wan 2.6",
   provider: "PIAPI",
   pipiConfig: {
-    model: "Qubico/wan2.6",
-    taskTypes: { T2V: "txt2video", I2V: "img2video" },
+    model: "Wan",
+    taskTypes: { T2V: "wan26-txt2video", I2V: "wan26-img2video" },
     costKey: "wan-26",
   },
   tier: "BUDGET",
@@ -355,8 +355,8 @@ const WAN26_NSFW_T2V: ModelConfig = {
   name: "Wan 2.6 NSFW",
   provider: "PIAPI",
   pipiConfig: {
-    model: "Qubico/wan2.6",
-    taskTypes: { T2V: "txt2video" },
+    model: "Wan",
+    taskTypes: { T2V: "wan26-txt2video" },
     costKey: "wan-26",
   },
   tier: "STANDARD",
@@ -378,8 +378,8 @@ const WAN26_NSFW_I2V: ModelConfig = {
   name: "Wan 2.6 NSFW",
   provider: "PIAPI",
   pipiConfig: {
-    model: "Qubico/wan2.6",
-    taskTypes: { I2V: "img2video" },
+    model: "Wan",
+    taskTypes: { I2V: "wan26-img2video" },
     costKey: "wan-26",
   },
   tier: "STANDARD",

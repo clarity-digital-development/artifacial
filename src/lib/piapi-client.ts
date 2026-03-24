@@ -105,11 +105,11 @@ export async function getTaskStatus(taskId: string): Promise<PiAPITaskResult> {
   const status = (task.status as string)?.toLowerCase();
 
   let mappedStatus: PiAPITaskStatus;
-  if (status === "completed" || status === "done") {
+  if (status === "completed" || status === "done" || status === "success") {
     mappedStatus = "completed";
   } else if (status === "failed" || status === "error") {
     mappedStatus = "failed";
-  } else if (status === "processing" || status === "running") {
+  } else if (status === "processing" || status === "running" || status === "starting" || status === "retry") {
     mappedStatus = "processing";
   } else {
     mappedStatus = "pending";
@@ -128,7 +128,7 @@ export async function getTaskStatus(taskId: string): Promise<PiAPITaskResult> {
     videoUrl =
       output.video_url ||
       output.video?.url ||
-      output.works?.[0]?.resource?.resource ||
+      output.works?.[0]?.video?.resource ||
       (Array.isArray(output.videos) ? output.videos[0]?.url : undefined);
 
     // Single image URL
@@ -238,11 +238,11 @@ export function buildVideoInput(
   }
 
   // ─── Wan 2.6 (NSFW capable) ───
-  if (piApiModel === "Qubico/wan2.6") {
+  if (piApiModel === "Wan") {
     input.duration = params.durationSec ?? 5;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
-    if (params.resolution) input.resolution = params.resolution;
-    if (params.imageUrl) input.image_url = params.imageUrl;
+    if (params.resolution) input.resolution = params.resolution.toUpperCase(); // "720P" not "720p"
+    if (params.imageUrl) input.image = params.imageUrl;
     return input;
   }
 
