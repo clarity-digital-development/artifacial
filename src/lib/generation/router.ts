@@ -6,6 +6,7 @@ import { canUseResolution } from "@/lib/stripe";
 import {
   submitTask,
   buildVideoInput,
+  buildImageInput,
   estimateApiCost,
 } from "@/lib/piapi-client";
 import {
@@ -78,6 +79,22 @@ function resolveGenerationMode(modelId: string, hasImage: boolean): ModelMode {
   if (model.supportedModes.includes("MOTION_TRANSFER")) return "MOTION_TRANSFER";
   if (hasImage && model.supportedModes.includes("I2V")) return "I2V";
   return "T2V";
+}
+
+// ─── Aspect ratio → pixel dimensions (for image models) ───
+
+const ASPECT_RATIO_DIMS: Record<string, { width: number; height: number }> = {
+  "1:1": { width: 1024, height: 1024 },
+  "3:4": { width: 768, height: 1024 },
+  "4:3": { width: 1024, height: 768 },
+  "2:3": { width: 682, height: 1024 },
+  "3:2": { width: 1024, height: 682 },
+  "9:16": { width: 576, height: 1024 },
+  "16:9": { width: 1024, height: 576 },
+};
+
+function aspectRatioToDimensions(ar: string): { width: number; height: number } {
+  return ASPECT_RATIO_DIMS[ar] ?? ASPECT_RATIO_DIMS["1:1"];
 }
 
 // ─── Main Router ───
@@ -280,16 +297,22 @@ export async function routeGeneration(
       }
 
       // Build the input payload based on model type
-      const input = buildVideoInput(piApiModel, taskType, {
-        prompt,
-        imageUrl: imageUrl || null,
-        endImageUrl: endImageUrl || null,
-        videoUrl: videoUrl || null,
-        durationSec,
-        aspectRatio,
-        resolution,
-        withAudio: audioEnabled,
-      });
+      const isT2I = mode === "T2I";
+      const input = isT2I
+        ? buildImageInput(piApiModel, taskType, {
+            prompt,
+            ...aspectRatioToDimensions(aspectRatio),
+          })
+        : buildVideoInput(piApiModel, taskType, {
+            prompt,
+            imageUrl: imageUrl || null,
+            endImageUrl: endImageUrl || null,
+            videoUrl: videoUrl || null,
+            durationSec,
+            aspectRatio,
+            resolution,
+            withAudio: audioEnabled,
+          });
 
       // Merge model-specific defaults (e.g., Kling version/mode)
       if (model.pipiConfig.defaults) {
@@ -339,10 +362,10 @@ export async function routeGeneration(
       };
     }
   } catch (error) {
-    console.error("Generation router error:", error);
+    console.error("[router] UNHANDLED ERROR:", error instanceof Error ? `${error.message}\n${error.stack}` : error);
     return {
       success: false,
-      error: "An unexpected error occurred",
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
       errorCode: "SYSTEM_ERROR",
     };
   }

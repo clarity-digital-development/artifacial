@@ -49,12 +49,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Validate duration against model's max
-  const durationSec = body.durationSec ?? 5;
+  // Validate duration against model's max (skip for image models where maxDuration=0)
   const model = body.modelId ? getModelById(body.modelId) : null;
+  const isImageModel = model?.supportedModes.includes("T2I");
+  const durationSec = isImageModel ? 1 : (body.durationSec ?? 5);
   const maxDuration = model?.maxDuration ?? 30;
 
-  if (durationSec < 1 || durationSec > maxDuration) {
+  if (!isImageModel && (durationSec < 1 || durationSec > maxDuration)) {
     return NextResponse.json(
       { error: `Duration must be between 1 and ${maxDuration} seconds for this model` },
       { status: 400 }
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     null;
 
   // Route the generation
+  console.log(`[generate] model=${body.modelId}, dur=${durationSec}, res=${resolution}, ar=${body.aspectRatio}`);
   const result = await routeGeneration({
     userId: session.user.id,
     prompt: body.prompt.trim(),
@@ -107,6 +109,8 @@ export async function POST(req: NextRequest) {
       result.errorCode === "NSFW_PROMPT_ON_SFW_MODEL" ? 400 :
       result.errorCode === "INVALID_MODEL" ? 400 :
       500;
+
+    console.error(`[generate] FAILED: code=${result.errorCode}, error=${result.error}`);
 
     return NextResponse.json(
       { error: result.error, errorCode: result.errorCode, generationId: result.generationId },

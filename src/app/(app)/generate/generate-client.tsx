@@ -121,9 +121,13 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const userContentMode = isNsfw ? "NSFW" : "SFW";
 
   // Filter models based on content mode
+  // NSFW users: hide SFW-only models that have an NSFW equivalent (avoids duplicate Wan entries)
+  const NSFW_SUPERSEDED = new Set(["wan-22", "wan-26"]); // NSFW versions replace these
   const availableModels = MODELS.filter((m) => {
     if (userContentMode === "SFW") return m.contentMode === "SFW" || m.contentMode === "BOTH";
-    return true; // NSFW users see both SFW and NSFW models
+    // NSFW users: show everything except SFW models that are superseded by NSFW variants
+    if (NSFW_SUPERSEDED.has(m.id) && m.contentMode === "SFW") return false;
+    return true;
   });
 
   // Mode & model
