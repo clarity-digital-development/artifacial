@@ -8,13 +8,13 @@ Models:
   I2V: Base scaffolding from Wan-AI/Wan2.2-I2V-A14B-Diffusers,
        NSFW dual-transformers from FX-FeiHou/wan2.2-Remix (high/low noise stages).
 
-All NSFW weights from: https://huggingface.co/FX-FeiHou/wan2.2-Remix (NSFW/ subfolder)
-Requires: A100 80GB with CUDA, ffmpeg installed. Optional: flash-attn for 2-3x attention speedup.
+Lightning LoRAs (lightx2v) applied on top of NSFW transformers for 4-step inference.
+SageAttention monkey-patched for 2-3x attention speedup.
+Default 480p — upscale via ComfyUI post-processing on A6000.
 
-Architecture: Lazy loading — only one pipeline (T2V or I2V) is held in memory at a time.
-When a job arrives for the other pipeline type, the current one is fully torn down first.
-Models loaded directly to GPU (no CPU offloading) — ~35-40GB VRAM with 40+GB headroom on A100.
-Default resolution: 480p (848x480) for speed — upscale via ComfyUI post-processing on A6000.
+All NSFW weights from: https://huggingface.co/FX-FeiHou/wan2.2-Remix (NSFW/ subfolder)
+Lightning LoRAs from: https://huggingface.co/lightx2v/Wan2.2-Lightning
+Requires: A100 80GB with CUDA, ffmpeg installed.
 """
 
 import gc
@@ -51,11 +51,20 @@ T2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_t2v_14b_low_lighting_v2.0.safetensors"
 I2V_NSFW_HIGH_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_high_lighting_v2.0.safetensors"
 I2V_NSFW_LOW_NOISE = "Wan2.2_Remix_NSFW_i2v_14b_low_lighting_v2.0.safetensors"
 
+# Lightning LoRAs from lightx2v — 4-step distillation, compatible with Remix
+LIGHTNING_REPO = "lightx2v/Wan2.2-Lightning"
+T2V_LIGHTNING_HIGH = "Wan2.2-T2V-A14B-4steps-lora-rank64-Seko-V1.1/high_noise_model.safetensors"
+T2V_LIGHTNING_LOW = "Wan2.2-T2V-A14B-4steps-lora-rank64-Seko-V1.1/low_noise_model.safetensors"
+I2V_LIGHTNING_HIGH = "Wan2.2-I2V-A14B-4steps-lora-rank64-Seko-V1/high_noise_model.safetensors"
+I2V_LIGHTNING_LOW = "Wan2.2-I2V-A14B-4steps-lora-rank64-Seko-V1/low_noise_model.safetensors"
+
 FPS = 16
-DEFAULT_STEPS = 24
-DEFAULT_GUIDANCE = 5.0
-DEFAULT_HEIGHT = 720
-DEFAULT_WIDTH = 1280
+# Lightning: 4 steps, guidance_scale=1.0 (CFG-free distillation)
+DEFAULT_STEPS = 4
+DEFAULT_GUIDANCE = 1.0
+# 480p default — upscale to 1080p via ComfyUI A6000 post-processing
+DEFAULT_HEIGHT = 480
+DEFAULT_WIDTH = 848
 
 
 @dataclass
@@ -130,27 +139,8 @@ def full_teardown() -> None:
     logger.info("Full VRAM teardown complete")
 
 
-def _enable_attention_acceleration(pipeline) -> None:
-    """Enable the best available attention acceleration: Flash Attention 2 or SageAttention."""
-    import torch
-
-    # Try Flash Attention 2 first
-    try:
-        import flash_attn  # noqa: F401
-        for component_name in ["transformer", "transformer_2"]:
-            component = getattr(pipeline, component_name, None)
-            if component is not None:
-                try:
-                    from diffusers.models.attention_processor import FlashAttnProcessor2_0
-                    component.set_attn_processor(FlashAttnProcessor2_0())
-                    logger.info(f"Flash Attention 2 enabled on {component_name}")
-                except (ImportError, Exception) as e:
-                    logger.info(f"Flash Attention 2 not available for {component_name}: {e}")
-        return
-    except ImportError:
-        pass
-
-    # Fallback: SageAttention — monkey-patch F.scaled_dot_product_attention
+def _enable_sage_attention() -> None:
+    """Monkey-patch F.scaled_dot_product_attention with SageAttention for 2-3x speedup."""
     try:
         from sageattention import sageattn
         import torch.nn.functional as F
@@ -158,7 +148,6 @@ def _enable_attention_acceleration(pipeline) -> None:
         _original_sdpa = F.scaled_dot_product_attention
 
         def _sage_sdpa(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None, **kwargs):
-            # SageAttention handles the common case; fall back to default for edge cases
             try:
                 if attn_mask is not None or is_causal:
                     return _original_sdpa(query, key, value, attn_mask=attn_mask,
@@ -170,11 +159,8 @@ def _enable_attention_acceleration(pipeline) -> None:
 
         F.scaled_dot_product_attention = _sage_sdpa
         logger.info("SageAttention enabled (monkey-patched scaled_dot_product_attention)")
-        return
     except ImportError:
-        pass
-
-    logger.warning("No attention acceleration available — using PyTorch default SDPA")
+        logger.warning("SageAttention not installed — using PyTorch default SDPA. pip install sageattention")
 
 
 def _download_single_file(
@@ -187,6 +173,27 @@ def _download_single_file(
     if subfolder:
         kwargs["subfolder"] = subfolder
     return hf_hub_download(**kwargs)
+
+
+def _load_lightning_loras(pipeline, high_noise_weight: str, low_noise_weight: str) -> None:
+    """Load Lightning LoRAs onto both transformer experts for 4-step inference."""
+    logger.info(f"Loading Lightning LoRA (high-noise): {high_noise_weight}")
+    pipeline.load_lora_weights(
+        LIGHTNING_REPO,
+        weight_name=high_noise_weight,
+        adapter_name="lightning_high",
+    )
+
+    logger.info(f"Loading Lightning LoRA (low-noise): {low_noise_weight}")
+    pipeline.load_lora_weights(
+        LIGHTNING_REPO,
+        weight_name=low_noise_weight,
+        adapter_name="lightning_low",
+        load_into_transformer_2=True,
+    )
+
+    pipeline.set_adapters(["lightning_high", "lightning_low"], adapter_weights=[1.0, 1.0])
+    logger.info("Lightning LoRAs active on both experts — 4-step inference enabled")
 
 
 def load_models() -> None:
@@ -205,11 +212,18 @@ def load_models() -> None:
     hf_token = os.environ.get("HF_TOKEN")
     start = time.time()
 
-    # Pre-download NSFW transformer weights (cached by huggingface_hub)
+    # Pre-download NSFW transformer weights
     logger.info("Pre-downloading NSFW transformer weights...")
     for filename in [T2V_NSFW_LOW_NOISE, I2V_NSFW_HIGH_NOISE, I2V_NSFW_LOW_NOISE]:
         logger.info(f"  Ensuring cached: {NSFW_REPO}/{NSFW_SUBFOLDER}/{filename}")
         _download_single_file(NSFW_REPO, filename, hf_token, subfolder=NSFW_SUBFOLDER)
+
+    # Pre-download Lightning LoRAs
+    logger.info("Pre-downloading Lightning LoRAs...")
+    from huggingface_hub import hf_hub_download
+    for weight_name in [T2V_LIGHTNING_HIGH, T2V_LIGHTNING_LOW, I2V_LIGHTNING_HIGH, I2V_LIGHTNING_LOW]:
+        logger.info(f"  Ensuring cached: {LIGHTNING_REPO}/{weight_name}")
+        hf_hub_download(repo_id=LIGHTNING_REPO, filename=weight_name, token=hf_token)
 
     _model_load_time = time.time() - start
     _model_loaded = True
@@ -251,7 +265,7 @@ def _teardown_active_pipeline() -> None:
 
 
 def _ensure_t2v() -> None:
-    """Lazy-load T2V pipeline. Tears down I2V first if loaded."""
+    """Lazy-load T2V pipeline with NSFW weights + Lightning LoRAs."""
     global _active_pipeline, _active_type
 
     if _active_type == "t2v" and _active_pipeline is not None:
@@ -289,22 +303,24 @@ def _ensure_t2v() -> None:
     )
     _active_pipeline.transformer_2 = t2v_nsfw_transformer
 
-    # enable_model_cpu_offload keeps components on CPU and moves to GPU on-demand
-    # Full .to(device) OOMs at 720p — model ~35GB + inference activations exceed 80GB
+    # Load Lightning LoRAs for 4-step inference
+    _load_lightning_loras(_active_pipeline, T2V_LIGHTNING_HIGH, T2V_LIGHTNING_LOW)
+
+    # CPU offload + VAE optimization (full .to(cuda) OOMs at 720p)
     if device == "cuda":
         _active_pipeline.enable_model_cpu_offload()
         _active_pipeline.vae.enable_slicing()
         _active_pipeline.vae.enable_tiling()
 
-    # SageAttention: accelerate attention computation (2-3x speedup per step)
-    _enable_attention_acceleration(_active_pipeline)
+    # SageAttention for faster attention computation
+    _enable_sage_attention()
 
     _active_type = "t2v"
-    logger.info(f"T2V NSFW pipeline ready in {time.time() - start:.1f}s")
+    logger.info(f"T2V NSFW + Lightning pipeline ready in {time.time() - start:.1f}s")
 
 
 def _ensure_i2v() -> None:
-    """Lazy-load I2V pipeline. Tears down T2V first if loaded."""
+    """Lazy-load I2V pipeline with NSFW weights + Lightning LoRAs."""
     global _active_pipeline, _active_type
 
     if _active_type == "i2v" and _active_pipeline is not None:
@@ -358,18 +374,20 @@ def _ensure_i2v() -> None:
     _active_pipeline.transformer.config.image_dim = None
     _active_pipeline.transformer_2.config.image_dim = None
 
-    # enable_model_cpu_offload keeps components on CPU and moves to GPU on-demand
-    # Full .to(device) OOMs at 720p — model ~35GB + inference activations exceed 80GB
+    # Load Lightning LoRAs for 4-step inference
+    _load_lightning_loras(_active_pipeline, I2V_LIGHTNING_HIGH, I2V_LIGHTNING_LOW)
+
+    # CPU offload + VAE optimization (full .to(cuda) OOMs at 720p)
     if device == "cuda":
         _active_pipeline.enable_model_cpu_offload()
         _active_pipeline.vae.enable_slicing()
         _active_pipeline.vae.enable_tiling()
 
-    # SageAttention: accelerate attention computation (2-3x speedup per step)
-    _enable_attention_acceleration(_active_pipeline)
+    # SageAttention for faster attention computation
+    _enable_sage_attention()
 
     _active_type = "i2v"
-    logger.info(f"I2V NSFW pipeline ready in {time.time() - start:.1f}s")
+    logger.info(f"I2V NSFW + Lightning pipeline ready in {time.time() - start:.1f}s")
 
 
 def generate(params: GenerationParams) -> GenerationResult:
@@ -403,7 +421,7 @@ def generate(params: GenerationParams) -> GenerationResult:
 
     start = time.time()
 
-    # inference_mode > no_grad: disables view tracking + version counters (~12% speed gain)
+    # inference_mode > no_grad: disables view tracking + version counters
     with torch.inference_mode():
         if is_i2v:
             image = Image.open(params.image_path).convert("RGB")
@@ -433,7 +451,7 @@ def generate(params: GenerationParams) -> GenerationResult:
     inference_ms = int((time.time() - start) * 1000)
     logger.info(f"Inference complete in {inference_ms}ms")
 
-    # Move frames off GPU immediately — output.frames[0] stays on GPU by default
+    # Move frames off GPU immediately
     frames = output.frames[0]
     del output
 
@@ -453,7 +471,6 @@ def _generate_dummy(params: GenerationParams) -> GenerationResult:
     logger.info("SKIP_MODEL_LOAD: generating dummy output")
     num_frames = int(params.duration_sec * FPS)
 
-    # Create a tiny dummy MP4 with ffmpeg
     output_path = Path(tempfile.mktemp(suffix=".mp4"))
     subprocess.run(
         [
@@ -484,21 +501,18 @@ def _frames_to_mp4(frames: list, fps: int) -> Path:
     frame_dir = Path(tempfile.mkdtemp())
 
     try:
-        # Write frames as PNGs (handle both PIL Images and numpy arrays)
         from PIL import Image
         import numpy as np
 
         for i, frame in enumerate(frames):
             frame_path = frame_dir / f"frame_{i:05d}.png"
             if isinstance(frame, np.ndarray):
-                # Convert float32 (0.0-1.0) to uint8 (0-255)
                 if frame.dtype != np.uint8:
                     frame = (np.clip(frame, 0, 1) * 255).astype(np.uint8)
                 Image.fromarray(frame).save(str(frame_path))
             else:
                 frame.save(str(frame_path))
 
-        # Encode with ffmpeg
         cmd = [
             "ffmpeg", "-y",
             "-framerate", str(fps),
@@ -522,6 +536,5 @@ def _frames_to_mp4(frames: list, fps: int) -> Path:
         return output_path
 
     finally:
-        # Clean up frame PNGs
         import shutil
         shutil.rmtree(frame_dir, ignore_errors=True)
