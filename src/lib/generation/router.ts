@@ -344,6 +344,7 @@ export async function routeGeneration(
 
       return { success: true, generationId: generation.id };
     } catch (submitError) {
+      console.error(`[router] PiAPI submit failed for model=${modelId}:`, submitError instanceof Error ? submitError.message : submitError);
       await refundCredits(userId, creditsCost, `Refund: ${workflowType} PiAPI submission failed`);
       await prisma.generation.update({
         where: { id: generation.id },
@@ -354,10 +355,11 @@ export async function routeGeneration(
         },
       });
 
+      const piApiErrorMsg = submitError instanceof Error ? submitError.message : "Unknown error";
       return {
         success: false,
         generationId: generation.id,
-        error: "Generation failed to submit. Credits have been refunded.",
+        error: `PiAPI submission failed: ${piApiErrorMsg}. Credits refunded.`,
         errorCode: "SYSTEM_ERROR",
       };
     }
