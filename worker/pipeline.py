@@ -289,10 +289,14 @@ def _ensure_t2v() -> None:
     )
     _active_pipeline.transformer_2 = t2v_nsfw_transformer
 
-    # Move entire pipeline to GPU — A100 80GB has 40+GB headroom, no need for CPU offload
-    _active_pipeline = _active_pipeline.to(device)
+    # enable_model_cpu_offload keeps components on CPU and moves to GPU on-demand
+    # Full .to(device) OOMs at 720p — model ~35GB + inference activations exceed 80GB
+    if device == "cuda":
+        _active_pipeline.enable_model_cpu_offload()
+        _active_pipeline.vae.enable_slicing()
+        _active_pipeline.vae.enable_tiling()
 
-    # Enable Flash Attention 2 if available (2-3x attention speedup, no quality loss)
+    # SageAttention: accelerate attention computation (2-3x speedup per step)
     _enable_attention_acceleration(_active_pipeline)
 
     _active_type = "t2v"
@@ -354,10 +358,14 @@ def _ensure_i2v() -> None:
     _active_pipeline.transformer.config.image_dim = None
     _active_pipeline.transformer_2.config.image_dim = None
 
-    # Move entire pipeline to GPU — A100 80GB has 40+GB headroom, no need for CPU offload
-    _active_pipeline = _active_pipeline.to(device)
+    # enable_model_cpu_offload keeps components on CPU and moves to GPU on-demand
+    # Full .to(device) OOMs at 720p — model ~35GB + inference activations exceed 80GB
+    if device == "cuda":
+        _active_pipeline.enable_model_cpu_offload()
+        _active_pipeline.vae.enable_slicing()
+        _active_pipeline.vae.enable_tiling()
 
-    # Enable Flash Attention 2 if available (2-3x attention speedup, no quality loss)
+    # SageAttention: accelerate attention computation (2-3x speedup per step)
     _enable_attention_acceleration(_active_pipeline)
 
     _active_type = "i2v"
