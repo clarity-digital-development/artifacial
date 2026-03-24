@@ -15,7 +15,7 @@ type ModelContentMode = "SFW" | "NSFW" | "BOTH";
 type ClientModel = {
   id: string;
   name: string;
-  provider: "PIAPI";
+  provider: "PIAPI" | "VENICE";
   tier: ModelTier;
   creditCost: number;
   supportedModes: ModelMode[];
@@ -48,12 +48,12 @@ const MODELS: ClientModel[] = [
   // ── Motion Control ──
   { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
   { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  // ── NSFW Budget ──
-  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW option. Fast 720p generation.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW image-to-video.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  // ── NSFW Standard ──
-  { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
-  { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  // ── NSFW Budget (Venice AI) ──
+  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW option. Fast 720p generation.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW image-to-video.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  // ── NSFW Standard (Venice AI) ──
+  { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   // ── Image — Budget ──
   { id: "z-image-turbo", name: "Z-Image Turbo", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1440px", supportsAudio: false, contentMode: "BOTH", description: "Fast photorealistic images. Sub-second.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   { id: "flux-schnell", name: "Flux Schnell", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1024px", supportsAudio: false, contentMode: "SFW", description: "Fast Flux generation. Good for iterations.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },

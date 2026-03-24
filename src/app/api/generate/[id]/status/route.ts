@@ -5,6 +5,7 @@ import {
   getTaskStatus,
   estimateApiCost,
 } from "@/lib/piapi-client";
+import { retrieveVeniceVideo } from "@/lib/venice";
 import { isValidModelId } from "@/lib/models/registry";
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
@@ -108,15 +109,17 @@ export async function GET(
     });
   }
 
-  // ─── PiAPI polling (unified for all models) ───
+  // ─── Determine provider and task IDs ───
 
   const inputParams = generation.inputParams as Record<string, unknown>;
   const piApiTaskId = inputParams?.piApiTaskId as string | undefined;
+  const veniceQueueId = inputParams?.veniceQueueId as string | undefined;
+  const veniceModel = inputParams?.veniceModel as string | undefined;
 
   // Legacy fal.ai support: check for falRequestId for in-flight generations
   const falRequestId = inputParams?.falRequestId as string | undefined;
 
-  if (!piApiTaskId && !falRequestId) {
+  if (!piApiTaskId && !veniceQueueId && !falRequestId) {
     return NextResponse.json({
       id: generation.id,
       status: generation.status,
@@ -126,8 +129,7 @@ export async function GET(
   }
 
   // Legacy fal.ai generations still in flight — return current DB status
-  // These will eventually complete or timeout on their own
-  if (falRequestId && !piApiTaskId) {
+  if (falRequestId && !piApiTaskId && !veniceQueueId) {
     return NextResponse.json({
       id: generation.id,
       status: generation.status,
@@ -137,6 +139,137 @@ export async function GET(
       startedAt: generation.startedAt,
     });
   }
+
+  // ─── Venice AI polling ───
+
+  if (veniceQueueId && veniceModel) {
+    try {
+      const veniceStatus = await retrieveVeniceVideo(veniceModel, veniceQueueId);
+      console.log(`[status] gen=${generation.id} venice_queue=${veniceQueueId} status=${veniceStatus.status} error=${veniceStatus.errorMessage || "none"}`);
+
+      if (veniceStatus.status === "completed") {
+        if (!veniceStatus.videoBuffer) {
+          await prisma.generation.update({
+            where: { id: generation.id },
+            data: {
+              status: "FAILED",
+              errorMessage: "Venice completed but no video data received",
+              completedAt: new Date(),
+            },
+          });
+          return NextResponse.json({
+            id: generation.id,
+            status: "FAILED",
+            progress: 0,
+            errorMessage: "Generation completed but no output received.",
+          });
+        }
+
+        const completedAt = new Date();
+        const generationTimeMs = generation.startedAt
+          ? completedAt.getTime() - generation.startedAt.getTime()
+          : null;
+
+        const durationSec = generation.durationSec ?? 5;
+
+        // Venice returns binary video — upload directly to R2
+        const contentType = veniceStatus.contentType || "video/mp4";
+        const ext = contentType.includes("webm") ? "webm" : "mp4";
+        const r2Key = r2KeyForGeneration(session.user.id, generation.id, ext);
+
+        try {
+          await uploadToR2(r2Key, veniceStatus.videoBuffer, contentType);
+        } catch (r2Error) {
+          console.error("Failed to upload Venice video to R2:", r2Error);
+          // Fall through — we still mark as completed but without persistent storage
+        }
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "COMPLETED",
+            progress: 100,
+            outputUrl: r2Key,
+            durationSec,
+            completedAt,
+            generationTimeMs,
+          },
+        });
+
+        const signedUrl = await getSignedR2Url(r2Key, 3600);
+
+        return NextResponse.json({
+          id: generation.id,
+          status: "COMPLETED",
+          progress: 100,
+          outputUrl: signedUrl,
+          completedAt,
+          generationTimeMs,
+        });
+      }
+
+      if (veniceStatus.status === "failed") {
+        console.error(`[status] VENICE FAILED gen=${generation.id} queue=${veniceQueueId} model=${veniceModel} error=${veniceStatus.errorMessage}`);
+        if (generation.errorMessage !== "ACCOUNT_DELETED") {
+          await refundCredits(
+            session.user.id,
+            generation.creditsCost,
+            `Refund: Venice generation failed (${generation.modelId})`
+          );
+        }
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "FAILED",
+            errorMessage: veniceStatus.errorMessage || "Venice generation failed",
+            completedAt: new Date(),
+          },
+        });
+
+        return NextResponse.json({
+          id: generation.id,
+          status: "FAILED",
+          progress: 0,
+          errorMessage: "Generation failed. Credits have been refunded.",
+        });
+      }
+
+      // Still processing — estimate progress from execution time
+      let progress = 50;
+      if (veniceStatus.averageExecutionTime && veniceStatus.executionDuration) {
+        progress = Math.min(
+          95,
+          Math.round((veniceStatus.executionDuration / veniceStatus.averageExecutionTime) * 100)
+        );
+      }
+
+      if (generation.progress !== progress) {
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: { progress, status: "PROCESSING" },
+        });
+      }
+
+      return NextResponse.json({
+        id: generation.id,
+        status: "PROCESSING",
+        progress,
+        queuedAt: generation.queuedAt,
+        startedAt: generation.startedAt,
+      });
+    } catch (error) {
+      console.error("Venice status poll error:", error);
+      return NextResponse.json({
+        id: generation.id,
+        status: generation.status,
+        progress: generation.progress,
+        errorMessage: "Failed to check Venice generation status",
+      });
+    }
+  }
+
+  // ─── PiAPI polling (unified for all PiAPI models) ───
 
   try {
     const piStatus = await getTaskStatus(piApiTaskId!);

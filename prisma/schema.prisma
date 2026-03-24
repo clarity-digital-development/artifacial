@@ -50,6 +50,7 @@ enum WorkflowType {
 enum GenerationProvider {
   FAL_AI
   PIAPI
+  VENICE
   SELF_HOSTED
   COMFYUI_POST_PROCESS
 }

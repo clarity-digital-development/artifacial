@@ -1,8 +1,8 @@
 // ─── Model Registry ───
 // Single source of truth for all generation models.
-// All models route through PiAPI. No self-hosted or fal.ai models.
+// SFW models route through PiAPI. NSFW models route through Venice AI.
 
-export type ModelProvider = "PIAPI";
+export type ModelProvider = "PIAPI" | "VENICE";
 export type ModelTier = "BUDGET" | "STANDARD" | "ULTRA";
 export type ModelContentMode = "SFW" | "NSFW" | "BOTH";
 export type ModelMode = "T2V" | "I2V" | "T2I" | "MOTION_TRANSFER";
@@ -14,11 +14,17 @@ export interface PiApiConfig {
   costKey: string;                        // Key into cost estimation table
 }
 
+export interface VeniceConfig {
+  model: string;                          // Venice model ID (e.g., "wan-2.6-text-to-video")
+  costKey: string;                        // Key into cost estimation table
+}
+
 export interface ModelConfig {
   id: string;
   name: string;
   provider: ModelProvider;
   pipiConfig: PiApiConfig;
+  veniceConfig?: VeniceConfig;            // Only for Venice-routed models
   tier: ModelTier;
   creditCost: number;
   supportedModes: ModelMode[];
@@ -353,12 +359,16 @@ const KLING_26_MOTION_PRO: ModelConfig = {
 const WAN26_NSFW_T2V: ModelConfig = {
   id: "wan26-nsfw-t2v",
   name: "Wan 2.6 NSFW",
-  provider: "PIAPI",
+  provider: "VENICE",
   pipiConfig: {
     model: "Wan",
     taskTypes: { T2V: "wan26-txt2video" },
     costKey: "wan-26",
     defaults: { prompt_extend: false },
+  },
+  veniceConfig: {
+    model: "wan-2.6-text-to-video",
+    costKey: "venice-wan-26",
   },
   tier: "STANDARD",
   creditCost: 1,
@@ -377,12 +387,16 @@ const WAN26_NSFW_T2V: ModelConfig = {
 const WAN26_NSFW_I2V: ModelConfig = {
   id: "wan26-nsfw-i2v",
   name: "Wan 2.6 NSFW",
-  provider: "PIAPI",
+  provider: "VENICE",
   pipiConfig: {
     model: "Wan",
     taskTypes: { I2V: "wan26-img2video" },
     costKey: "wan-26",
     defaults: { prompt_extend: false },
+  },
+  veniceConfig: {
+    model: "wan-2.6-image-to-video",
+    costKey: "venice-wan-26",
   },
   tier: "STANDARD",
   creditCost: 1,
@@ -401,11 +415,15 @@ const WAN26_NSFW_I2V: ModelConfig = {
 const WAN22_NSFW_T2V: ModelConfig = {
   id: "wan22-nsfw-t2v",
   name: "Wan 2.2 NSFW",
-  provider: "PIAPI",
+  provider: "VENICE",
   pipiConfig: {
     model: "Qubico/wanx",
     taskTypes: { T2V: "wan22-txt2video-14b" },
     costKey: "wan-22",
+  },
+  veniceConfig: {
+    model: "wan-2.2-a14b-text-to-video",
+    costKey: "venice-wan-22",
   },
   tier: "BUDGET",
   creditCost: 1,
@@ -424,11 +442,15 @@ const WAN22_NSFW_T2V: ModelConfig = {
 const WAN22_NSFW_I2V: ModelConfig = {
   id: "wan22-nsfw-i2v",
   name: "Wan 2.2 NSFW",
-  provider: "PIAPI",
+  provider: "VENICE",
   pipiConfig: {
     model: "Qubico/wanx",
     taskTypes: { I2V: "wan22-img2video-14b" },
     costKey: "wan-22",
+  },
+  veniceConfig: {
+    model: "wan-2.1-pro-image-to-video",
+    costKey: "venice-wan-22",
   },
   tier: "BUDGET",
   creditCost: 1,

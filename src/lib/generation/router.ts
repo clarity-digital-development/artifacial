@@ -17,6 +17,7 @@ import {
   getPiApiTaskType,
   type ModelMode,
 } from "@/lib/models/registry";
+import { submitVeniceVideo } from "@/lib/venice";
 import type {
   ContentMode,
   WorkflowType,
@@ -24,7 +25,7 @@ import type {
 
 // ─── Types ───
 
-export type GenerationProvider = "PIAPI";
+export type GenerationProvider = "PIAPI" | "VENICE";
 
 export type GenerationRequest = {
   userId: string;
@@ -242,7 +243,9 @@ export async function routeGeneration(
     }
 
     // 6. Estimate API cost for margin tracking
-    const costKey = model.pipiConfig.costKey;
+    const costKey = model.provider === "VENICE" && model.veniceConfig
+      ? model.veniceConfig.costKey
+      : model.pipiConfig.costKey;
     const apiCost = estimateApiCost(costKey, { durationSec });
 
     // 7. Create Generation record
@@ -255,7 +258,7 @@ export async function routeGeneration(
         workflowType,
         status: "QUEUED",
         contentMode: effectiveMode,
-        provider: "PIAPI",
+        provider: model.provider === "VENICE" ? "VENICE" : "PIAPI",
         modelId,
         apiCost,
         withAudio: audioEnabled,
@@ -287,79 +290,122 @@ export async function routeGeneration(
       },
     });
 
-    // 9. Submit to PiAPI
+    // 9. Submit to provider (PiAPI or Venice)
     try {
-      const piApiModel = model.pipiConfig.model;
-      const taskType = getPiApiTaskType(modelId, mode);
+      if (model.provider === "VENICE" && model.veniceConfig) {
+        // ─── Venice AI submission ───
+        const veniceModel = model.veniceConfig.model;
+        const durationStr = `${durationSec}s`;
 
-      if (!taskType) {
-        throw new Error(`No PiAPI task type for model ${modelId} mode ${mode}`);
-      }
+        const veniceResult = await submitVeniceVideo({
+          model: veniceModel,
+          prompt,
+          duration: durationStr,
+          resolution: resolution || "720p",
+          aspectRatio,
+          audio: audioEnabled || undefined,
+          imageUrl: imageUrl || undefined,
+          negativePrompt: undefined,
+          endImageUrl: endImageUrl || undefined,
+        });
 
-      // Build the input payload based on model type
-      const isT2I = mode === "T2I";
-      const input = isT2I
-        ? buildImageInput(piApiModel, taskType, {
-            prompt,
-            ...aspectRatioToDimensions(aspectRatio),
-          })
-        : buildVideoInput(piApiModel, taskType, {
-            prompt,
-            imageUrl: imageUrl || null,
-            endImageUrl: endImageUrl || null,
-            videoUrl: videoUrl || null,
-            durationSec,
-            aspectRatio,
-            resolution,
-            withAudio: audioEnabled,
-          });
-
-      // Merge model-specific defaults (e.g., Kling version/mode)
-      if (model.pipiConfig.defaults) {
-        Object.assign(input, model.pipiConfig.defaults);
-      }
-
-      const result = await submitTask(piApiModel, taskType, input);
-
-      await prisma.generation.update({
-        where: { id: generation.id },
-        data: {
-          status: "PROCESSING",
-          startedAt: new Date(),
-          promptId: result.taskId,
-          inputParams: {
-            prompt,
-            imageUrl: imageUrl || null,
-            endImageUrl: endImageUrl || null,
-            videoUrl: videoUrl || null,
-            aspectRatio,
-            resolution,
-            modelId,
-            withAudio: audioEnabled,
-            piApiTaskId: result.taskId,
-            piApiModel,
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "PROCESSING",
+            startedAt: new Date(),
+            promptId: veniceResult.queueId,
+            inputParams: {
+              prompt,
+              imageUrl: imageUrl || null,
+              endImageUrl: endImageUrl || null,
+              videoUrl: videoUrl || null,
+              aspectRatio,
+              resolution,
+              modelId,
+              withAudio: audioEnabled,
+              veniceQueueId: veniceResult.queueId,
+              veniceModel: veniceResult.model,
+            },
           },
-        },
-      });
+        });
 
-      return { success: true, generationId: generation.id };
+        return { success: true, generationId: generation.id };
+      } else {
+        // ─── PiAPI submission ───
+        const piApiModel = model.pipiConfig.model;
+        const taskType = getPiApiTaskType(modelId, mode);
+
+        if (!taskType) {
+          throw new Error(`No PiAPI task type for model ${modelId} mode ${mode}`);
+        }
+
+        // Build the input payload based on model type
+        const isT2I = mode === "T2I";
+        const input = isT2I
+          ? buildImageInput(piApiModel, taskType, {
+              prompt,
+              ...aspectRatioToDimensions(aspectRatio),
+            })
+          : buildVideoInput(piApiModel, taskType, {
+              prompt,
+              imageUrl: imageUrl || null,
+              endImageUrl: endImageUrl || null,
+              videoUrl: videoUrl || null,
+              durationSec,
+              aspectRatio,
+              resolution,
+              withAudio: audioEnabled,
+            });
+
+        // Merge model-specific defaults (e.g., Kling version/mode)
+        if (model.pipiConfig.defaults) {
+          Object.assign(input, model.pipiConfig.defaults);
+        }
+
+        const result = await submitTask(piApiModel, taskType, input);
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "PROCESSING",
+            startedAt: new Date(),
+            promptId: result.taskId,
+            inputParams: {
+              prompt,
+              imageUrl: imageUrl || null,
+              endImageUrl: endImageUrl || null,
+              videoUrl: videoUrl || null,
+              aspectRatio,
+              resolution,
+              modelId,
+              withAudio: audioEnabled,
+              piApiTaskId: result.taskId,
+              piApiModel,
+            },
+          },
+        });
+
+        return { success: true, generationId: generation.id };
+      }
     } catch (submitError) {
-      console.error(`[router] PiAPI submit failed for model=${modelId}:`, submitError instanceof Error ? submitError.message : submitError);
-      await refundCredits(userId, creditsCost, `Refund: ${workflowType} PiAPI submission failed`);
+      const providerName = model.provider === "VENICE" ? "Venice" : "PiAPI";
+      console.error(`[router] ${providerName} submit failed for model=${modelId}:`, submitError instanceof Error ? submitError.message : submitError);
+      await refundCredits(userId, creditsCost, `Refund: ${workflowType} ${providerName} submission failed`);
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: "FAILED",
-          errorMessage: submitError instanceof Error ? submitError.message : "PiAPI submission failed",
+          errorMessage: submitError instanceof Error ? submitError.message : `${providerName} submission failed`,
           completedAt: new Date(),
         },
       });
 
-      const piApiErrorMsg = submitError instanceof Error ? submitError.message : "Unknown error";
+      const errorMsg = submitError instanceof Error ? submitError.message : "Unknown error";
       return {
         success: false,
         generationId: generation.id,
-        error: `PiAPI submission failed: ${piApiErrorMsg}. Credits refunded.`,
+        error: `${providerName} submission failed: ${errorMsg}. Credits refunded.`,
         errorCode: "SYSTEM_ERROR",
       };
     }

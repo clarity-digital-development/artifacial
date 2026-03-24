@@ -497,6 +497,9 @@ const COST_ESTIMATES: Record<string, {
   "face-swap-video": { perFrame: 0.004 },
   "bg-remove": { perImage: 0.001 },
   "virtual-try-on": { perImage: 0.07 },
+  // Venice AI
+  "venice-wan-26": { perSecond: 0.08 },
+  "venice-wan-22": { perRequest: 0.20 },
 };
 
 /**
