@@ -3,18 +3,17 @@ import { resolveContentMode } from "@/lib/moderation";
 import { classifyPrompt } from "@/lib/moderation";
 import { deductCredits, refundCredits } from "@/lib/credits";
 import { canUseResolution } from "@/lib/stripe";
-import { getRedis, NSFW_QUEUE } from "@/lib/redis";
 import {
-  submitGeneration as falSubmit,
-  submitMotionControl as falSubmitMotion,
+  submitTask,
+  buildVideoInput,
   estimateApiCost,
-} from "./fal-client";
+} from "@/lib/piapi-client";
 import {
   getModelById,
   isValidModelId,
   calculateCreditCost,
   getDefaultModelId,
-  getModelEndpoint,
+  getPiApiTaskType,
   type ModelMode,
 } from "@/lib/models/registry";
 import type {
@@ -24,7 +23,7 @@ import type {
 
 // ─── Types ───
 
-export type GenerationProvider = "FAL_AI" | "SELF_HOSTED" | "COMFYUI_POST_PROCESS";
+export type GenerationProvider = "PIAPI";
 
 export type GenerationRequest = {
   userId: string;
@@ -116,6 +115,7 @@ export async function routeGeneration(
       const { getSignedR2Url } = await import("@/lib/r2");
       endImageUrl = await getSignedR2Url(endImageUrl.slice(3), 3600);
     }
+
     // 1. Resolve content mode (checks user prefs, age, character eligibility)
     const { effectiveMode } = await resolveContentMode(userId, characterId);
 
@@ -196,7 +196,7 @@ export async function routeGeneration(
       }
     }
 
-    // 4b. NSFW prompt laundering check — block NSFW prompts on SFW fal.ai models
+    // 4b. NSFW prompt laundering check — block NSFW prompts on SFW models
     if (model.contentMode === "SFW" && classification.sexualContent) {
       return {
         success: false,
@@ -225,7 +225,8 @@ export async function routeGeneration(
     }
 
     // 6. Estimate API cost for margin tracking
-    const apiCost = model.provider === "FAL" ? estimateApiCost(modelId, durationSec) : null;
+    const costKey = model.pipiConfig.costKey;
+    const apiCost = estimateApiCost(costKey, { durationSec });
 
     // 7. Create Generation record
     const generation = await prisma.generation.create({
@@ -237,7 +238,7 @@ export async function routeGeneration(
         workflowType,
         status: "QUEUED",
         contentMode: effectiveMode,
-        provider: model.provider === "SELF_HOSTED" ? "SELF_HOSTED" : "FAL_AI",
+        provider: "PIAPI",
         modelId,
         apiCost,
         withAudio: audioEnabled,
@@ -269,109 +270,63 @@ export async function routeGeneration(
       },
     });
 
-    // ─── NSFW path: push to Redis queue for Python worker ───
-    if (model.provider === "SELF_HOSTED") {
-      try {
-        const redis = getRedis();
-        await redis.lpush(
-          NSFW_QUEUE,
-          JSON.stringify({
-            generationId: generation.id,
-            userId,
-            prompt,
-            negativePrompt: "",
-            imagePath: imageUrl || null,
-            durationSec,
-            resolution,
-            modelId,
-            contentMode: effectiveMode,
-            creditsCost,
-            withAudio: audioEnabled,
-          })
-        );
-
-        return { success: true, generationId: generation.id };
-      } catch (redisError) {
-        await refundCredits(userId, creditsCost, `Refund: ${workflowType} queue submission failed`);
-        await prisma.generation.update({
-          where: { id: generation.id },
-          data: {
-            status: "FAILED",
-            errorMessage: redisError instanceof Error ? redisError.message : "Failed to queue generation",
-            completedAt: new Date(),
-          },
-        });
-
-        return {
-          success: false,
-          generationId: generation.id,
-          error: "Generation failed to queue. Credits have been refunded.",
-          errorCode: "SYSTEM_ERROR",
-        };
-      }
-    }
-
-    // ─── FAL path: submit to fal.ai ───
+    // 9. Submit to PiAPI
     try {
-      let falResult;
+      const piApiModel = model.pipiConfig.model;
+      const taskType = getPiApiTaskType(modelId, mode);
 
-      if (mode === "MOTION_TRANSFER") {
-        if (!imageUrl || !videoUrl) {
-          await refundCredits(userId, creditsCost, `Refund: motion control missing inputs`);
-          return {
-            success: false,
-            generationId: generation.id,
-            error: "Motion transfer requires both an image and a reference video.",
-            errorCode: "SYSTEM_ERROR",
-          };
-        }
-        falResult = await falSubmitMotion(modelId, {
-          prompt,
-          imageUrl,
-          videoUrl,
-          characterOrientation,
-          durationSec,
-          aspectRatio,
-        });
-      } else {
-        falResult = await falSubmit(modelId, {
-          prompt,
-          imageUrl,
-          endImageUrl,
-          durationSec,
-          aspectRatio,
-          resolution,
-          withAudio: audioEnabled,
-        });
+      if (!taskType) {
+        throw new Error(`No PiAPI task type for model ${modelId} mode ${mode}`);
       }
+
+      // Build the input payload based on model type
+      const input = buildVideoInput(piApiModel, taskType, {
+        prompt,
+        imageUrl: imageUrl || null,
+        endImageUrl: endImageUrl || null,
+        videoUrl: videoUrl || null,
+        durationSec,
+        aspectRatio,
+        resolution,
+        withAudio: audioEnabled,
+      });
+
+      // Merge model-specific defaults (e.g., Kling version/mode)
+      if (model.pipiConfig.defaults) {
+        Object.assign(input, model.pipiConfig.defaults);
+      }
+
+      const result = await submitTask(piApiModel, taskType, input);
 
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: "PROCESSING",
           startedAt: new Date(),
-          promptId: falResult.requestId,
+          promptId: result.taskId,
           inputParams: {
             prompt,
             imageUrl: imageUrl || null,
+            endImageUrl: endImageUrl || null,
             videoUrl: videoUrl || null,
             aspectRatio,
+            resolution,
             modelId,
             withAudio: audioEnabled,
-            falRequestId: falResult.requestId,
-            falEndpoint: falResult.endpoint,
+            piApiTaskId: result.taskId,
+            piApiModel,
           },
         },
       });
 
       return { success: true, generationId: generation.id };
-    } catch (falError) {
-      await refundCredits(userId, creditsCost, `Refund: ${workflowType} submission failed`);
+    } catch (submitError) {
+      await refundCredits(userId, creditsCost, `Refund: ${workflowType} PiAPI submission failed`);
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: "FAILED",
-          errorMessage: falError instanceof Error ? falError.message : "fal.ai submission failed",
+          errorMessage: submitError instanceof Error ? submitError.message : "PiAPI submission failed",
           completedAt: new Date(),
         },
       });

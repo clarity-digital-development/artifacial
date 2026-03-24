@@ -14,21 +14,19 @@ const STYLE_OPTIONS = [
 type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra" };
 
 const SFW_MODEL_OPTIONS: ModelOption[] = [
-  // Budget (10 cr/image)
-  { value: "flux-2-pro", label: "Flux 2 Pro", cost: 10, tier: "budget" },
-  { value: "recraft-v3", label: "Recraft V3", cost: 10, tier: "budget" },
-  // Standard (15 cr/image)
-  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 15, tier: "standard" },
-  { value: "ideogram-v3", label: "Ideogram V3", cost: 15, tier: "standard" },
-  // Ultra (25 cr/image)
+  // Budget (1 cr/image)
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 1, tier: "budget" },
+  { value: "flux-schnell", label: "Flux Schnell", cost: 1, tier: "budget" },
+  // Standard (1 cr/image)
+  { value: "qwen-image", label: "Qwen Image", cost: 1, tier: "standard" },
+  { value: "seedream-5", label: "Seedream 5 Lite", cost: 1, tier: "standard" },
+  // Gemini (legacy — separate from PiAPI)
   { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 25, tier: "ultra" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
-  // Budget (1 cr/image)
-  { value: "chroma-hd", label: "CHROMA HD", cost: 1, tier: "budget" },
   // Standard (1 cr/image)
-  { value: "juggernaut-xl", label: "Juggernaut XL Ragnarok", cost: 1, tier: "standard" },
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 1, tier: "standard" },
 ];
 
 const TIER_COLORS: Record<string, string> = {
@@ -266,7 +264,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const initialPrompt = searchParams.get("prompt") ?? "";
   const isNsfw = contentMode === "NSFW";
   const MODEL_OPTIONS = isNsfw ? NSFW_MODEL_OPTIONS : SFW_MODEL_OPTIONS;
-  const defaultModel = isNsfw ? "juggernaut-xl" : "gemini-3-pro-image-preview";
+  const defaultModel = isNsfw ? "z-image-turbo" : "gemini-3-pro-image-preview";
 
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");

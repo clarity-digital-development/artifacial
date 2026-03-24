@@ -2,18 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { deductCredits } from "@/lib/credits";
-import { uploadToR2 } from "@/lib/r2";
-import { getRedis, POSTPROCESS_QUEUE } from "@/lib/redis";
+import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 import {
   isPostProcessType,
   POST_PROCESS_WORKFLOW_MAP,
   POST_PROCESS_CREDITS,
-  type PostProcessJob,
   type PostProcessParams,
 } from "@/lib/generation/postprocess-types";
+import {
+  submitImageFaceSwap,
+  submitVideoFaceSwap,
+  submitBackgroundRemoval,
+  submitVirtualTryOn,
+  submitAIHug,
+} from "@/lib/piapi-client";
 
 function r2Key(userId: string, generationId: string, filename: string) {
   return `users/${userId}/generations/${generationId}/${filename}`;
+}
+
+/**
+ * Resolve a media reference to a publicly-accessible URL.
+ * If the value is already an HTTP URL, return it directly.
+ * If it's an R2 key, generate a signed URL (1-hour expiry is enough for PiAPI to fetch it).
+ */
+async function resolveToUrl(value: string): Promise<string> {
+  if (value.startsWith("http")) return value;
+  return getSignedR2Url(value, 3600);
 }
 
 export async function POST(
@@ -36,6 +51,7 @@ export async function POST(
       outputUrl: true,
       resolution: true,
       contentMode: true,
+      workflowType: true,
       userId: true,
     },
   });
@@ -53,59 +69,97 @@ export async function POST(
 
   if (!parent.outputUrl) {
     return NextResponse.json(
-      { error: "Source generation has no output video" },
+      { error: "Source generation has no output" },
       { status: 400 }
     );
   }
 
   // 2. Parse and validate request body
   const body = await req.json();
-  const { type, faceImage, characterId, audioFile, targetResolution, stylePrompt } = body as {
+  const {
+    type,
+    faceImage,
+    characterId,
+    bgModel,
+    dressImageUrl,
+    upperImageUrl,
+    lowerImageUrl,
+  } = body as {
     type?: string;
-    faceImage?: string; // base64 data URL (new upload)
-    characterId?: string; // existing character ID (reuse face)
-    audioFile?: string; // base64 data URL
-    targetResolution?: string;
-    stylePrompt?: string;
+    faceImage?: string;        // base64 data URL (new upload) for face swap
+    characterId?: string;      // existing character ID (reuse face)
+    bgModel?: "RMBG-1.4" | "RMBG-2.0" | "BEN2";
+    dressImageUrl?: string;    // virtual try-on — full dress
+    upperImageUrl?: string;    // virtual try-on — upper garment
+    lowerImageUrl?: string;    // virtual try-on — lower garment
   };
 
   if (!type || !isPostProcessType(type)) {
     return NextResponse.json(
-      { error: `Invalid post-process type. Must be one of: FACE_SWAP, UPSCALE, LIP_SYNC, STYLE_TRANSFER` },
+      { error: `Invalid post-process type. Must be one of: FACE_SWAP, VIDEO_FACE_SWAP, UPSCALE, BACKGROUND_REMOVAL, VIRTUAL_TRY_ON, AI_HUG` },
       { status: 400 }
     );
   }
 
   // 3. Type-specific validation
-  // Face swap accepts either a character ID (reuses stored face) or a fresh upload
-  let resolvedFaceImage = faceImage;
-  if (type === "FACE_SWAP") {
+  const isVideoSource =
+    parent.workflowType === "TEXT_TO_VIDEO" ||
+    parent.workflowType === "IMAGE_TO_VIDEO" ||
+    parent.workflowType === "MOTION_TRANSFER";
+
+  // Face swap: need either characterId or faceImage
+  let resolvedFaceR2Key: string | undefined;
+  if (type === "FACE_SWAP" || type === "VIDEO_FACE_SWAP") {
     if (characterId) {
-      // Look up the character's face image from R2
       const character = await prisma.character.findFirst({
         where: { id: characterId, userId: session.user.id },
-        select: { faceImageUrl: true, name: true },
+        select: { faceImageUrl: true },
       });
       if (!character?.faceImageUrl) {
         return NextResponse.json(
-          { error: "Character has no face image. Upload one or select a different character." },
+          { error: "Character has no face image." },
           { status: 400 }
         );
       }
-      // faceImageUrl is an R2 key — pass it through as-is (worker downloads from R2)
-      resolvedFaceImage = `r2:${character.faceImageUrl}`;
-    } else if (!faceImage) {
-      return NextResponse.json({ error: "Face image or character required for face swap" }, { status: 400 });
+      resolvedFaceR2Key = character.faceImageUrl;
+    } else if (faceImage) {
+      // Will upload after generation record is created
+    } else {
+      return NextResponse.json(
+        { error: "Face image or character required for face swap" },
+        { status: 400 }
+      );
+    }
+
+    // VIDEO_FACE_SWAP requires a video source
+    if (type === "VIDEO_FACE_SWAP" && !isVideoSource) {
+      return NextResponse.json(
+        { error: "Video face swap requires a video source generation" },
+        { status: 400 }
+      );
     }
   }
-  if (type === "LIP_SYNC" && !audioFile) {
-    return NextResponse.json({ error: "Audio file required for lip sync" }, { status: 400 });
+
+  if (type === "BACKGROUND_REMOVAL" && isVideoSource) {
+    return NextResponse.json(
+      { error: "Background removal only works on images" },
+      { status: 400 }
+    );
   }
-  if (type === "STYLE_TRANSFER" && !stylePrompt?.trim()) {
-    return NextResponse.json({ error: "Style prompt required for style transfer" }, { status: 400 });
-  }
-  if (type === "UPSCALE" && parent.resolution !== "720p") {
-    return NextResponse.json({ error: "Upscale is only available for 720p generations" }, { status: 400 });
+
+  if (type === "VIRTUAL_TRY_ON") {
+    if (!dressImageUrl && !upperImageUrl && !lowerImageUrl) {
+      return NextResponse.json(
+        { error: "At least one garment image is required for virtual try-on" },
+        { status: 400 }
+      );
+    }
+    if (isVideoSource) {
+      return NextResponse.json(
+        { error: "Virtual try-on only works on images" },
+        { status: 400 }
+      );
+    }
   }
 
   // 4. Deduct credits
@@ -126,81 +180,95 @@ export async function POST(
   }
 
   try {
-    // 5. Create new Generation record linked to parent
+    // 5. Upload face image to R2 if needed (before generation record so we have the key)
+    let faceImageR2Key = resolvedFaceR2Key;
+    if ((type === "FACE_SWAP" || type === "VIDEO_FACE_SWAP") && faceImage && !faceImageR2Key) {
+      const base64Data = faceImage.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+      const tempKey = r2Key(session.user.id, parentId, `face-input-${Date.now()}.png`);
+      await uploadToR2(tempKey, buffer, "image/png");
+      faceImageR2Key = tempKey;
+    }
+
+    // 6. Submit to PiAPI
+    const sourceMediaUrl = await resolveToUrl(parent.outputUrl);
+    let faceImageUrl: string | undefined;
+    if (faceImageR2Key) {
+      faceImageUrl = await resolveToUrl(faceImageR2Key);
+    }
+
+    let piApiTaskId: string;
+    const postProcessParams: PostProcessParams = {};
+
+    switch (type) {
+      case "FACE_SWAP": {
+        const result = await submitImageFaceSwap(sourceMediaUrl, faceImageUrl!);
+        piApiTaskId = result.taskId;
+        postProcessParams.faceImageR2Key = faceImageR2Key;
+        break;
+      }
+      case "VIDEO_FACE_SWAP": {
+        const result = await submitVideoFaceSwap(sourceMediaUrl, faceImageUrl!);
+        piApiTaskId = result.taskId;
+        postProcessParams.faceImageR2Key = faceImageR2Key;
+        break;
+      }
+      case "BACKGROUND_REMOVAL": {
+        const result = await submitBackgroundRemoval(sourceMediaUrl, bgModel || "RMBG-2.0");
+        piApiTaskId = result.taskId;
+        postProcessParams.bgModel = bgModel || "RMBG-2.0";
+        break;
+      }
+      case "VIRTUAL_TRY_ON": {
+        const result = await submitVirtualTryOn(sourceMediaUrl, {
+          dressUrl: dressImageUrl,
+          upperUrl: upperImageUrl,
+          lowerUrl: lowerImageUrl,
+        });
+        piApiTaskId = result.taskId;
+        postProcessParams.dressImageUrl = dressImageUrl;
+        postProcessParams.upperImageUrl = upperImageUrl;
+        postProcessParams.lowerImageUrl = lowerImageUrl;
+        break;
+      }
+      case "AI_HUG": {
+        const result = await submitAIHug(sourceMediaUrl);
+        piApiTaskId = result.taskId;
+        postProcessParams.sourceImageUrl = sourceMediaUrl;
+        break;
+      }
+      case "UPSCALE": {
+        // Upscale not yet available on PiAPI — placeholder
+        return NextResponse.json(
+          { error: "Upscale is not yet available. Coming soon." },
+          { status: 501 }
+        );
+      }
+      default:
+        return NextResponse.json({ error: "Unknown post-process type" }, { status: 400 });
+    }
+
+    // 7. Create Generation record linked to parent with PiAPI task ID
     const generation = await prisma.generation.create({
       data: {
         userId: session.user.id,
         parentGenerationId: parentId,
         workflowType,
-        status: "QUEUED",
+        status: "PROCESSING",
         contentMode: parent.contentMode,
-        provider: "COMFYUI_POST_PROCESS",
-        modelId: `comfyui-${type.toLowerCase().replace(/_/g, "-")}`,
+        provider: "PIAPI",
+        modelId: `piapi-${type.toLowerCase().replace(/_/g, "-")}`,
         creditsCost,
-        resolution: type === "UPSCALE" ? (targetResolution || "1080p") : parent.resolution,
+        resolution: parent.resolution,
         inputParams: {
           type,
           parentGenerationId: parentId,
-          sourceVideoUrl: parent.outputUrl,
-          ...(faceImage ? { hasFaceImage: true } : {}),
-          ...(audioFile ? { hasAudioFile: true } : {}),
-          ...(targetResolution ? { targetResolution } : {}),
-          ...(stylePrompt ? { stylePrompt } : {}),
+          piApiTaskId,
+          sourceMediaUrl: parent.outputUrl,
+          ...postProcessParams,
         },
       },
     });
-
-    // 6. Upload any binary assets to R2
-    const postProcessParams: PostProcessParams = {};
-
-    if (type === "FACE_SWAP" && resolvedFaceImage) {
-      if (resolvedFaceImage.startsWith("r2:")) {
-        // Character face — already in R2, pass the key directly
-        postProcessParams.faceImageR2Key = resolvedFaceImage.slice(3);
-      } else {
-        // Fresh upload — decode base64 and upload to R2
-        const base64Data = resolvedFaceImage.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
-        const key = r2Key(session.user.id, generation.id, "face-input.png");
-        await uploadToR2(key, buffer, "image/png");
-        postProcessParams.faceImageR2Key = key;
-      }
-    }
-
-    if (type === "LIP_SYNC" && audioFile) {
-      const base64Data = audioFile.replace(/^data:audio\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
-      const key = r2Key(session.user.id, generation.id, "audio-input.mp3");
-      await uploadToR2(key, buffer, "audio/mpeg");
-      postProcessParams.audioFileR2Key = key;
-    }
-
-    if (type === "UPSCALE") {
-      postProcessParams.targetResolution = targetResolution || "1080p";
-    }
-
-    if (type === "STYLE_TRANSFER") {
-      postProcessParams.stylePrompt = stylePrompt;
-    }
-
-    // The source video R2 key — if it's already an R2 key (not a URL), use directly
-    const sourceVideoR2Key = parent.outputUrl.startsWith("http")
-      ? parent.outputUrl // Worker will need to download this
-      : parent.outputUrl; // Already an R2 key
-
-    // 7. Push job to Redis queue
-    const job: PostProcessJob = {
-      generationId: generation.id,
-      parentGenerationId: parentId,
-      userId: session.user.id,
-      type,
-      sourceVideoR2Key,
-      creditsCost,
-      params: postProcessParams,
-    };
-
-    const redis = getRedis();
-    await redis.lpush(POSTPROCESS_QUEUE, JSON.stringify(job));
 
     return NextResponse.json({
       success: true,
@@ -208,15 +276,16 @@ export async function POST(
       parentGenerationId: parentId,
       type,
       creditsCost,
+      piApiTaskId,
     });
   } catch (error) {
     // Refund on failure
     const { refundCredits } = await import("@/lib/credits");
-    await refundCredits(session.user.id, creditsCost, `Refund: ${type} post-processing failed to queue`);
+    await refundCredits(session.user.id, creditsCost, `Refund: ${type} post-processing failed`);
 
-    console.error("Post-process queue error:", error);
+    console.error("Post-process submission error:", error);
     return NextResponse.json(
-      { error: "Failed to queue post-processing. Credits have been refunded." },
+      { error: "Failed to submit post-processing. Credits have been refunded." },
       { status: 500 }
     );
   }

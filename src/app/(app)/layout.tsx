@@ -10,8 +10,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  // TODO: re-enable auth redirect before shipping
-  // if (!session?.user?.id) redirect("/sign-in");
+  if (!session?.user?.id) redirect("/sign-in");
 
   let totalCredits = 100;
   let contentMode = "SFW";

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildCharacterPrompts, generateImageWithGemini } from "@/lib/gemini";
-import { isFalImageModel, generateImageWithFal, getFalImageModel, type FalImageModelId } from "@/lib/fal-image";
+import { isPiApiImageModel, generateImageWithPiApi, getPiApiImageModel, type PiApiImageModelId } from "@/lib/piapi-image";
 import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } from "@/lib/r2";
 import { CREDIT_COSTS } from "@/lib/stripe";
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
   console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
 
   // Calculate cost based on model
-  const useFal = isFalImageModel(model);
-  const falModel = useFal ? getFalImageModel(model) : null;
-  const perImageCost = falModel?.creditCost ?? CREDIT_COSTS.imageGeneration;
+  const usePiApi = isPiApiImageModel(model);
+  const piApiModel = usePiApi ? getPiApiImageModel(model) : null;
+  const perImageCost = piApiModel?.creditCost ?? CREDIT_COSTS.imageGeneration;
   const cost = 4 * perImageCost; // 4 angles
 
   // Check credits
@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(
         prompts.map(async (prompt, index) => {
           try {
-            const imageBuffer = useFal
-              ? await generateImageWithFal(prompt, model as FalImageModelId, aspectRatio, referenceImageBuffer)
+            const imageBuffer = usePiApi
+              ? await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer)
               : await generateImageWithGemini(
                   prompt,
                   referenceImageBase64,
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
             const errDetail = err instanceof Error && (err as unknown as Record<string, unknown>).body
               ? JSON.stringify((err as unknown as Record<string, unknown>).body).slice(0, 500)
               : "";
-            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, useFal=${useFal}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
+            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, usePiApi=${usePiApi}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
             send({
               type: "error",
               index,

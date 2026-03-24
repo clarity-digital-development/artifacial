@@ -1,12 +1,14 @@
 import type { WorkflowType } from "@/generated/prisma/client";
 
-// ─── A6000 post-processing types (ComfyUI workflows) ───
+// ─── PiAPI post-processing types ───
 
 export const POST_PROCESS_TYPES = [
   "FACE_SWAP",
+  "VIDEO_FACE_SWAP",
   "UPSCALE",
-  "LIP_SYNC",
-  "STYLE_TRANSFER",
+  "BACKGROUND_REMOVAL",
+  "VIRTUAL_TRY_ON",
+  "AI_HUG",
 ] as const;
 
 export type PostProcessType = (typeof POST_PROCESS_TYPES)[number];
@@ -18,81 +20,80 @@ export function isPostProcessType(value: string): value is PostProcessType {
 /** Map post-process type to WorkflowType enum */
 export const POST_PROCESS_WORKFLOW_MAP: Record<PostProcessType, WorkflowType> = {
   FACE_SWAP: "FACE_SWAP",
+  VIDEO_FACE_SWAP: "FACE_SWAP",
   UPSCALE: "UPSCALE",
-  LIP_SYNC: "LIP_SYNC",
-  STYLE_TRANSFER: "STYLE_TRANSFER",
+  BACKGROUND_REMOVAL: "BACKGROUND_REMOVAL",
+  VIRTUAL_TRY_ON: "VIRTUAL_TRY_ON",
+  AI_HUG: "AI_HUG",
 };
 
 /** Credit costs per post-process operation */
 export const POST_PROCESS_CREDITS: Record<PostProcessType, number> = {
-  UPSCALE: 1,      // Cheapest — fast, reliable, ~15-25s
-  FACE_SWAP: 1,    // ~2-6 min, 5-15% failure rate
-  LIP_SYNC: 1,     // ~90s, 10-20% failure rate
-  STYLE_TRANSFER: 1, // Disabled in UI until Wan-VACE on A100 or LUT workflow on A6000
+  FACE_SWAP: 1,           // $0.01 per swap — PiAPI image toolkit
+  VIDEO_FACE_SWAP: 2,     // $0.004/frame — PiAPI video toolkit
+  UPSCALE: 1,             // Future — not yet implemented via PiAPI
+  BACKGROUND_REMOVAL: 1,  // $0.001 per image — PiAPI image toolkit
+  VIRTUAL_TRY_ON: 1,      // $0.07 per output — Kling virtual try-on
+  AI_HUG: 1,              // PiAPI hug-video
 };
 
 /**
  * Processing estimates per workflow type.
- * Used for UI display and timeout calibration.
+ * PiAPI handles all processing — no local GPU needed.
  */
 export const POST_PROCESS_INFO: Record<PostProcessType, {
   estimatedTimeSec: string;
-  peakVramGB: string;
-  failureRate: string;
-  maxDurationSec: number;
   notes: string;
 }> = {
   FACE_SWAP: {
-    estimatedTimeSec: "120-360",
-    peakVramGB: "5-7",
-    failureRate: "5-15%",
-    maxDurationSec: 10,
-    notes: "ReSwapper 256 (commercial-safe) + GPEN-BFR-512 + SAM occlusion masking",
+    estimatedTimeSec: "5-15",
+    notes: "PiAPI image toolkit face-swap. Max 2048x2048.",
+  },
+  VIDEO_FACE_SWAP: {
+    estimatedTimeSec: "30-120",
+    notes: "PiAPI video toolkit face-swap. Max 720p, 600 frames, 10MB.",
   },
   UPSCALE: {
-    estimatedTimeSec: "15-25",
-    peakVramGB: "6-10",
-    failureRate: "3-10%",
-    maxDurationSec: 10,
-    notes: "RIFE v4.7 interpolation (16→30fps) + NMKD-Siax 4x upscale + Lanczos to 1080p",
+    estimatedTimeSec: "10-30",
+    notes: "Video upscale via PiAPI (when available).",
   },
-  LIP_SYNC: {
-    estimatedTimeSec: "90",
-    peakVramGB: "18-24",
-    failureRate: "10-20%",
-    maxDurationSec: 6, // 150 frames at 25fps = 6 seconds max (LatentSync hard limit)
-    notes: "LatentSync 1.6 (diffusion UNet + Whisper). 150-frame cap. Clean vocal audio required.",
+  BACKGROUND_REMOVAL: {
+    estimatedTimeSec: "3-10",
+    notes: "PiAPI image toolkit bg-remove. RMBG-2.0 model.",
   },
-  STYLE_TRANSFER: {
-    estimatedTimeSec: "N/A",
-    peakVramGB: "N/A",
-    failureRate: "N/A",
-    maxDurationSec: 10,
-    notes: "Disabled. Wan-VACE (A100) for AI style transfer. LUT/color grading (A6000) planned for v2.",
+  VIRTUAL_TRY_ON: {
+    estimatedTimeSec: "15-30",
+    notes: "Kling virtual try-on. Supports single or multi-garment.",
+  },
+  AI_HUG: {
+    estimatedTimeSec: "30-60",
+    notes: "PiAPI hug-video. Generates hugging animation from image.",
   },
 };
 
-/** Job payload pushed to the postprocess-queue Redis list */
+/** Job payload for PiAPI post-processing */
 export type PostProcessJob = {
   generationId: string;
   parentGenerationId: string;
   userId: string;
   type: PostProcessType;
-  sourceVideoR2Key: string;
+  sourceMediaR2Key: string;
   creditsCost: number;
   params: PostProcessParams;
 };
 
 export type PostProcessParams = {
-  // FACE_SWAP
+  // FACE_SWAP / VIDEO_FACE_SWAP
   faceImageR2Key?: string;
 
-  // UPSCALE
-  targetResolution?: string;
+  // BACKGROUND_REMOVAL
+  bgModel?: "RMBG-1.4" | "RMBG-2.0" | "BEN2";
 
-  // LIP_SYNC
-  audioFileR2Key?: string;
+  // VIRTUAL_TRY_ON
+  dressImageUrl?: string;
+  upperImageUrl?: string;
+  lowerImageUrl?: string;
 
-  // STYLE_TRANSFER (disabled — future use)
-  stylePrompt?: string;
+  // AI_HUG
+  sourceImageUrl?: string;
 };

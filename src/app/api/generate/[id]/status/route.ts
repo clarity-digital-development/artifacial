@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
-  pollStatus as falPollStatus,
-  getResult as falGetResult,
+  getTaskStatus,
   estimateApiCost,
-} from "@/lib/generation/fal-client";
+} from "@/lib/piapi-client";
 import { isValidModelId } from "@/lib/models/registry";
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
@@ -17,21 +16,27 @@ function r2KeyForGeneration(userId: string, generationId: string, ext: string) {
 }
 
 /**
- * Download a video from a URL and upload it to R2.
- * Returns the R2 key. fal.ai URLs expire, so we must persist to our own storage.
+ * Download media from a URL and upload it to R2.
+ * Returns the R2 key. External URLs expire, so we must persist to our own storage.
  */
-async function persistVideoToR2(
-  videoUrl: string,
+async function persistMediaToR2(
+  mediaUrl: string,
   userId: string,
-  generationId: string
+  generationId: string,
+  defaultExt: string = "mp4"
 ): Promise<string> {
-  const response = await fetch(videoUrl);
+  const response = await fetch(mediaUrl);
   if (!response.ok) {
-    throw new Error(`Failed to download video: ${response.status}`);
+    throw new Error(`Failed to download media: ${response.status}`);
   }
 
-  const contentType = response.headers.get("content-type") || "video/mp4";
-  const ext = contentType.includes("webm") ? "webm" : "mp4";
+  const contentType = response.headers.get("content-type") || `video/${defaultExt}`;
+  let ext = defaultExt;
+  if (contentType.includes("webm")) ext = "webm";
+  else if (contentType.includes("webp")) ext = "webp";
+  else if (contentType.includes("png")) ext = "png";
+  else if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+
   const buffer = Buffer.from(await response.arrayBuffer());
   const key = r2KeyForGeneration(userId, generationId, ext);
 
@@ -103,152 +108,157 @@ export async function GET(
     });
   }
 
-  // For fal.ai generations, poll the upstream status
-  if (generation.provider === "FAL_AI") {
-    const inputParams = generation.inputParams as Record<string, unknown>;
-    const falRequestId = inputParams?.falRequestId as string | undefined;
-    const falEndpoint = inputParams?.falEndpoint as string | undefined;
-    const modelId = generation.modelId;
+  // ─── PiAPI polling (unified for all models) ───
 
-    if (!falRequestId || !falEndpoint || !modelId || !isValidModelId(modelId)) {
-      return NextResponse.json({
-        id: generation.id,
-        status: generation.status,
-        progress: generation.progress,
-        errorMessage: "Missing fal.ai tracking data",
-      });
-    }
+  const inputParams = generation.inputParams as Record<string, unknown>;
+  const piApiTaskId = inputParams?.piApiTaskId as string | undefined;
 
-    try {
-      const falStatus = await falPollStatus(falEndpoint, falRequestId);
+  // Legacy fal.ai support: check for falRequestId for in-flight generations
+  const falRequestId = inputParams?.falRequestId as string | undefined;
 
-      if (falStatus.status === "COMPLETED") {
-        // Fetch the actual result from fal.ai
-        const result = await falGetResult(falEndpoint, falRequestId);
+  if (!piApiTaskId && !falRequestId) {
+    return NextResponse.json({
+      id: generation.id,
+      status: generation.status,
+      progress: generation.progress,
+      errorMessage: "Missing task tracking ID",
+    });
+  }
 
-        const completedAt = new Date();
-        const generationTimeMs = generation.startedAt
-          ? completedAt.getTime() - generation.startedAt.getTime()
-          : null;
+  // Legacy fal.ai generations still in flight — return current DB status
+  // These will eventually complete or timeout on their own
+  if (falRequestId && !piApiTaskId) {
+    return NextResponse.json({
+      id: generation.id,
+      status: generation.status,
+      progress: generation.progress,
+      errorMessage: "Legacy generation — waiting for completion",
+      queuedAt: generation.queuedAt,
+      startedAt: generation.startedAt,
+    });
+  }
 
-        // Calculate actual API cost for margin tracking (audio rate if enabled)
-        const durationSec = result.durationSec ?? generation.durationSec ?? 5;
-        const apiCost = estimateApiCost(modelId, durationSec);
+  try {
+    const piStatus = await getTaskStatus(piApiTaskId!);
 
-        // Download video from fal.ai and persist to R2 (fal.ai URLs expire)
-        let r2Key: string | null = null;
-        try {
-          r2Key = await persistVideoToR2(result.videoUrl, session.user.id, generation.id);
-        } catch (r2Error) {
-          console.error("Failed to persist video to R2:", r2Error);
-          // Fall back to fal.ai URL — better than losing the generation
-          // but it WILL expire, so log this as a critical issue
-        }
+    if (piStatus.status === "completed") {
+      const outputUrl = piStatus.videoUrl || piStatus.imageUrl;
 
-        // Update DB with R2 key (or fal.ai URL as fallback)
-        await prisma.generation.update({
-          where: { id: generation.id },
-          data: {
-            status: "COMPLETED",
-            progress: 100,
-            outputUrl: r2Key ?? result.videoUrl,
-            thumbnailUrl: result.thumbnailUrl || null,
-            apiCost,
-            durationSec,
-            completedAt,
-            generationTimeMs,
-          },
-        });
-
-        // Return a signed URL for the client
-        const signedUrl = r2Key
-          ? await getSignedR2Url(r2Key, 3600)
-          : result.videoUrl;
-
-        return NextResponse.json({
-          id: generation.id,
-          status: "COMPLETED",
-          progress: 100,
-          outputUrl: signedUrl,
-          thumbnailUrl: result.thumbnailUrl,
-          completedAt,
-          generationTimeMs,
-        });
-      }
-
-      if (falStatus.status === "FAILED") {
-        // Refund credits on failure (skip if account deleted — credits already zeroed)
-        if (generation.errorMessage !== "ACCOUNT_DELETED") {
-          await refundCredits(
-            session.user.id,
-            generation.creditsCost,
-            `Refund: fal.ai generation failed (${generation.modelId})`
-          );
-        }
-
+      if (!outputUrl) {
+        // Task completed but no output — treat as failure
         await prisma.generation.update({
           where: { id: generation.id },
           data: {
             status: "FAILED",
-            errorMessage: "Generation failed on fal.ai",
+            errorMessage: "Generation completed but no output received",
             completedAt: new Date(),
           },
         });
-
         return NextResponse.json({
           id: generation.id,
           status: "FAILED",
           progress: 0,
-          errorMessage: "Generation failed. Credits have been refunded.",
+          errorMessage: "Generation completed but no output received.",
         });
       }
 
-      // Still in progress — update progress
-      const progress = falStatus.status === "IN_PROGRESS" ? 50 : 10;
-      const dbStatus = falStatus.status === "IN_PROGRESS" ? "PROCESSING" : "QUEUED";
+      const completedAt = new Date();
+      const generationTimeMs = generation.startedAt
+        ? completedAt.getTime() - generation.startedAt.getTime()
+        : null;
 
-      if (generation.progress !== progress) {
-        await prisma.generation.update({
-          where: { id: generation.id },
-          data: { progress, status: dbStatus },
-        });
+      const durationSec = piStatus.durationSec ?? generation.durationSec ?? 5;
+
+      // Download output and persist to R2 (external URLs expire)
+      const isImage = !piStatus.videoUrl && !!piStatus.imageUrl;
+      const defaultExt = isImage ? "webp" : "mp4";
+      let r2Key: string | null = null;
+      try {
+        r2Key = await persistMediaToR2(outputUrl, session.user.id, generation.id, defaultExt);
+      } catch (r2Error) {
+        console.error("Failed to persist output to R2:", r2Error);
       }
 
-      return NextResponse.json({
-        id: generation.id,
-        status: dbStatus,
-        progress,
-        queuedAt: generation.queuedAt,
-        startedAt: generation.startedAt,
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "COMPLETED",
+          progress: 100,
+          outputUrl: r2Key ?? outputUrl,
+          thumbnailUrl: piStatus.thumbnailUrl || null,
+          durationSec,
+          completedAt,
+          generationTimeMs,
+        },
       });
-    } catch (error) {
-      console.error("fal.ai status poll error:", error);
+
+      const signedUrl = r2Key
+        ? await getSignedR2Url(r2Key, 3600)
+        : outputUrl;
+
       return NextResponse.json({
         id: generation.id,
-        status: generation.status,
-        progress: generation.progress,
-        errorMessage: "Failed to check generation status",
+        status: "COMPLETED",
+        progress: 100,
+        outputUrl: signedUrl,
+        thumbnailUrl: piStatus.thumbnailUrl,
+        completedAt,
+        generationTimeMs,
       });
     }
-  }
 
-  // For self-hosted jobs, return DB status (worker updates this directly)
-  let selfHostedOutputUrl = generation.outputUrl;
-  if (selfHostedOutputUrl && !selfHostedOutputUrl.startsWith("http")) {
-    selfHostedOutputUrl = await getSignedR2Url(selfHostedOutputUrl, 3600);
-  }
+    if (piStatus.status === "failed") {
+      // Refund credits on failure
+      if (generation.errorMessage !== "ACCOUNT_DELETED") {
+        await refundCredits(
+          session.user.id,
+          generation.creditsCost,
+          `Refund: PiAPI generation failed (${generation.modelId})`
+        );
+      }
 
-  return NextResponse.json({
-    id: generation.id,
-    status: generation.status,
-    progress: generation.progress,
-    outputUrl: selfHostedOutputUrl,
-    thumbnailUrl: generation.thumbnailUrl,
-    errorMessage: generation.errorMessage,
-    queuedAt: generation.queuedAt,
-    startedAt: generation.startedAt,
-    completedAt: generation.completedAt,
-    generationTimeMs: generation.generationTimeMs,
-    parentGenerationId: generation.parentGenerationId,
-  });
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "FAILED",
+          errorMessage: piStatus.errorMessage || "Generation failed",
+          completedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({
+        id: generation.id,
+        status: "FAILED",
+        progress: 0,
+        errorMessage: "Generation failed. Credits have been refunded.",
+      });
+    }
+
+    // Still in progress — update progress
+    const progress = piStatus.progress ?? (piStatus.status === "processing" ? 50 : 10);
+    const dbStatus = piStatus.status === "processing" ? "PROCESSING" : "QUEUED";
+
+    if (generation.progress !== progress) {
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: { progress, status: dbStatus },
+      });
+    }
+
+    return NextResponse.json({
+      id: generation.id,
+      status: dbStatus,
+      progress,
+      queuedAt: generation.queuedAt,
+      startedAt: generation.startedAt,
+    });
+  } catch (error) {
+    console.error("PiAPI status poll error:", error);
+    return NextResponse.json({
+      id: generation.id,
+      status: generation.status,
+      progress: generation.progress,
+      errorMessage: "Failed to check generation status",
+    });
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface ContentModeClientProps {
@@ -19,6 +20,7 @@ export function ContentModeClient({
   hasDateOfBirth,
   subscriptionTier,
 }: ContentModeClientProps) {
+  const router = useRouter();
   const [mode, setMode] = useState(initialMode);
   const [showModal, setShowModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -50,6 +52,7 @@ export function ContentModeClient({
           throw new Error(data.error ?? "Failed to update");
         }
         setMode("SFW");
+        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       } finally {
@@ -74,6 +77,7 @@ export function ContentModeClient({
           throw new Error(data.error ?? "Failed to update");
         }
         setMode("NSFW");
+        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       } finally {
@@ -125,6 +129,7 @@ export function ContentModeClient({
       }
       setMode("NSFW");
       setShowModal(false);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -175,7 +180,8 @@ export function ContentModeClient({
               onClick={handleToggle}
               disabled={loading}
               className={`
-                relative h-7 w-12 rounded-full transition-colors duration-200
+                relative inline-flex h-6 w-10 shrink-0 items-center rounded-full
+                transition-colors duration-200
                 ${isNsfw
                   ? "bg-[var(--accent-amber)]"
                   : "bg-[var(--border-default)]"
@@ -185,9 +191,9 @@ export function ContentModeClient({
             >
               <span
                 className={`
-                  absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm
+                  inline-block h-4 w-4 rounded-full bg-white shadow-sm
                   transition-transform duration-200
-                  ${isNsfw ? "translate-x-[22px]" : "translate-x-0.5"}
+                  ${isNsfw ? "translate-x-5" : "translate-x-1"}
                 `}
               />
             </button>

@@ -7,19 +7,33 @@ import { Badge } from "@/components/ui/badge";
 // ─── Model name lookup ───
 
 const MODEL_NAMES: Record<string, string> = {
-  "ltx-19b": "LTX 19B",
+  "wan-22": "Wan 2.2",
   "wan-26": "Wan 2.6",
-  "hailuo-23": "Hailuo 2.3",
-  "seedance-15": "Seedance 1.5",
-  "kling-25-turbo": "Kling 2.5 Turbo",
-  "sora-2-pro": "Sora 2 Pro",
+  "framepack": "Framepack",
+  "kling-26-std": "Kling 2.6",
+  "seedance-2": "Seedance 2",
+  "sora-2": "Sora 2",
+  "kling-26-pro": "Kling 2.6 Pro",
   "kling-30-pro": "Kling 3.0 Pro",
+  "sora-2-pro": "Sora 2 Pro",
   "veo-31": "Veo 3.1",
+  "seedance-2-pro": "Seedance 2 Pro",
   "kling-26-motion-std": "Motion Std",
   "kling-26-motion-pro": "Motion Pro",
   "wan22-nsfw-t2v": "Wan 2.2 NSFW",
   "wan22-nsfw-i2v": "Wan 2.2 I2V",
-  "wan22-nsfw-t2v-lite": "Wan 2.2 Lite",
+  "wan26-nsfw-t2v": "Wan 2.6 NSFW",
+  "wan26-nsfw-i2v": "Wan 2.6 I2V",
+  "z-image-turbo": "Z-Image Turbo",
+  "flux-schnell": "Flux Schnell",
+  "qwen-image": "Qwen Image",
+  "seedream-5": "Seedream 5",
+  // Post-processing
+  "piapi-face-swap": "Face Swap",
+  "piapi-video-face-swap": "Video Face Swap",
+  "piapi-background-removal": "BG Remove",
+  "piapi-virtual-try-on": "Try-On",
+  "piapi-ai-hug": "AI Hug",
 };
 
 const STATUS_VARIANT: Record<string, "default" | "amber" | "success" | "error"> = {

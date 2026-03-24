@@ -9,13 +9,13 @@ import { UploadZone } from "@/components/upload-zone";
 // ─── Client-side model data (mirrors registry.ts for use in the browser) ───
 
 type ModelTier = "BUDGET" | "STANDARD" | "ULTRA";
-type ModelMode = "T2V" | "I2V" | "MOTION_TRANSFER";
+type ModelMode = "T2V" | "I2V" | "T2I" | "MOTION_TRANSFER";
 type ModelContentMode = "SFW" | "NSFW" | "BOTH";
 
 type ClientModel = {
   id: string;
   name: string;
-  provider: "FAL" | "SELF_HOSTED";
+  provider: "PIAPI";
   tier: ModelTier;
   creditCost: number;
   supportedModes: ModelMode[];
@@ -32,23 +32,34 @@ type ClientModel = {
 
 const MODELS: ClientModel[] = [
   // ── SFW Budget ──
-  { id: "ltx-19b", name: "LTX 19B", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Fast and affordable. Great for quick iterations.", durations: [3, 4, 5], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: [], supportsEndFrame: true },
-  { id: "wan-26", name: "Wan 2.6", provider: "FAL", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Long-form budget option. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "wan-22", name: "Wan 2.2", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Economy option. Fast generation.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "wan-26", name: "Wan 2.6", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Budget option. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "framepack", name: "Framepack", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["I2V"], maxDuration: 30, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Long-form I2V. Up to 30 seconds.", durations: [10, 15, 20, 30], aspectRatios: [], resolutions: [], supportsEndFrame: true },
   // ── SFW Standard ──
-  { id: "hailuo-23", name: "Hailuo 2.3", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 6, maxResolution: "768p", supportsAudio: false, contentMode: "SFW", description: "Smooth motion. Great for social content.", durations: [6], aspectRatios: [], resolutions: [], supportsEndFrame: true },
-  { id: "seedance-15", name: "Seedance 1.5 Pro", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Versatile with long duration support.", durations: [4, 5, 6, 7, 8, 9, 10, 11, 12], aspectRatios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"], resolutions: ["480p", "720p", "1080p"], supportsEndFrame: true },
-  { id: "kling-25-turbo", name: "Kling 2.5 Turbo", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Fast and reliable.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "kling-26-std", name: "Kling 2.6 Standard", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "720p", supportsAudio: true, contentMode: "SFW", description: "Reliable standard quality. Native audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "seedance-2", name: "Seedance 2", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance's latest. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
+  { id: "sora-2", name: "Sora 2", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's video model. Up to 12 seconds.", durations: [4, 8, 12], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   // ── SFW Ultra ──
-  { id: "sora-2-pro", name: "Sora 2 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 20, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. Up to 20 seconds.", durations: [4, 8, 12, 16, 20], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
-  { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium quality. Best overall.", durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
-  { id: "veo-31", name: "Veo 3.1", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "4K", supportsAudio: true, contentMode: "SFW", description: "Google's best. 4K cinematic output.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p", "4k"], supportsEndFrame: false },
+  { id: "kling-26-pro", name: "Kling 2.6 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium Kling quality with audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Best overall quality. Up to 15 seconds with audio.", durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "sora-2-pro", name: "Sora 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. 1080p up to 12 seconds.", durations: [4, 8, 12], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "veo-31", name: "Veo 3.1", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Google's best. Cinematic quality with audio.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "seedance-2-pro", name: "Seedance 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance premium. Higher quality.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
   // ── Motion Control ──
-  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "FAL", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "FAL", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  // ── NSFW ──
-  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Self-hosted.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p"], supportsEndFrame: false },
-  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "SELF_HOSTED", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Self-hosted.", durations: [5], aspectRatios: [], resolutions: ["720p"], supportsEndFrame: false },
-  { id: "wan22-nsfw-t2v-lite", name: "Wan 2.2 NSFW Lite", provider: "SELF_HOSTED", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Fast unrestricted generation. Lower VRAM.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p"], supportsEndFrame: false },
+  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 2, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  // ── NSFW Budget ──
+  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW option. Fast 720p generation.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "wan22-nsfw-i2v", name: "Wan 2.2 NSFW", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Budget NSFW image-to-video.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  // ── NSFW Standard ──
+  { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  // ── Image — Budget ──
+  { id: "z-image-turbo", name: "Z-Image Turbo", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1440px", supportsAudio: false, contentMode: "BOTH", description: "Fast photorealistic images. Sub-second.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "flux-schnell", name: "Flux Schnell", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1024px", supportsAudio: false, contentMode: "SFW", description: "Fast Flux generation. Good for iterations.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  // ── Image — Standard ──
+  { id: "qwen-image", name: "Qwen Image", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1024px", supportsAudio: false, contentMode: "SFW", description: "Alibaba's latest image model.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "seedream-5", name: "Seedream 5", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "3K", supportsAudio: false, contentMode: "SFW", description: "ByteDance image model. Up to 3K resolution.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"], resolutions: [], supportsEndFrame: false },
 ];
 
 const TIER_LABELS: Record<ModelTier, string> = {
@@ -85,7 +96,7 @@ type GenerationItem = {
   resolution?: string;
 };
 
-type ModeTab = "T2V" | "I2V" | "MOTION_TRANSFER";
+type ModeTab = "T2V" | "I2V" | "T2I" | "MOTION_TRANSFER";
 
 type CharacterOption = {
   id: string;
@@ -117,7 +128,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   // Mode & model
   const [mode, setMode] = useState<ModeTab>("T2V");
-  const [selectedModelId, setSelectedModelId] = useState<string>(isNsfw ? "wan22-nsfw-t2v" : "kling-30-pro");
+  const [selectedModelId, setSelectedModelId] = useState<string>(isNsfw ? "wan26-nsfw-t2v" : "kling-30-pro");
+  const isImageMode = mode === "T2I";
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -173,8 +185,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   const selectedModel = availableModels.find((m) => m.id === selectedModelId) ?? filteredModels[0];
 
-  // Credit cost: base * duration multiplier
-  const durationMultiplier = Math.ceil(durationSec / 5);
+  // Credit cost: base * duration multiplier (images = flat cost)
+  const durationMultiplier = isImageMode ? 1 : Math.ceil(durationSec / 5);
   const creditCost = selectedModel ? selectedModel.creditCost * durationMultiplier : 1;
   const canAfford = credits >= creditCost;
 
@@ -187,6 +199,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const isMotionMode = mode === "MOTION_TRANSFER";
   const needsImage = isMotionMode || (selectedModel && mode === "I2V");
   const needsVideo = isMotionMode;
+  const showDuration = !isImageMode;
+  const showAspectRatio = availableAspectRatios.length > 0;
 
   const inFlightCount = generations.filter(
     (g) => g.status === "submitting" || g.status === "queued" || g.status === "processing"
@@ -197,8 +211,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // When mode changes, select the best default model for that mode
   useEffect(() => {
     const defaults: Record<string, Record<ModeTab, string>> = {
-      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", MOTION_TRANSFER: "kling-26-motion-std" },
-      NSFW: { T2V: "wan22-nsfw-t2v", I2V: "wan22-nsfw-i2v", MOTION_TRANSFER: "kling-26-motion-std" },
+      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", T2I: "z-image-turbo", MOTION_TRANSFER: "kling-26-motion-std" },
+      NSFW: { T2V: "wan26-nsfw-t2v", I2V: "wan26-nsfw-i2v", T2I: "z-image-turbo", MOTION_TRANSFER: "kling-26-motion-std" },
     };
     const defaultId = defaults[userContentMode]?.[mode];
     const target = filteredModels.find((m) => m.id === defaultId) ?? filteredModels[0];
@@ -406,13 +420,13 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       const body: Record<string, unknown> = {
         prompt: prompt.trim(),
         modelId: selectedModel.id,
-        durationSec,
-        withAudio: withAudio && selectedModel.supportsAudio,
+        durationSec: isImageMode ? 1 : durationSec,
+        withAudio: !isImageMode && withAudio && selectedModel.supportsAudio,
       };
       if (imageUrl) body.imageUrl = imageUrl;
       if (endImageUrl) body.endImageUrl = endImageUrl;
       if (videoUrl) body.videoUrl = videoUrl;
-      if (availableAspectRatios.length > 0) body.aspectRatio = aspectRatio;
+      if (showAspectRatio) body.aspectRatio = aspectRatio;
       if (availableResolutions.length > 0) body.resolution = resolution;
       if (isMotionMode) body.characterOrientation = characterOrientation;
 
@@ -480,7 +494,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
         {/* Mode Toggle */}
         <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
-          {(["T2V", "I2V", "MOTION_TRANSFER"] as const).map((tab) => (
+          {(["T2V", "I2V", "T2I", "MOTION_TRANSFER"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setMode(tab)}
@@ -490,7 +504,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {tab === "T2V" ? "Text to Video" : tab === "I2V" ? "Image to Video" : "Motion"}
+              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : tab === "T2I" ? "Text → Image" : "Motion"}
             </button>
           ))}
         </div>
@@ -522,8 +536,12 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </div>
               <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
                 <span>{selectedModel?.maxResolution}</span>
-                <span>&middot;</span>
-                <span>up to {selectedModel?.maxDuration}s</span>
+                {!isImageMode && selectedModel?.maxDuration && (
+                  <>
+                    <span>&middot;</span>
+                    <span>up to {selectedModel?.maxDuration}s</span>
+                  </>
+                )}
                 <span>&middot;</span>
                 <span>{selectedModel?.tier === "ULTRA" ? "2 cr" : "1 cr"}</span>
               </div>
@@ -904,8 +922,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
         {/* ── Settings Row: Duration, Aspect Ratio, Quality ── */}
         <div className="mb-4 flex flex-wrap gap-2">
-          {/* Duration button + popup */}
-          {availableDurations.length > 0 && (
+          {/* Duration button + popup (hidden for image models) */}
+          {showDuration && availableDurations.length > 0 && (
             <div ref={durationPopupRef} className="relative">
               <button
                 type="button"
@@ -1096,18 +1114,29 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                 <div className="relative flex h-full w-full max-w-5xl items-center justify-center">
                   {selectedGeneration.status === "completed" && selectedGeneration.outputUrl ? (
                     <div className="relative max-h-full max-w-full">
-                      <video
-                        key={selectedGeneration.outputUrl}
-                        src={selectedGeneration.outputUrl}
-                        controls
-                        autoPlay
-                        loop
-                        playsInline
-                        className="max-h-[calc(100vh-var(--topbar-h,64px)-120px)] w-auto rounded-[var(--radius-lg)] border border-[var(--border-subtle)] shadow-[0_0_40px_rgba(0,0,0,0.4)]"
-                      />
+                      {selectedGeneration.outputUrl.match(/\.(png|jpg|jpeg|webp)($|\?)/) || selectedGeneration.durationSec === 0 ? (
+                        <img
+                          key={selectedGeneration.outputUrl}
+                          src={selectedGeneration.outputUrl}
+                          alt={selectedGeneration.prompt}
+                          className="max-h-[calc(100vh-var(--topbar-h,64px)-120px)] w-auto rounded-[var(--radius-lg)] border border-[var(--border-subtle)] shadow-[0_0_40px_rgba(0,0,0,0.4)]"
+                        />
+                      ) : (
+                        <video
+                          key={selectedGeneration.outputUrl}
+                          src={selectedGeneration.outputUrl}
+                          controls
+                          autoPlay
+                          loop
+                          playsInline
+                          className="max-h-[calc(100vh-var(--topbar-h,64px)-120px)] w-auto rounded-[var(--radius-lg)] border border-[var(--border-subtle)] shadow-[0_0_40px_rgba(0,0,0,0.4)]"
+                        />
+                      )}
                       <div className="absolute bottom-3 left-3 flex items-center gap-2">
                         <Badge variant="default" className="!bg-black/70 !text-[10px] backdrop-blur-sm">{selectedGeneration.modelName}</Badge>
-                        <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur-sm">{selectedGeneration.durationSec}s</span>
+                        {selectedGeneration.durationSec > 0 && (
+                          <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur-sm">{selectedGeneration.durationSec}s</span>
+                        )}
                         {selectedGeneration.generationTimeMs && (
                           <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur-sm">{(selectedGeneration.generationTimeMs / 1000).toFixed(0)}s gen</span>
                         )}
@@ -1169,7 +1198,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                       }`}
                     >
                       {gen.status === "completed" && gen.outputUrl ? (
-                        <video src={gen.outputUrl} muted preload="metadata" className="h-full w-full object-cover" />
+                        gen.outputUrl.match(/\.(png|jpg|jpeg|webp)($|\?)/) || gen.durationSec === 0 ? (
+                          <img src={gen.outputUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <video src={gen.outputUrl} muted preload="metadata" className="h-full w-full object-cover" />
+                        )
                       ) : (
                         <div className={`flex h-full w-full items-center justify-center text-[10px] font-medium ${
                           gen.status === "failed" ? "bg-[var(--error)]/10 text-[var(--error)]" : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
@@ -1251,8 +1284,12 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             {/* Metadata */}
             <div className="space-y-2">
               <MetaRow label="Model" value={selectedGeneration.modelName} />
-              <MetaRow label="Duration" value={`${selectedGeneration.durationSec}s`} />
-              <MetaRow label="Audio" value={selectedGeneration.withAudio ? "Yes" : "No"} />
+              {selectedGeneration.durationSec > 0 && (
+                <MetaRow label="Duration" value={`${selectedGeneration.durationSec}s`} />
+              )}
+              {selectedGeneration.durationSec > 0 && (
+                <MetaRow label="Audio" value={selectedGeneration.withAudio ? "Yes" : "No"} />
+              )}
               <MetaRow label="Credits" value={`${selectedGeneration.creditCost}`} />
               <MetaRow label="Created" value={new Date(selectedGeneration.createdAt).toLocaleTimeString()} />
               {selectedGeneration.generationTimeMs && (
@@ -1293,7 +1330,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   onClick={() => {
                     const a = document.createElement("a");
                     a.href = selectedGeneration.outputUrl!;
-                    a.download = `artifacial-${selectedGeneration.generationId}.mp4`;
+                    const ext = isImageMode || selectedGeneration.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
+                    a.download = `artifacial-${selectedGeneration.generationId}.${ext}`;
                     a.click();
                   }}
                 >
@@ -1361,11 +1399,14 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 // ─── Post-Processing Actions ───
 
 const POST_PROCESS_COSTS = {
-  UPSCALE: 1,
   FACE_SWAP: 1,
-  LIP_SYNC: 1,
-  STYLE_TRANSFER: 1,
+  VIDEO_FACE_SWAP: 2,
+  BACKGROUND_REMOVAL: 1,
+  VIRTUAL_TRY_ON: 1,
+  AI_HUG: 1,
 } as const;
+
+type PostProcessModalType = "FACE_SWAP" | "VIRTUAL_TRY_ON" | null;
 
 function PostProcessActions({
   generation,
@@ -1378,12 +1419,15 @@ function PostProcessActions({
   characters: CharacterOption[];
   onPostProcess: (gen: GenerationItem) => void;
 }) {
-  const [activeModal, setActiveModal] = useState<"FACE_SWAP" | "LIP_SYNC" | null>(null);
+  const [activeModal, setActiveModal] = useState<PostProcessModalType>(null);
   const [faceFile, setFaceFile] = useState<File | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [faceMode, setFaceMode] = useState<"character" | "upload">(characters.length > 0 ? "character" : "upload");
-  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [dressFile, setDressFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const isVideoSource = generation.durationSec > 0;
+  const isImageSource = !isVideoSource;
 
   const submitPostProcess = async (
     type: string,
@@ -1415,24 +1459,24 @@ function PostProcessActions({
         generationId: data.generationId,
         status: "queued",
         progress: 0,
-        modelId: `comfyui-${type.toLowerCase().replace(/_/g, "-")}`,
+        modelId: `piapi-${type.toLowerCase().replace(/_/g, "-")}`,
         modelName: type.replace(/_/g, " "),
-        prompt: type === "STYLE_TRANSFER" ? (extraBody.stylePrompt as string) || "" : generation.prompt,
-        durationSec: generation.durationSec,
+        prompt: generation.prompt,
+        durationSec: type === "AI_HUG" ? 5 : (isImageSource ? 0 : generation.durationSec),
         withAudio: false,
         creditCost: POST_PROCESS_COSTS[type as keyof typeof POST_PROCESS_COSTS] ?? 1,
         createdAt: Date.now(),
         elapsedSec: 0,
         parentGenerationId: generation.generationId!,
         postProcessType: type,
-        resolution: type === "UPSCALE" ? "1080p" : generation.resolution,
+        resolution: generation.resolution,
       };
 
       onPostProcess(newGen);
       setActiveModal(null);
       setFaceFile(null);
       setSelectedCharacterId(null);
-      setAudioFile(null);
+      setDressFile(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Network error");
     } finally {
@@ -1441,21 +1485,22 @@ function PostProcessActions({
   };
 
   const handleFaceSwap = async () => {
+    const type = isVideoSource ? "VIDEO_FACE_SWAP" : "FACE_SWAP";
     if (faceMode === "character" && selectedCharacterId) {
-      await submitPostProcess("FACE_SWAP", { characterId: selectedCharacterId });
+      await submitPostProcess(type, { characterId: selectedCharacterId });
     } else if (faceMode === "upload" && faceFile) {
       const base64 = await fileToDataUrl(faceFile);
-      await submitPostProcess("FACE_SWAP", { faceImage: base64 });
+      await submitPostProcess(type, { faceImage: base64 });
     }
   };
 
-  const handleLipSync = async () => {
-    if (!audioFile) return;
-    const base64 = await fileToDataUrl(audioFile);
-    await submitPostProcess("LIP_SYNC", { audioFile: base64 });
+  const handleVirtualTryOn = async () => {
+    if (!dressFile) return;
+    const base64 = await fileToDataUrl(dressFile);
+    await submitPostProcess("VIRTUAL_TRY_ON", { dressImageUrl: base64 });
   };
 
-  const is720p = generation.resolution === "720p" || !generation.resolution;
+  const faceSwapCost = isVideoSource ? POST_PROCESS_COSTS.VIDEO_FACE_SWAP : POST_PROCESS_COSTS.FACE_SWAP;
 
   return (
     <>
@@ -1465,48 +1510,59 @@ function PostProcessActions({
         </p>
       </div>
 
-      {is720p && (
+      {/* Face Swap — works on both images and videos */}
+      <Button variant="secondary" size="sm" fullWidth disabled={credits < faceSwapCost} onClick={() => setActiveModal("FACE_SWAP")}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+          <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 1 0-16 0" />
+        </svg>
+        Face swap{isVideoSource ? " (video)" : ""}
+        <span className="ml-auto text-[10px] text-[var(--text-muted)]">{faceSwapCost}cr</span>
+      </Button>
+
+      {/* Background Removal — images only */}
+      {isImageSource && (
         <Button
           variant="secondary"
           size="sm"
           fullWidth
-          disabled={credits < POST_PROCESS_COSTS.UPSCALE}
-          onClick={() => submitPostProcess("UPSCALE", { targetResolution: "1080p" })}
+          disabled={credits < POST_PROCESS_COSTS.BACKGROUND_REMOVAL}
+          onClick={() => submitPostProcess("BACKGROUND_REMOVAL")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-            <polyline points="15 3 21 3 21 9" />
-            <polyline points="9 21 3 21 3 15" />
-            <line x1="21" y1="3" x2="14" y2="10" />
-            <line x1="3" y1="21" x2="10" y2="14" />
+            <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" />
           </svg>
-          Upscale to 1080p
-          <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.UPSCALE}cr</span>
+          Remove background
+          <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.BACKGROUND_REMOVAL}cr</span>
         </Button>
       )}
 
-      <Button variant="secondary" size="sm" fullWidth disabled={credits < POST_PROCESS_COSTS.FACE_SWAP} onClick={() => setActiveModal("FACE_SWAP")}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-          <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 1 0-16 0" />
-        </svg>
-        Face swap
-        <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.FACE_SWAP}cr</span>
-      </Button>
+      {/* Virtual Try-On — images only */}
+      {isImageSource && (
+        <Button variant="secondary" size="sm" fullWidth disabled={credits < POST_PROCESS_COSTS.VIRTUAL_TRY_ON} onClick={() => setActiveModal("VIRTUAL_TRY_ON")}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+            <path d="M6.5 6.5 17.5 17.5M6.5 17.5 17.5 6.5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" />
+          </svg>
+          Virtual try-on
+          <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.VIRTUAL_TRY_ON}cr</span>
+        </Button>
+      )}
 
-      <Button variant="secondary" size="sm" fullWidth disabled={credits < POST_PROCESS_COSTS.LIP_SYNC} onClick={() => setActiveModal("LIP_SYNC")}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" />
-        </svg>
-        Lip sync
-        <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.LIP_SYNC}cr</span>
-      </Button>
-
-      <Button variant="ghost" size="sm" fullWidth disabled className="opacity-40">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-        </svg>
-        Style transfer — Coming soon
-      </Button>
+      {/* AI Hug — images only, produces video */}
+      {isImageSource && (
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth
+          disabled={credits < POST_PROCESS_COSTS.AI_HUG}
+          onClick={() => submitPostProcess("AI_HUG")}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+          AI Hug
+          <span className="ml-auto text-[10px] text-[var(--text-muted)]">{POST_PROCESS_COSTS.AI_HUG}cr</span>
+        </Button>
+      )}
 
       {/* Modals */}
       {activeModal && (
@@ -1514,11 +1570,11 @@ function PostProcessActions({
           <div className="w-full max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                {activeModal === "FACE_SWAP" && "Face Swap"}
-                {activeModal === "LIP_SYNC" && "Lip Sync"}
+                {activeModal === "FACE_SWAP" && (isVideoSource ? "Video Face Swap" : "Face Swap")}
+                {activeModal === "VIRTUAL_TRY_ON" && "Virtual Try-On"}
               </h3>
               <button
-                onClick={() => { setActiveModal(null); setFaceFile(null); setSelectedCharacterId(null); setAudioFile(null); }}
+                onClick={() => { setActiveModal(null); setFaceFile(null); setSelectedCharacterId(null); setDressFile(null); }}
                 className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1596,29 +1652,29 @@ function PostProcessActions({
                   disabled={submitting || (faceMode === "character" ? !selectedCharacterId : !faceFile)}
                   onClick={handleFaceSwap}
                 >
-                  {submitting ? "Submitting..." : `Face Swap — ${POST_PROCESS_COSTS.FACE_SWAP}cr`}
+                  {submitting ? "Submitting..." : `Face Swap — ${faceSwapCost}cr`}
                 </Button>
               </div>
             )}
 
-            {activeModal === "LIP_SYNC" && (
+            {activeModal === "VIRTUAL_TRY_ON" && (
               <div className="space-y-3">
-                <p className="text-xs text-[var(--text-secondary)]">Upload an audio file to sync with the video.</p>
+                <p className="text-xs text-[var(--text-secondary)]">Upload a garment image (dress, top, or outfit).</p>
                 <input
                   type="file"
-                  accept="audio/mpeg,audio/wav,audio/mp3"
-                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setDressFile(e.target.files?.[0] || null)}
                   className="w-full text-xs text-[var(--text-secondary)] file:mr-3 file:rounded-[var(--radius-sm)] file:border-0 file:bg-[var(--bg-elevated)] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[var(--text-primary)]"
                 />
-                {audioFile && <p className="text-[10px] text-[var(--text-muted)]">{audioFile.name}</p>}
+                {dressFile && <p className="text-[10px] text-[var(--text-muted)]">{dressFile.name}</p>}
                 <Button
                   variant="primary"
                   size="sm"
                   fullWidth
-                  disabled={!audioFile || submitting}
-                  onClick={handleLipSync}
+                  disabled={!dressFile || submitting}
+                  onClick={handleVirtualTryOn}
                 >
-                  {submitting ? "Submitting..." : `Lip Sync — ${POST_PROCESS_COSTS.LIP_SYNC}cr`}
+                  {submitting ? "Submitting..." : `Try On — ${POST_PROCESS_COSTS.VIRTUAL_TRY_ON}cr`}
                 </Button>
               </div>
             )}

@@ -1,14 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { getVeniceClient, VENICE_MODEL } from "@/lib/venice";
+import { filterPromptKeywords } from "./keyword-filter";
 import type { ContentMode } from "@/generated/prisma/client";
-
-let _client: Anthropic | null = null;
-
-function getClient() {
-  if (!_client) {
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-  }
-  return _client;
-}
 
 export type PromptClassification = {
   allowed: boolean;
@@ -54,12 +46,30 @@ export async function classifyPrompt(
   prompt: string,
   contentMode: ContentMode
 ): Promise<PromptClassification> {
+  // Layer 1: Fast keyword/pattern filter (no API call)
+  const keywordResult = filterPromptKeywords(prompt);
+  if (keywordResult.blocked) {
+    return {
+      allowed: false,
+      contentMode,
+      sexualContent: false,
+      minorContent: keywordResult.reason?.includes("CSAM") || false,
+      minorTerms: [],
+      violenceLevel: "none",
+      realPersonReference: false,
+      reason: `HARD_BLOCK: ${keywordResult.reason}`,
+    };
+  }
+
+  // Layer 2: Venice AI classification (LLM semantic understanding)
   try {
-    const response = await getClient().messages.create({
-      model: "claude-haiku-4-5-20251001",
+    const client = getVeniceClient();
+    const response = await client.chat.completions.create({
+      model: VENICE_MODEL,
       max_tokens: 500,
-      system: CLASSIFIER_SYSTEM_PROMPT,
+      temperature: 0,
       messages: [
+        { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
         {
           role: "user",
           content: `Content mode: ${contentMode}\nPrompt to classify: "${prompt}"`,
@@ -67,8 +77,7 @@ export async function classifyPrompt(
       ],
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text : "";
+    const text = response.choices[0]?.message?.content || "";
     const result = JSON.parse(text.replace(/```json|```/g, "").trim());
 
     // Hard blocks — never allowed regardless of content mode
@@ -152,7 +161,7 @@ export async function classifyPrompt(
     // CRITICAL: Fail safe — never let an unclassified prompt through
     const errMsg = error instanceof Error ? error.message : String(error);
     const errName = error instanceof Error ? error.constructor.name : "Unknown";
-    console.error(`[prompt-classifier] FAILED: type=${errName}, message=${errMsg}, hasApiKey=${!!process.env.ANTHROPIC_API_KEY}`);
+    console.error(`[prompt-classifier] FAILED: type=${errName}, message=${errMsg}, hasApiKey=${!!process.env.VENICE_API_KEY}`);
     return {
       allowed: false,
       contentMode,

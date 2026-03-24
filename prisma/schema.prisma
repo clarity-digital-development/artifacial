@@ -42,10 +42,14 @@ enum WorkflowType {
   LIP_SYNC
   UPSCALE
   STYLE_TRANSFER
+  BACKGROUND_REMOVAL
+  VIRTUAL_TRY_ON
+  AI_HUG
 }
 
 enum GenerationProvider {
   FAL_AI
+  PIAPI
   SELF_HOSTED
   COMFYUI_POST_PROCESS
 }

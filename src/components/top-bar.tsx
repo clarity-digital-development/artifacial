@@ -131,13 +131,13 @@ export function TopBar({
               {matureMode ? "Mature" : "SFW"}
             </span>
             <div
-              className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
+              className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200 ${
                 matureMode ? "bg-[var(--accent-amber)]" : "bg-[var(--border-default)]"
               } ${toggling ? "opacity-50" : ""}`}
             >
               <span
-                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                  matureMode ? "translate-x-[13px]" : "translate-x-0.5"
+                className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  matureMode ? "translate-x-3.5" : "translate-x-0.5"
                 }`}
               />
             </div>
