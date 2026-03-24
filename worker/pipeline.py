@@ -130,31 +130,51 @@ def full_teardown() -> None:
     logger.info("Full VRAM teardown complete")
 
 
-def _enable_flash_attention(pipeline) -> None:
-    """Enable Flash Attention 2 on all transformer components if flash-attn is installed."""
+def _enable_attention_acceleration(pipeline) -> None:
+    """Enable the best available attention acceleration: Flash Attention 2 or SageAttention."""
+    import torch
+
+    # Try Flash Attention 2 first
     try:
         import flash_attn  # noqa: F401
         for component_name in ["transformer", "transformer_2"]:
             component = getattr(pipeline, component_name, None)
-            if component is not None and hasattr(component, "enable_flash_sdp"):
-                component.enable_flash_sdp(True)
-                logger.info(f"Flash Attention enabled on {component_name}")
-            elif component is not None:
-                # Diffusers >=0.28 uses set_attn_processor
+            if component is not None:
                 try:
                     from diffusers.models.attention_processor import FlashAttnProcessor2_0
                     component.set_attn_processor(FlashAttnProcessor2_0())
-                    logger.info(f"FlashAttnProcessor2_0 set on {component_name}")
+                    logger.info(f"Flash Attention 2 enabled on {component_name}")
                 except (ImportError, Exception) as e:
-                    logger.info(f"Flash Attention not available for {component_name}: {e}")
+                    logger.info(f"Flash Attention 2 not available for {component_name}: {e}")
+        return
     except ImportError:
-        # Try SageAttention as fallback
-        try:
-            from sageattention import sageattn
-            import torch.nn.functional as F  # noqa: F401
-            logger.info("flash-attn not found, SageAttention available as fallback")
-        except ImportError:
-            logger.warning("Neither flash-attn nor sageattention installed — using default attention")
+        pass
+
+    # Fallback: SageAttention — monkey-patch F.scaled_dot_product_attention
+    try:
+        from sageattention import sageattn
+        import torch.nn.functional as F
+
+        _original_sdpa = F.scaled_dot_product_attention
+
+        def _sage_sdpa(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None, **kwargs):
+            # SageAttention handles the common case; fall back to default for edge cases
+            try:
+                if attn_mask is not None or is_causal:
+                    return _original_sdpa(query, key, value, attn_mask=attn_mask,
+                                          dropout_p=dropout_p, is_causal=is_causal, scale=scale, **kwargs)
+                return sageattn(query, key, value, is_causal=False)
+            except Exception:
+                return _original_sdpa(query, key, value, attn_mask=attn_mask,
+                                      dropout_p=dropout_p, is_causal=is_causal, scale=scale, **kwargs)
+
+        F.scaled_dot_product_attention = _sage_sdpa
+        logger.info("SageAttention enabled (monkey-patched scaled_dot_product_attention)")
+        return
+    except ImportError:
+        pass
+
+    logger.warning("No attention acceleration available — using PyTorch default SDPA")
 
 
 def _download_single_file(
@@ -273,7 +293,7 @@ def _ensure_t2v() -> None:
     _active_pipeline = _active_pipeline.to(device)
 
     # Enable Flash Attention 2 if available (2-3x attention speedup, no quality loss)
-    _enable_flash_attention(_active_pipeline)
+    _enable_attention_acceleration(_active_pipeline)
 
     _active_type = "t2v"
     logger.info(f"T2V NSFW pipeline ready in {time.time() - start:.1f}s")
@@ -338,7 +358,7 @@ def _ensure_i2v() -> None:
     _active_pipeline = _active_pipeline.to(device)
 
     # Enable Flash Attention 2 if available (2-3x attention speedup, no quality loss)
-    _enable_flash_attention(_active_pipeline)
+    _enable_attention_acceleration(_active_pipeline)
 
     _active_type = "i2v"
     logger.info(f"I2V NSFW pipeline ready in {time.time() - start:.1f}s")
