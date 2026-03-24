@@ -140,11 +140,13 @@ export async function GET(
 
   try {
     const piStatus = await getTaskStatus(piApiTaskId!);
+    console.log(`[status] gen=${generation.id} task=${piApiTaskId} status=${piStatus.status} progress=${piStatus.progress} error=${piStatus.errorMessage || "none"}`);
 
     if (piStatus.status === "completed") {
       const outputUrl = piStatus.videoUrl || piStatus.imageUrl;
 
       if (!outputUrl) {
+        console.error(`[status] COMPLETED BUT NO OUTPUT gen=${generation.id} task=${piApiTaskId} raw=${JSON.stringify(piStatus.raw)}`);
         // Task completed but no output — treat as failure
         await prisma.generation.update({
           where: { id: generation.id },
@@ -208,6 +210,7 @@ export async function GET(
     }
 
     if (piStatus.status === "failed") {
+      console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} error=${piStatus.errorMessage} raw=${JSON.stringify(piStatus.raw)}`);
       // Refund credits on failure
       if (generation.errorMessage !== "ACCOUNT_DELETED") {
         await refundCredits(

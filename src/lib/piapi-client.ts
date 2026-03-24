@@ -79,7 +79,7 @@ export async function submitTask(
     };
   }
 
-  console.log(`[piapi] submit: model=${model}, task_type=${taskType}, input_keys=${Object.keys(input).join(",")}`);
+  console.log(`[piapi] submit: model=${model}, task_type=${taskType}, input=${JSON.stringify(input)}`);
 
   const data = await piapiFetch("/task", {
     method: "POST",
