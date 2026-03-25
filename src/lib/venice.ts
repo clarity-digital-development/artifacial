@@ -16,6 +16,7 @@ export function getVeniceClient(): OpenAI {
 }
 
 export const VENICE_MODEL = "llama-3.3-70b";
+export const VENICE_UNCENSORED_MODEL = "venice-uncensored";
 
 // ════════════════════════════════════════════════════════════════
 // NSFW Prompt Enrichment — rewrites explicit prompts to bypass
@@ -42,7 +43,7 @@ export async function enrichNSFWPrompt(
   console.log(`[venice] original prompt: "${userPrompt}"`);
 
   const response = await client.chat.completions.create({
-    model: VENICE_MODEL,
+    model: VENICE_UNCENSORED_MODEL,
     messages: [
       { role: "system", content: instruction },
       { role: "user", content: userPrompt },
