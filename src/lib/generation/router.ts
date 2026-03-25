@@ -361,6 +361,13 @@ export async function routeGeneration(
       }
     }
 
+    // 9b. Hard prompt length cap — PiAPI/Kling rejects oversized inputs
+    const MAX_PROMPT_CHARS = 2000;
+    if (submissionPrompt.length > MAX_PROMPT_CHARS) {
+      console.warn(`[router] Truncating prompt from ${submissionPrompt.length} to ${MAX_PROMPT_CHARS} chars`);
+      submissionPrompt = submissionPrompt.slice(0, MAX_PROMPT_CHARS);
+    }
+
     // 10. Submit to PiAPI (with NSFW retry + Venice fallback)
     try {
       const result = await submitToPiAPI(model, mode, submissionPrompt, {
