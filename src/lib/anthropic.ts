@@ -26,13 +26,11 @@ export async function enhanceVideoPrompt(
   const client = getVeniceClient();
   const response = await client.chat.completions.create({
     model: VENICE_MODEL,
-    max_completion_tokens: 512,
     temperature: 0.7,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ],
-    ...({ venice_parameters: { include_venice_system_prompt: false } } as Record<string, unknown>),
   });
 
   const text = response.choices[0]?.message?.content;

@@ -15,7 +15,7 @@ export function getVeniceClient(): OpenAI {
   return _client;
 }
 
-export const VENICE_MODEL = "llama-3.3-70b";
+export const VENICE_MODEL = "mistral-31-24b";
 export const VENICE_UNCENSORED_MODEL = "venice-uncensored";
 
 /**
@@ -85,8 +85,6 @@ export async function enrichNSFWPrompt(
             { role: "user", content: userPrompt },
           ],
           temperature: 0.7,
-          max_completion_tokens: 500,
-          ...({ venice_parameters: { include_venice_system_prompt: false } } as Record<string, unknown>),
         }),
         1, // 1 retry per model, then move to fallback
         `venice-enrich(${model})`,

@@ -67,7 +67,6 @@ export async function classifyPrompt(
     const response = await withVeniceRetry(
       () => client.chat.completions.create({
         model: VENICE_MODEL,
-        max_completion_tokens: 500,
         temperature: 0,
         messages: [
           { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
@@ -76,7 +75,6 @@ export async function classifyPrompt(
             content: `Content mode: ${contentMode}\nPrompt to classify: "${prompt}"`,
           },
         ],
-        ...({ venice_parameters: { include_venice_system_prompt: false } } as Record<string, unknown>),
       }),
       2,
       "prompt-classifier",
