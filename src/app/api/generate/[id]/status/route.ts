@@ -346,15 +346,40 @@ export async function GET(
 
     if (piStatus.status === "failed") {
       const errorMsg = piStatus.errorMessage || "Generation failed";
-      const rawLogs = JSON.stringify(piStatus.raw);
-      console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} error=${errorMsg} raw=${rawLogs}`);
+      const raw = piStatus.raw as Record<string, unknown> || {};
+      const rawLogs = JSON.stringify(raw);
+      const logs = Array.isArray(raw.logs) ? raw.logs.join(" | ") : "";
+      const errorCode = (raw.error as Record<string, unknown>)?.code;
+      const rawMessage = (raw.error as Record<string, unknown>)?.raw_message || "";
+      const meta = raw.meta as Record<string, unknown> || {};
+      const startedAt = meta.started_at as string;
+      const endedAt = meta.ended_at as string;
+      const usage = meta.usage as Record<string, unknown> || {};
 
-      // ─── NSFW async retry: if DashScope blocked the enriched prompt, re-enrich with abstract mode ───
+      // Classify the failure type
       const isModerationBlock = rawLogs.includes("inappropriate content") || rawLogs.includes("content moderation");
+      const isInferenceFailure = logs.includes("video generation failed") || logs.includes("image generation failed");
+      const isSubmitFailure = logs.includes("failed to submit");
+      const isTimeout = rawLogs.includes("timeout") || rawLogs.includes("timed out");
+
+      const failureType = isModerationBlock ? "MODERATION"
+        : isSubmitFailure ? "SUBMIT_REJECTED"
+        : isInferenceFailure ? "INFERENCE_FAILURE"
+        : isTimeout ? "TIMEOUT"
+        : "UNKNOWN";
+
+      const durationMs = startedAt && endedAt
+        ? new Date(endedAt).getTime() - new Date(startedAt).getTime()
+        : null;
+
+      console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} type=${failureType} error="${errorMsg}" errorCode=${errorCode} rawMessage="${rawMessage}" logs="${logs}" durationMs=${durationMs} usage=${JSON.stringify(usage)} contentMode=${generation.contentMode}`);
       const submissionPath = inputParams?.submissionPath as string | undefined;
       const alreadyRetried = submissionPath === "piapi-retry-abstract";
 
-      if (generation.contentMode === "NSFW" && isModerationBlock && !alreadyRetried) {
+      // Retry on moderation blocks OR inference failures for NSFW (DashScope may
+      // catch content at inference time via a secondary classifier)
+      const shouldRetryNSFW = isModerationBlock || isInferenceFailure;
+      if (generation.contentMode === "NSFW" && shouldRetryNSFW && !alreadyRetried) {
         console.warn(`[status] NSFW moderation block detected, retrying with abstract enrichment gen=${generation.id}`);
         try {
           const originalPrompt = inputParams?.prompt as string;

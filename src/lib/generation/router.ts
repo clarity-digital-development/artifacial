@@ -369,6 +369,7 @@ export async function routeGeneration(
     }
 
     // 10. Submit to PiAPI (with NSFW retry + Venice fallback)
+    console.log(`[router] submitting: model=${modelId} piapi=${model.pipiConfig.model} mode=${mode} isNSFW=${isNSFW} prompt="${submissionPrompt.slice(0, 120)}..." duration=${durationSec} res=${resolution} ar=${aspectRatio} audio=${audioEnabled} hasImage=${!!imageUrl}`);
     try {
       const result = await submitToPiAPI(model, mode, submissionPrompt, {
         imageUrl, endImageUrl, videoUrl, durationSec,
