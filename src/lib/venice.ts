@@ -15,7 +15,7 @@ export function getVeniceClient(): OpenAI {
   return _client;
 }
 
-export const VENICE_MODEL = "mistral-31-24b";
+export const VENICE_MODEL = "qwen3-5-9b";
 export const VENICE_UNCENSORED_MODEL = "venice-uncensored";
 
 /**
@@ -53,10 +53,10 @@ export async function withVeniceRetry<T>(
  * Rewrite an explicit NSFW prompt to avoid explicit keywords
  * while preserving the visual intent for the diffusion model.
  */
-// Models to try for enrichment, in order. venice-uncensored is preferred
-// but has reliability issues; llama-3.3-70b works because the task itself
-// is sanitization (making prompts LESS explicit), not NSFW generation.
-const ENRICHMENT_MODELS = [VENICE_UNCENSORED_MODEL, VENICE_MODEL] as const;
+// Models to try for enrichment, in order. venice-uncensored is preferred;
+// GLM 4.7 Flash Heretic (also uncensored) as fallback.
+const ENRICHMENT_FALLBACK_MODEL = "olafangensan-glm-4.7-flash-heretic";
+const ENRICHMENT_MODELS = [VENICE_UNCENSORED_MODEL, ENRICHMENT_FALLBACK_MODEL] as const;
 
 export async function enrichNSFWPrompt(
   userPrompt: string,
