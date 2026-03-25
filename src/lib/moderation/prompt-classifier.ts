@@ -76,6 +76,7 @@ export async function classifyPrompt(
             content: `Content mode: ${contentMode}\nPrompt to classify: "${prompt}"`,
           },
         ],
+        ...({ venice_parameters: { include_venice_system_prompt: false } } as Record<string, unknown>),
       }),
       2,
       "prompt-classifier",
