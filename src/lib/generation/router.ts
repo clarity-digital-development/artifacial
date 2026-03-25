@@ -17,7 +17,7 @@ import {
   getPiApiTaskType,
   type ModelMode,
 } from "@/lib/models/registry";
-import { submitVeniceVideo, enrichNSFWPrompt } from "@/lib/venice";
+import { enrichNSFWPrompt } from "@/lib/venice";
 import type {
   ContentMode,
   WorkflowType,
@@ -25,7 +25,7 @@ import type {
 
 // ─── Types ───
 
-export type GenerationProvider = "PIAPI" | "VENICE";
+export type GenerationProvider = "PIAPI";
 
 export type GenerationRequest = {
   userId: string;
@@ -427,56 +427,8 @@ export async function routeGeneration(
 
           return { success: true, generationId: generation.id };
         } catch (retryError) {
-          const retryMsg = retryError instanceof Error ? retryError.message : String(retryError);
-          const retryIsModeration = retryMsg.includes("inappropriate content") || retryMsg.includes("content moderation");
-
-          // ─── Final fallback: Venice direct (original unmodified prompt) ───
-          if (retryIsModeration && model.veniceConfig) {
-            console.warn(`[router] PiAPI retry also blocked, falling back to Venice direct`);
-
-            try {
-              const veniceModel = model.veniceConfig.model;
-              const veniceResult = await submitVeniceVideo({
-                model: veniceModel,
-                prompt, // Original unmodified prompt — Venice is uncensored
-                duration: `${durationSec}s`,
-                resolution: resolution || "720p",
-                aspectRatio,
-                audio: audioEnabled || undefined,
-                imageUrl: imageUrl || undefined,
-                endImageUrl: endImageUrl || undefined,
-              });
-
-              await prisma.generation.update({
-                where: { id: generation.id },
-                data: {
-                  status: "PROCESSING",
-                  startedAt: new Date(),
-                  provider: "VENICE",
-                  promptId: veniceResult.queueId,
-                  inputParams: {
-                    prompt,
-                    imageUrl: imageUrl || null,
-                    endImageUrl: endImageUrl || null,
-                    videoUrl: videoUrl || null,
-                    aspectRatio,
-                    resolution,
-                    modelId,
-                    withAudio: audioEnabled,
-                    veniceQueueId: veniceResult.queueId,
-                    veniceModel: veniceResult.model,
-                    submissionPath: "venice-fallback",
-                  },
-                },
-              });
-
-              return { success: true, generationId: generation.id };
-            } catch (veniceError) {
-              console.error(`[router] Venice fallback also failed:`, veniceError instanceof Error ? veniceError.message : veniceError);
-              // Fall through to refund below
-            }
-          }
-          // If retry wasn't a moderation error or Venice fallback failed, fall through
+          console.error(`[router] NSFW abstract retry also failed:`, retryError instanceof Error ? retryError.message : retryError);
+          // Fall through to refund below
         }
       }
 
