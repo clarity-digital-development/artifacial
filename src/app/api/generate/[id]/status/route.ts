@@ -5,10 +5,11 @@ import {
   getTaskStatus,
   estimateApiCost,
 } from "@/lib/piapi-client";
-import { retrieveVeniceVideo } from "@/lib/venice";
-import { isValidModelId } from "@/lib/models/registry";
+import { retrieveVeniceVideo, enrichNSFWPrompt } from "@/lib/venice";
+import { isValidModelId, getModelById, getPiApiTaskType } from "@/lib/models/registry";
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
+import { submitTask, buildVideoInput, buildImageInput } from "@/lib/piapi-client";
 
 // ─── Helpers ───
 
@@ -77,6 +78,7 @@ export async function GET(
       generationTimeMs: true,
       inputParams: true,
       creditsCost: true,
+      contentMode: true,
       parentGenerationId: true,
     },
   });
@@ -343,7 +345,75 @@ export async function GET(
     }
 
     if (piStatus.status === "failed") {
-      console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} error=${piStatus.errorMessage} raw=${JSON.stringify(piStatus.raw)}`);
+      const errorMsg = piStatus.errorMessage || "Generation failed";
+      const rawLogs = JSON.stringify(piStatus.raw);
+      console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} error=${errorMsg} raw=${rawLogs}`);
+
+      // ─── NSFW async retry: if DashScope blocked the enriched prompt, re-enrich with abstract mode ───
+      const isModerationBlock = rawLogs.includes("inappropriate content") || rawLogs.includes("content moderation");
+      const submissionPath = inputParams?.submissionPath as string | undefined;
+      const alreadyRetried = submissionPath === "piapi-retry-abstract";
+
+      if (generation.contentMode === "NSFW" && isModerationBlock && !alreadyRetried) {
+        console.warn(`[status] NSFW moderation block detected, retrying with abstract enrichment gen=${generation.id}`);
+        try {
+          const originalPrompt = inputParams?.prompt as string;
+          const model = getModelById(generation.modelId!);
+          if (originalPrompt && model) {
+            const abstractPrompt = await enrichNSFWPrompt(originalPrompt, "video", true);
+            const piApiModel = model.pipiConfig.model;
+            const taskType = getPiApiTaskType(generation.modelId!, "T2V");
+
+            if (taskType) {
+              const retryInput = buildVideoInput(piApiModel, taskType, {
+                prompt: abstractPrompt,
+                imageUrl: (inputParams?.imageUrl as string) || null,
+                endImageUrl: (inputParams?.endImageUrl as string) || null,
+                videoUrl: (inputParams?.videoUrl as string) || null,
+                durationSec: generation.durationSec ?? 5,
+                aspectRatio: (inputParams?.aspectRatio as string) || "16:9",
+                resolution: (inputParams?.resolution as string) || "720p",
+                withAudio: generation.withAudio ?? false,
+              });
+
+              if (model.pipiConfig.defaults) {
+                Object.assign(retryInput, model.pipiConfig.defaults);
+              }
+
+              const retryResult = await submitTask(piApiModel, taskType, retryInput);
+
+              await prisma.generation.update({
+                where: { id: generation.id },
+                data: {
+                  status: "PROCESSING",
+                  startedAt: new Date(),
+                  promptId: retryResult.taskId,
+                  errorMessage: null,
+                  inputParams: {
+                    ...inputParams,
+                    enrichedPrompt: abstractPrompt,
+                    piApiTaskId: retryResult.taskId,
+                    submissionPath: "piapi-retry-abstract",
+                  },
+                },
+              });
+
+              console.log(`[status] NSFW abstract retry submitted: gen=${generation.id} newTask=${retryResult.taskId}`);
+              return NextResponse.json({
+                id: generation.id,
+                status: "PROCESSING",
+                progress: 10,
+                queuedAt: generation.queuedAt,
+                startedAt: new Date(),
+              });
+            }
+          }
+        } catch (retryError) {
+          console.error(`[status] NSFW abstract retry failed:`, retryError instanceof Error ? retryError.message : retryError);
+          // Fall through to normal failure handling
+        }
+      }
+
       // Refund credits on failure
       if (generation.errorMessage !== "ACCOUNT_DELETED") {
         await refundCredits(
@@ -357,7 +427,7 @@ export async function GET(
         where: { id: generation.id },
         data: {
           status: "FAILED",
-          errorMessage: piStatus.errorMessage || "Generation failed",
+          errorMessage: errorMsg,
           completedAt: new Date(),
         },
       });
