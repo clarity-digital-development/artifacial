@@ -23,10 +23,10 @@ Your job is to detect:
 5. Whether the prompt references a real, identifiable person by name
 
 Classification rules:
+- "girl", "woman", "lady", "babe" in adult/sexual contexts are ADULT references — NOT minors. Only flag minorContent if there is an EXPLICIT age under 18 or EXPLICIT child terminology.
 - "teen", "teenage", "young" are NOT inherently problematic in non-sexual contexts
-- "barely legal", "innocent", "schoolgirl" + ANY sexual context = hard block
+- ONLY flag minorContent=true for: explicit ages under 18 (e.g. "15 year old"), words like "child", "kid", "toddler", "baby", "preteen", "underage", "loli", OR phrases like "barely legal", "innocent schoolgirl" combined with sexual context
 - Age descriptors like "18 year old" in sexual contexts are suspicious — flag but allow in NSFW mode
-- Descriptions of children, babies, toddlers in ANY suggestive context = hard block
 - References to real people by name (celebrities, politicians, public figures) = block (deepfake prevention)
 - Standard creative/cinematic descriptions of adults = allow
 - Extreme violence, gore, torture, or snuff = hard block

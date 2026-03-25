@@ -15,7 +15,7 @@ export function getVeniceClient(): OpenAI {
   return _client;
 }
 
-export const VENICE_MODEL = "qwen3-5-9b";
+export const VENICE_MODEL = "zai-org-glm-4.7-flash";
 export const VENICE_UNCENSORED_MODEL = "venice-uncensored";
 
 /**
