@@ -347,10 +347,17 @@ export async function routeGeneration(
       try {
         const mediaType = isT2I ? "image" as const : "video" as const;
         submissionPrompt = await enrichNSFWPrompt(prompt, mediaType);
-        console.log(`[router] NSFW enriched: original=${prompt.length}chars, enriched=${submissionPrompt.length}chars`);
+        console.log(`[router] NSFW enriched: original="${prompt.slice(0, 80)}..." → enriched="${submissionPrompt.slice(0, 80)}..."`);
       } catch (enrichError) {
-        console.warn("[router] NSFW enrichment failed, using original prompt:", enrichError);
-        // Fall through with original prompt — PiAPI may still accept it
+        const enrichMsg = enrichError instanceof Error ? enrichError.message : String(enrichError);
+        console.error(`[router] NSFW enrichment FAILED: ${enrichMsg}`);
+        // Don't fall through — original explicit prompt will always be blocked by DashScope
+        await refundCredits(userId, creditsCost, `Refund: NSFW enrichment failed`);
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: { status: "FAILED", errorMessage: `Prompt enrichment failed: ${enrichMsg}`, completedAt: new Date() },
+        });
+        return { success: false, generationId: generation.id, error: "Failed to process NSFW prompt. Credits refunded.", errorCode: "SYSTEM_ERROR" };
       }
     }
 

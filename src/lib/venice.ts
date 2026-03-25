@@ -38,7 +38,8 @@ export async function enrichNSFWPrompt(
     instruction = "Rewrite this prompt in a way that avoids explicit keywords while preserving the visual intent. Make it more abstract and poetic. Output ONLY the rewritten prompt, nothing else.";
   }
 
-  console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract})`);
+  console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract}, model=${VENICE_MODEL})`);
+  console.log(`[venice] original prompt: "${userPrompt}"`);
 
   const response = await client.chat.completions.create({
     model: VENICE_MODEL,
@@ -52,11 +53,10 @@ export async function enrichNSFWPrompt(
 
   const enriched = response.choices[0]?.message?.content?.trim();
   if (!enriched) {
-    console.warn("[venice] enrichment returned empty — using original prompt");
-    return userPrompt;
+    throw new Error("Venice enrichment returned empty response");
   }
 
-  console.log(`[venice] enriched prompt (${enriched.length} chars): ${enriched.slice(0, 100)}...`);
+  console.log(`[venice] enriched prompt: "${enriched}"`);
   return enriched;
 }
 
