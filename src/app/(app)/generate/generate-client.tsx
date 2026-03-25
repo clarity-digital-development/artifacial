@@ -53,12 +53,6 @@ const MODELS: ClientModel[] = [
   { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1, supportedModes: ["T2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
   { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1, supportedModes: ["I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
-  // ── Image — Budget ──
-  { id: "z-image-turbo", name: "Z-Image Turbo", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1440px", supportsAudio: false, contentMode: "BOTH", description: "Fast photorealistic images. Sub-second.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  { id: "flux-schnell", name: "Flux Schnell", provider: "PIAPI", tier: "BUDGET", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1024px", supportsAudio: false, contentMode: "SFW", description: "Fast Flux generation. Good for iterations.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  // ── Image — Standard ──
-  { id: "qwen-image", name: "Qwen Image", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "1024px", supportsAudio: false, contentMode: "SFW", description: "Alibaba's latest image model.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  { id: "seedream-5", name: "Seedream 5", provider: "PIAPI", tier: "STANDARD", creditCost: 1, supportedModes: ["T2I"], maxDuration: 0, maxResolution: "3K", supportsAudio: false, contentMode: "SFW", description: "ByteDance image model. Up to 3K resolution.", durations: [], aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"], resolutions: [], supportsEndFrame: false },
 ];
 
 const TIER_LABELS: Record<ModelTier, string> = {
@@ -95,7 +89,7 @@ type GenerationItem = {
   resolution?: string;
 };
 
-type ModeTab = "T2V" | "I2V" | "T2I" | "MOTION_TRANSFER";
+type ModeTab = "T2V" | "I2V" | "MOTION_TRANSFER";
 
 type CharacterOption = {
   id: string;
@@ -132,7 +126,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // Mode & model
   const [mode, setMode] = useState<ModeTab>("T2V");
   const [selectedModelId, setSelectedModelId] = useState<string>(isNsfw ? "wan26-nsfw-t2v" : "kling-30-pro");
-  const isImageMode = mode === "T2I";
+  const isImageMode = false; // T2I handled in characters tab, not studio
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -214,8 +208,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // When mode changes, select the best default model for that mode
   useEffect(() => {
     const defaults: Record<string, Record<ModeTab, string>> = {
-      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", T2I: "z-image-turbo", MOTION_TRANSFER: "kling-26-motion-std" },
-      NSFW: { T2V: "wan26-nsfw-t2v", I2V: "wan26-nsfw-i2v", T2I: "z-image-turbo", MOTION_TRANSFER: "kling-26-motion-std" },
+      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", MOTION_TRANSFER: "kling-26-motion-std" },
+      NSFW: { T2V: "wan26-nsfw-t2v", I2V: "wan26-nsfw-i2v", MOTION_TRANSFER: "kling-26-motion-std" },
     };
     const defaultId = defaults[userContentMode]?.[mode];
     const target = filteredModels.find((m) => m.id === defaultId) ?? filteredModels[0];
@@ -482,7 +476,9 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     if (!model) return;
 
     const genMode = model.supportedModes[0];
-    setMode(genMode);
+    if (genMode === "T2V" || genMode === "I2V" || genMode === "MOTION_TRANSFER") {
+      setMode(genMode);
+    }
     setSelectedModelId(model.id);
     setPrompt(gen.prompt);
     setDurationSec(gen.durationSec);
@@ -497,7 +493,15 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
         {/* Mode Toggle */}
         <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
-          {(["T2V", "I2V", "T2I", "MOTION_TRANSFER"] as const).map((tab) => (
+          {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
+            .filter((tab) => {
+              // Only show Motion tab if there are motion models for user's content mode
+              if (tab === "MOTION_TRANSFER") {
+                return availableModels.some((m) => m.supportedModes.includes("MOTION_TRANSFER"));
+              }
+              return true;
+            })
+            .map((tab) => (
             <button
               key={tab}
               onClick={() => setMode(tab)}
@@ -507,7 +511,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : tab === "T2I" ? "Text → Image" : "Motion"}
+              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : "Motion"}
             </button>
           ))}
         </div>

@@ -353,12 +353,14 @@ export async function routeGeneration(
     try {
       if (model.provider === "VENICE" && model.veniceConfig) {
         // ─── Venice AI — native uncensored generation ───
+        const isVeniceI2V = !!imageUrl && model.veniceConfig.model.includes("image-to-video");
         const veniceResult = await submitVeniceVideo({
           model: model.veniceConfig.model,
           prompt: submissionPrompt,
           duration: `${durationSec}s`,
           resolution: resolution === "1080p" ? "1080p" : "720p",
-          aspectRatio,
+          // Venice I2V derives aspect ratio from the input image — sending it causes 400
+          aspectRatio: isVeniceI2V ? undefined : aspectRatio,
           audio: audioEnabled,
           imageUrl: imageUrl || undefined,
         });
