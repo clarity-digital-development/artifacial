@@ -213,8 +213,8 @@ const KLING_30_PRO: ModelConfig = {
   provider: "PIAPI",
   pipiConfig: {
     model: "kling",
-    taskTypes: { T2V: "video_generation", I2V: "video_generation" },
-    defaults: { version: "3.0", mode: "pro" },
+    taskTypes: { T2V: "omni_video_generation", I2V: "omni_video_generation" },
+    defaults: { version: "3.0" },
     costKey: "kling-30-pro",
   },
   tier: "ULTRA",
@@ -227,7 +227,7 @@ const KLING_30_PRO: ModelConfig = {
   description: "Best overall quality. Up to 15 seconds with audio.",
   durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
   aspectRatios: ["16:9", "9:16", "1:1"],
-  resolutions: [],
+  resolutions: ["720p", "1080p"],
   supportsEndFrame: true,
 };
 

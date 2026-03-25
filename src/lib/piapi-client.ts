@@ -226,7 +226,23 @@ export function buildVideoInput(
     prompt: params.prompt,
   };
 
-  // ─── Kling ───
+  // ─── Kling Omni (3.0) ───
+  if (piApiModel === "kling" && taskType === "omni_video_generation") {
+    input.duration = params.durationSec ?? 5;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    if (params.resolution) input.resolution = params.resolution.toLowerCase(); // "720p" / "1080p"
+    if (params.withAudio) input.enable_audio = true;
+    // Omni uses images array for I2V, with @image_1 syntax in prompt
+    if (params.imageUrl) {
+      input.images = [params.imageUrl];
+      if (!params.prompt.includes("@image_1")) {
+        input.prompt = `@image_1 ${params.prompt}`;
+      }
+    }
+    return input;
+  }
+
+  // ─── Kling (2.6 and below) ───
   if (piApiModel === "kling") {
     input.duration = params.durationSec ?? 5;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
