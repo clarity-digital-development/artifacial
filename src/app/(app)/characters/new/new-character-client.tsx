@@ -270,11 +270,11 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const [style, setStyle] = useState("photorealistic");
   const [model, setModel] = useState(defaultModel);
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [count, setCount] = useState("4");
+  const [count, setCount] = useState("1");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
+  const [images, setImages] = useState<(string | null)[]>([null]);
   const [error, setError] = useState<string | null>(null);
 
   const [showSaveModal, setShowSaveModal] = useState(false);
