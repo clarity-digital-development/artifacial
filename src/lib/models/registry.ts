@@ -364,7 +364,9 @@ const WAN26_NSFW_T2V: ModelConfig = {
     model: "Wan",
     taskTypes: { T2V: "wan26-txt2video" },
     costKey: "wan-26",
-    defaults: { prompt_extend: false },
+    // prompt_extend must stay true (default) — without it, the diffusion
+    // model can't follow prompts and produces random anime. The enriched
+    // prompt from Venice is already sanitized enough to pass DashScope's LLM.
   },
   veniceConfig: {
     model: "wan-2.6-text-to-video",
@@ -392,7 +394,6 @@ const WAN26_NSFW_I2V: ModelConfig = {
     model: "Wan",
     taskTypes: { I2V: "wan26-img2video" },
     costKey: "wan-26",
-    defaults: { prompt_extend: false },
   },
   veniceConfig: {
     model: "wan-2.6-image-to-video",
