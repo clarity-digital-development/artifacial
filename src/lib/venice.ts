@@ -85,7 +85,7 @@ export async function enrichNSFWPrompt(
             { role: "user", content: userPrompt },
           ],
           temperature: 0.7,
-          max_tokens: 500,
+          max_completion_tokens: 500,
           ...({ venice_parameters: { include_venice_system_prompt: false } } as Record<string, unknown>),
         }),
         1, // 1 retry per model, then move to fallback
