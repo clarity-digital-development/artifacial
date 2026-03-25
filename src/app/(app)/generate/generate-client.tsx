@@ -408,17 +408,17 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         // Pass R2 key prefixed with "r2:" so the API knows to sign it server-side
         imageUrl = `r2:${selectedCharacter.referenceImageKey}`;
       } else if (needsImage && imageFile) {
-        imageUrl = await fileToDataUrl(imageFile);
+        imageUrl = await uploadFileToR2(imageFile);
       }
 
       let videoUrl: string | undefined;
       if (needsVideo && videoFile) {
-        videoUrl = await fileToDataUrl(videoFile);
+        videoUrl = await uploadFileToR2(videoFile);
       }
 
       let endImageUrl: string | undefined;
       if (mode === "I2V" && modelSupportsEndFrame && endImageFile) {
-        endImageUrl = await fileToDataUrl(endImageFile);
+        endImageUrl = await uploadFileToR2(endImageFile);
       }
 
       const body: Record<string, unknown> = {
@@ -1704,4 +1704,17 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+/** Upload a file to R2 via /api/upload and return the signed URL. */
+async function uploadFileToR2(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(err.error || "Upload failed");
+  }
+  const data = await res.json();
+  return data.url;
 }
