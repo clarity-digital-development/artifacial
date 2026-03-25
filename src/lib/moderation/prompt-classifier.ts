@@ -1,4 +1,4 @@
-import { getVeniceClient, VENICE_MODEL } from "@/lib/venice";
+import { getVeniceClient, VENICE_MODEL, withVeniceRetry } from "@/lib/venice";
 import { filterPromptKeywords } from "./keyword-filter";
 import type { ContentMode } from "@/generated/prisma/client";
 
@@ -64,18 +64,22 @@ export async function classifyPrompt(
   // Layer 2: Venice AI classification (LLM semantic understanding)
   try {
     const client = getVeniceClient();
-    const response = await client.chat.completions.create({
-      model: VENICE_MODEL,
-      max_tokens: 500,
-      temperature: 0,
-      messages: [
-        { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Content mode: ${contentMode}\nPrompt to classify: "${prompt}"`,
-        },
-      ],
-    });
+    const response = await withVeniceRetry(
+      () => client.chat.completions.create({
+        model: VENICE_MODEL,
+        max_tokens: 500,
+        temperature: 0,
+        messages: [
+          { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `Content mode: ${contentMode}\nPrompt to classify: "${prompt}"`,
+          },
+        ],
+      }),
+      2,
+      "prompt-classifier",
+    );
 
     const text = response.choices[0]?.message?.content || "";
     const result = JSON.parse(text.replace(/```json|```/g, "").trim());

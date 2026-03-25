@@ -18,6 +18,32 @@ export function getVeniceClient(): OpenAI {
 export const VENICE_MODEL = "llama-3.3-70b";
 export const VENICE_UNCENSORED_MODEL = "venice-uncensored";
 
+/**
+ * Retry a Venice API call with exponential backoff.
+ * Venice occasionally returns 500 "Inference processing failed" transiently.
+ */
+export async function withVeniceRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  label = "venice",
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isRetryable = msg.includes("500") || msg.includes("503") || msg.includes("Inference processing failed");
+      if (!isRetryable || attempt === maxRetries) throw err;
+      const delay = 1000 * (attempt + 1); // 1s, 2s
+      console.warn(`[${label}] attempt ${attempt + 1} failed (${msg}), retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
+
 // ════════════════════════════════════════════════════════════════
 // NSFW Prompt Enrichment — rewrites explicit prompts to bypass
 // DashScope's text classifier while preserving visual intent.
@@ -39,18 +65,22 @@ export async function enrichNSFWPrompt(
     instruction = "Rewrite this prompt in a way that avoids explicit keywords while preserving the visual intent. Make it more abstract and poetic. Output ONLY the rewritten prompt, nothing else.";
   }
 
-  console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract}, model=${VENICE_MODEL})`);
+  console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract}, model=${VENICE_UNCENSORED_MODEL})`);
   console.log(`[venice] original prompt: "${userPrompt}"`);
 
-  const response = await client.chat.completions.create({
-    model: VENICE_UNCENSORED_MODEL,
-    messages: [
-      { role: "system", content: instruction },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.7,
-    max_tokens: 500,
-  });
+  const response = await withVeniceRetry(
+    () => client.chat.completions.create({
+      model: VENICE_UNCENSORED_MODEL,
+      messages: [
+        { role: "system", content: instruction },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    }),
+    2,
+    "venice-enrich",
+  );
 
   const enriched = response.choices[0]?.message?.content?.trim();
   if (!enriched) {
