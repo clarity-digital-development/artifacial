@@ -353,13 +353,13 @@ const KLING_26_MOTION_PRO: ModelConfig = {
 };
 
 // ════════════════════════════════════════════════════════════════
-// NSFW VIDEO MODELS (PiAPI — NSFW capable)
+// NSFW VIDEO MODELS (PiAPI primary + Venice fallback)
 // ════════════════════════════════════════════════════════════════
 
 const WAN26_NSFW_T2V: ModelConfig = {
   id: "wan26-nsfw-t2v",
   name: "Wan 2.6 NSFW",
-  provider: "VENICE",
+  provider: "PIAPI",
   pipiConfig: {
     model: "Wan",
     taskTypes: { T2V: "wan26-txt2video" },
@@ -387,7 +387,7 @@ const WAN26_NSFW_T2V: ModelConfig = {
 const WAN26_NSFW_I2V: ModelConfig = {
   id: "wan26-nsfw-i2v",
   name: "Wan 2.6 NSFW",
-  provider: "VENICE",
+  provider: "PIAPI",
   pipiConfig: {
     model: "Wan",
     taskTypes: { I2V: "wan26-img2video" },
@@ -415,7 +415,7 @@ const WAN26_NSFW_I2V: ModelConfig = {
 const WAN22_NSFW_T2V: ModelConfig = {
   id: "wan22-nsfw-t2v",
   name: "Wan 2.2 NSFW",
-  provider: "VENICE",
+  provider: "PIAPI",
   pipiConfig: {
     model: "Qubico/wanx",
     taskTypes: { T2V: "wan22-txt2video-14b" },
@@ -442,7 +442,7 @@ const WAN22_NSFW_T2V: ModelConfig = {
 const WAN22_NSFW_I2V: ModelConfig = {
   id: "wan22-nsfw-i2v",
   name: "Wan 2.2 NSFW",
-  provider: "VENICE",
+  provider: "PIAPI",
   pipiConfig: {
     model: "Qubico/wanx",
     taskTypes: { I2V: "wan22-img2video-14b" },
