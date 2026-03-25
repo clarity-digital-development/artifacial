@@ -9,21 +9,16 @@ const STYLE_PREFIXES: Record<string, string> = {
     "High-quality anime artwork, detailed cel shading, expressive eyes, clean line art,",
 };
 
-const ANGLE_PROMPTS = [
-  "front-facing portrait, centered composition, studio lighting",
-  "three-quarter view facing left, cinematic lighting",
-  "three-quarter view facing right, cinematic lighting",
-  "full body shot, standing pose, dramatic lighting",
-];
-
+/**
+ * Build a single character prompt with style prefix applied.
+ * No angle/position enrichment — generates exactly what the user described.
+ */
 export function buildCharacterPrompts(
   style: string,
   description: string
 ): string[] {
   const prefix = STYLE_PREFIXES[style] ?? STYLE_PREFIXES.photorealistic;
-  return ANGLE_PROMPTS.map(
-    (angle) => `${prefix} ${description}, ${angle}`
-  );
+  return [`${prefix} ${description}`];
 }
 
 interface GeminiImageResponse {

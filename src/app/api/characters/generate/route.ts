@@ -7,7 +7,7 @@ import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } fr
 import { CREDIT_COSTS } from "@/lib/stripe";
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
 
-const ANGLE_NAMES = ["front", "left", "right", "full"];
+const ANGLE_NAMES = ["main"];
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const usePiApi = isPiApiImageModel(model);
   const piApiModel = usePiApi ? getPiApiImageModel(model) : null;
   const perImageCost = piApiModel?.creditCost ?? CREDIT_COSTS.imageGeneration;
-  const cost = 4 * perImageCost; // 4 angles
+  const cost = perImageCost; // Single image generation
 
   // Check credits
   const { total } = await getAvailableCredits(userId);
