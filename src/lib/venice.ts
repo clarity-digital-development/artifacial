@@ -53,6 +53,11 @@ export async function withVeniceRetry<T>(
  * Rewrite an explicit NSFW prompt to avoid explicit keywords
  * while preserving the visual intent for the diffusion model.
  */
+// Models to try for enrichment, in order. venice-uncensored is preferred
+// but has reliability issues; llama-3.3-70b works because the task itself
+// is sanitization (making prompts LESS explicit), not NSFW generation.
+const ENRICHMENT_MODELS = [VENICE_UNCENSORED_MODEL, VENICE_MODEL] as const;
+
 export async function enrichNSFWPrompt(
   userPrompt: string,
   _mediaType: "image" | "video",
@@ -65,30 +70,43 @@ export async function enrichNSFWPrompt(
     instruction = "Rewrite this prompt in a way that avoids explicit keywords while preserving the visual intent. Make it more abstract and poetic. Output ONLY the rewritten prompt, nothing else.";
   }
 
-  console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract}, model=${VENICE_UNCENSORED_MODEL})`);
   console.log(`[venice] original prompt: "${userPrompt}"`);
 
-  const response = await withVeniceRetry(
-    () => client.chat.completions.create({
-      model: VENICE_UNCENSORED_MODEL,
-      messages: [
-        { role: "system", content: instruction },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    }),
-    2,
-    "venice-enrich",
-  );
+  // Try each model in the fallback chain
+  let lastError: unknown;
+  for (const model of ENRICHMENT_MODELS) {
+    try {
+      console.log(`[venice] enriching NSFW prompt (abstract=${moreAbstract}, model=${model})`);
+      const response = await withVeniceRetry(
+        () => client.chat.completions.create({
+          model,
+          messages: [
+            { role: "system", content: instruction },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+        1, // 1 retry per model, then move to fallback
+        `venice-enrich(${model})`,
+      );
 
-  const enriched = response.choices[0]?.message?.content?.trim();
-  if (!enriched) {
-    throw new Error("Venice enrichment returned empty response");
+      const enriched = response.choices[0]?.message?.content?.trim();
+      if (!enriched) {
+        console.warn(`[venice] ${model} returned empty response, trying next model`);
+        continue;
+      }
+
+      console.log(`[venice] enriched prompt (model=${model}): "${enriched}"`);
+      return enriched;
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[venice] ${model} failed: ${msg}, trying next model...`);
+    }
   }
 
-  console.log(`[venice] enriched prompt: "${enriched}"`);
-  return enriched;
+  throw lastError ?? new Error("All Venice enrichment models failed");
 }
 
 // ════════════════════════════════════════════════════════════════
