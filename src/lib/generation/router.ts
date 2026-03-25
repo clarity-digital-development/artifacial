@@ -17,7 +17,7 @@ import {
   getPiApiTaskType,
   type ModelMode,
 } from "@/lib/models/registry";
-import { enrichNSFWPrompt } from "@/lib/venice";
+import { enrichNSFWPrompt, submitVeniceVideo } from "@/lib/venice";
 import type {
   ContentMode,
   WorkflowType,
@@ -25,7 +25,7 @@ import type {
 
 // ─── Types ───
 
-export type GenerationProvider = "PIAPI";
+export type GenerationProvider = "PIAPI" | "VENICE";
 
 export type GenerationRequest = {
   userId: string;
@@ -292,7 +292,7 @@ export async function routeGeneration(
     }
 
     // 6. Estimate API cost for margin tracking
-    const costKey = model.pipiConfig.costKey;
+    const costKey = model.pipiConfig?.costKey ?? model.veniceConfig?.costKey ?? model.id;
     const apiCost = estimateApiCost(costKey, { durationSec });
 
     // 7. Create Generation record
@@ -305,7 +305,7 @@ export async function routeGeneration(
         workflowType,
         status: "QUEUED",
         contentMode: effectiveMode,
-        provider: "PIAPI",
+        provider: model.provider === "VENICE" ? "VENICE" : "PIAPI",
         modelId,
         apiCost,
         withAudio: audioEnabled,
@@ -337,41 +337,62 @@ export async function routeGeneration(
       },
     });
 
-    // 9. NSFW prompt enrichment — rewrite explicit prompts into gateway-safe
-    //    cinematic language before sending to PiAPI/DashScope.
-    const isNSFW = model.contentMode === "NSFW";
     const isT2I = mode === "T2I";
     let submissionPrompt = prompt;
 
-    if (isNSFW) {
-      try {
-        const mediaType = isT2I ? "image" as const : "video" as const;
-        submissionPrompt = await enrichNSFWPrompt(prompt, mediaType);
-        console.log(`[router] NSFW enriched: original="${prompt.slice(0, 80)}..." → enriched="${submissionPrompt.slice(0, 80)}..."`);
-      } catch (enrichError) {
-        const enrichMsg = enrichError instanceof Error ? enrichError.message : String(enrichError);
-        console.error(`[router] NSFW enrichment FAILED: ${enrichMsg}`);
-        // Don't fall through — original explicit prompt will always be blocked by DashScope
-        await refundCredits(userId, creditsCost, `Refund: NSFW enrichment failed`);
-        await prisma.generation.update({
-          where: { id: generation.id },
-          data: { status: "FAILED", errorMessage: `Prompt enrichment failed: ${enrichMsg}`, completedAt: new Date() },
-        });
-        return { success: false, generationId: generation.id, error: "Failed to process NSFW prompt. Credits refunded.", errorCode: "SYSTEM_ERROR" };
-      }
-    }
-
-    // 9b. Hard prompt length cap — PiAPI/Kling rejects oversized inputs
+    // 9. Hard prompt length cap
     const MAX_PROMPT_CHARS = 2000;
     if (submissionPrompt.length > MAX_PROMPT_CHARS) {
       console.warn(`[router] Truncating prompt from ${submissionPrompt.length} to ${MAX_PROMPT_CHARS} chars`);
       submissionPrompt = submissionPrompt.slice(0, MAX_PROMPT_CHARS);
     }
 
-    // 10. Submit to PiAPI (with NSFW retry + Venice fallback)
-    console.log(`[router] submitting: model=${modelId} piapi=${model.pipiConfig.model} mode=${mode} isNSFW=${isNSFW} prompt="${submissionPrompt.slice(0, 120)}..." duration=${durationSec} res=${resolution} ar=${aspectRatio} audio=${audioEnabled} hasImage=${!!imageUrl}`);
+    // 10. Submit to provider
+    console.log(`[router] submitting: model=${modelId} provider=${model.provider} mode=${mode} prompt="${submissionPrompt.slice(0, 120)}..." duration=${durationSec} res=${resolution} ar=${aspectRatio} audio=${audioEnabled} hasImage=${!!imageUrl}`);
+
     try {
-      const result = await submitToPiAPI(model, mode, submissionPrompt, {
+      if (model.provider === "VENICE" && model.veniceConfig) {
+        // ─── Venice AI — native uncensored generation ───
+        const veniceResult = await submitVeniceVideo({
+          model: model.veniceConfig.model,
+          prompt: submissionPrompt,
+          duration: `${durationSec}s`,
+          resolution: resolution === "1080p" ? "1080p" : "720p",
+          aspectRatio,
+          audio: audioEnabled,
+          imageUrl: imageUrl || undefined,
+        });
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "PROCESSING",
+            startedAt: new Date(),
+            promptId: veniceResult.queueId,
+            inputParams: {
+              prompt,
+              imageUrl: imageUrl || null,
+              endImageUrl: endImageUrl || null,
+              aspectRatio,
+              resolution,
+              modelId,
+              withAudio: audioEnabled,
+              veniceQueueId: veniceResult.queueId,
+              veniceModel: veniceResult.model,
+              submissionPath: "venice",
+            },
+          },
+        });
+
+        return { success: true, generationId: generation.id };
+      }
+
+      // ─── PiAPI — SFW models ───
+      if (!model.pipiConfig) {
+        throw new Error(`Model ${modelId} has no PiAPI config and is not Venice-routed`);
+      }
+
+      const result = await submitToPiAPI(model as { pipiConfig: NonNullable<typeof model.pipiConfig> }, mode, submissionPrompt, {
         imageUrl, endImageUrl, videoUrl, durationSec,
         aspectRatio, resolution, audioEnabled, modelId,
       });
@@ -384,7 +405,6 @@ export async function routeGeneration(
           promptId: result.taskId,
           inputParams: {
             prompt,
-            enrichedPrompt: isNSFW ? submissionPrompt : undefined,
             imageUrl: imageUrl || null,
             endImageUrl: endImageUrl || null,
             videoUrl: videoUrl || null,
@@ -400,55 +420,9 @@ export async function routeGeneration(
       });
 
       return { success: true, generationId: generation.id };
-    } catch (firstError) {
-      const errMsg = firstError instanceof Error ? firstError.message : String(firstError);
-      const isModerationError = errMsg.includes("inappropriate content") || errMsg.includes("content moderation");
-
-      // ─── NSFW retry: re-enrich with more abstract language ───
-      if (isNSFW && isModerationError) {
-        console.warn(`[router] PiAPI moderation blocked NSFW, retrying with abstract enrichment`);
-
-        try {
-          const mediaType = isT2I ? "image" as const : "video" as const;
-          const abstractPrompt = await enrichNSFWPrompt(prompt, mediaType, true);
-
-          const retryResult = await submitToPiAPI(model, mode, abstractPrompt, {
-            imageUrl, endImageUrl, videoUrl, durationSec,
-            aspectRatio, resolution, audioEnabled, modelId,
-          });
-
-          await prisma.generation.update({
-            where: { id: generation.id },
-            data: {
-              status: "PROCESSING",
-              startedAt: new Date(),
-              promptId: retryResult.taskId,
-              inputParams: {
-                prompt,
-                enrichedPrompt: abstractPrompt,
-                imageUrl: imageUrl || null,
-                endImageUrl: endImageUrl || null,
-                videoUrl: videoUrl || null,
-                aspectRatio,
-                resolution,
-                modelId,
-                withAudio: audioEnabled,
-                piApiTaskId: retryResult.taskId,
-                piApiModel: retryResult.piApiModel,
-                submissionPath: "piapi-retry-abstract",
-              },
-            },
-          });
-
-          return { success: true, generationId: generation.id };
-        } catch (retryError) {
-          console.error(`[router] NSFW abstract retry also failed:`, retryError instanceof Error ? retryError.message : retryError);
-          // Fall through to refund below
-        }
-      }
-
-      // ─── All attempts exhausted — refund credits ───
-      console.error(`[router] All submission attempts failed for model=${modelId}:`, errMsg);
+    } catch (submitError) {
+      const errMsg = submitError instanceof Error ? submitError.message : String(submitError);
+      console.error(`[router] Submission failed for model=${modelId}:`, errMsg);
       await refundCredits(userId, creditsCost, `Refund: ${workflowType} submission failed`);
       await prisma.generation.update({
         where: { id: generation.id },

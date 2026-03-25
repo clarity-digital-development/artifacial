@@ -23,8 +23,9 @@ export interface ModelConfig {
   id: string;
   name: string;
   provider: ModelProvider;
-  pipiConfig: PiApiConfig;
-  veniceConfig?: VeniceConfig;            // Only for Venice-routed models
+  pipiConfig?: PiApiConfig;               // Required for PIAPI models
+  veniceConfig?: VeniceConfig;            // Required for VENICE models
+  badge?: string;                         // Optional UI badge (e.g. "Beta")
   tier: ModelTier;
   creditCost: number;
   supportedModes: ModelMode[];
@@ -353,25 +354,18 @@ const KLING_26_MOTION_PRO: ModelConfig = {
 };
 
 // ════════════════════════════════════════════════════════════════
-// NSFW VIDEO MODELS (PiAPI primary + Venice fallback)
+// NSFW VIDEO MODELS (Venice AI — native uncensored generation)
 // ════════════════════════════════════════════════════════════════
 
 const WAN26_NSFW_T2V: ModelConfig = {
   id: "wan26-nsfw-t2v",
   name: "Wan 2.6 NSFW",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "Wan",
-    taskTypes: { T2V: "wan26-txt2video" },
-    costKey: "wan-26",
-    // prompt_extend must stay true (default) — without it, the diffusion
-    // model can't follow prompts and produces random anime. The enriched
-    // prompt from Venice is already sanitized enough to pass DashScope's LLM.
-  },
+  provider: "VENICE",
   veniceConfig: {
     model: "wan-2.6-text-to-video",
     costKey: "venice-wan-26",
   },
+  badge: "Beta",
   tier: "STANDARD",
   creditCost: 1,
   supportedModes: ["T2V"],
@@ -381,7 +375,7 @@ const WAN26_NSFW_T2V: ModelConfig = {
   contentMode: "NSFW",
   description: "Unrestricted text-to-video. Up to 15 seconds.",
   durations: [5, 10, 15],
-  aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+  aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: false,
 };
@@ -389,16 +383,12 @@ const WAN26_NSFW_T2V: ModelConfig = {
 const WAN26_NSFW_I2V: ModelConfig = {
   id: "wan26-nsfw-i2v",
   name: "Wan 2.6 NSFW",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "Wan",
-    taskTypes: { I2V: "wan26-img2video" },
-    costKey: "wan-26",
-  },
+  provider: "VENICE",
   veniceConfig: {
     model: "wan-2.6-image-to-video",
     costKey: "venice-wan-26",
   },
+  badge: "Beta",
   tier: "STANDARD",
   creditCost: 1,
   supportedModes: ["I2V"],
@@ -408,7 +398,7 @@ const WAN26_NSFW_I2V: ModelConfig = {
   contentMode: "NSFW",
   description: "Unrestricted image-to-video. Up to 15 seconds.",
   durations: [5, 10, 15],
-  aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
+  aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: false,
 };
@@ -416,12 +406,7 @@ const WAN26_NSFW_I2V: ModelConfig = {
 const WAN22_NSFW_T2V: ModelConfig = {
   id: "wan22-nsfw-t2v",
   name: "Wan 2.2 NSFW",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "Qubico/wanx",
-    taskTypes: { T2V: "wan22-txt2video-14b" },
-    costKey: "wan-22",
-  },
+  provider: "VENICE",
   veniceConfig: {
     model: "wan-2.2-a14b-text-to-video",
     costKey: "venice-wan-22",
@@ -433,36 +418,9 @@ const WAN22_NSFW_T2V: ModelConfig = {
   maxResolution: "720p",
   supportsAudio: false,
   contentMode: "NSFW",
-  description: "Budget NSFW option. Fast 720p generation.",
+  description: "Most consistent NSFW generation. Fast 720p.",
   durations: [5],
-  aspectRatios: ["16:9", "9:16"],
-  resolutions: [],
-  supportsEndFrame: false,
-};
-
-const WAN22_NSFW_I2V: ModelConfig = {
-  id: "wan22-nsfw-i2v",
-  name: "Wan 2.2 NSFW",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "Qubico/wanx",
-    taskTypes: { I2V: "wan22-img2video-14b" },
-    costKey: "wan-22",
-  },
-  veniceConfig: {
-    model: "wan-2.1-pro-image-to-video",
-    costKey: "venice-wan-22",
-  },
-  tier: "BUDGET",
-  creditCost: 1,
-  supportedModes: ["I2V"],
-  maxDuration: 5,
-  maxResolution: "720p",
-  supportsAudio: false,
-  contentMode: "NSFW",
-  description: "Budget NSFW image-to-video.",
-  durations: [5],
-  aspectRatios: ["16:9", "9:16"],
+  aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: [],
   supportsEndFrame: false,
 };
@@ -587,7 +545,6 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   [KLING_26_MOTION_PRO.id]: KLING_26_MOTION_PRO,
   // NSFW Video
   [WAN22_NSFW_T2V.id]: WAN22_NSFW_T2V,
-  [WAN22_NSFW_I2V.id]: WAN22_NSFW_I2V,
   [WAN26_NSFW_T2V.id]: WAN26_NSFW_T2V,
   [WAN26_NSFW_I2V.id]: WAN26_NSFW_I2V,
   // Image — SFW + NSFW
@@ -624,7 +581,7 @@ export function calculateCreditCost(modelId: string, durationSec: number): numbe
  */
 export function getPiApiTaskType(modelId: string, mode: ModelMode): string | undefined {
   const model = getModelById(modelId);
-  if (!model) return undefined;
+  if (!model?.pipiConfig) return undefined;
   return model.pipiConfig.taskTypes[mode];
 }
 

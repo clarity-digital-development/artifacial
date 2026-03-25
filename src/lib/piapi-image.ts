@@ -118,6 +118,7 @@ export async function generateImageWithPiApi(
 
   const imageUrl = result.imageUrl || result.imageUrls?.[0];
   if (!imageUrl) {
+    console.error(`[piapi-image] No image URL. status=${result.status}, raw=${JSON.stringify(result.raw).slice(0, 1000)}`);
     throw new Error("No image URL in PiAPI response");
   }
 

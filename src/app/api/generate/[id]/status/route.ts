@@ -384,7 +384,7 @@ export async function GET(
         try {
           const originalPrompt = inputParams?.prompt as string;
           const model = getModelById(generation.modelId!);
-          if (originalPrompt && model) {
+          if (originalPrompt && model && model.pipiConfig) {
             const abstractPrompt = await enrichNSFWPrompt(originalPrompt, "video", true);
             const piApiModel = model.pipiConfig.model;
             const taskType = getPiApiTaskType(generation.modelId!, "T2V");

@@ -124,28 +124,41 @@ export async function getTaskStatus(taskId: string): Promise<PiAPITaskResult> {
   if (mappedStatus === "completed") {
     const output = task.output || task.result || {};
 
-    // Video URLs
+    // Video URLs — each PiAPI model returns video in a different location:
+    // Kling: output.works[0].video.resource_without_watermark or .resource
+    // Veo/Seedance: output.video (direct URL string)
+    // Hailuo: output.video_url
+    // Wan/Sora: output.image_url (confusingly named)
     videoUrl =
       output.video_url ||
-      output.video?.url ||
+      (typeof output.video === "string" ? output.video : output.video?.url) ||
+      output.works?.[0]?.video?.resource_without_watermark ||
       output.works?.[0]?.video?.resource ||
       (Array.isArray(output.videos) ? output.videos[0]?.url : undefined);
 
-    // Single image URL
+    // Single image URL — try all known PiAPI response formats
     imageUrl =
       output.image_url ||
       output.image?.url ||
-      (Array.isArray(output.images) ? output.images[0]?.url : undefined);
+      (Array.isArray(output.image_urls) ? output.image_urls[0] : undefined) ||
+      (Array.isArray(output.images) ? (typeof output.images[0] === "string" ? output.images[0] : output.images[0]?.url) : undefined);
 
     // Multiple image URLs (for batch/faceswap/try-on)
-    if (Array.isArray(output.images)) {
-      imageUrls = output.images
+    // PiAPI uses image_urls (array of strings) for batch results
+    const imageArray = output.image_urls || output.images;
+    if (Array.isArray(imageArray)) {
+      imageUrls = imageArray
         .map((img: { url?: string } | string) => (typeof img === "string" ? img : img.url))
         .filter(Boolean) as string[];
     }
 
     // Thumbnail
     thumbnailUrl = output.thumbnail_url || output.thumbnail?.url;
+
+    // Debug: log when completed but no media URL found
+    if (!videoUrl && !imageUrl && !imageUrls?.length) {
+      console.error(`[piapi] Task ${taskId} completed but no output URLs found. output keys: ${JSON.stringify(Object.keys(output))}, raw output: ${JSON.stringify(output).slice(0, 500)}`);
+    }
   }
 
   return {
@@ -253,12 +266,14 @@ export function buildVideoInput(
     return input;
   }
 
-  // ─── Wan 2.6 (NSFW capable) ───
+  // ─── Wan 2.6 ───
   if (piApiModel === "Wan") {
     input.duration = params.durationSec ?? 5;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
     if (params.resolution) input.resolution = params.resolution.toUpperCase(); // "720P" not "720p"
     if (params.imageUrl) input.image = params.imageUrl;
+    // audio defaults to true on PiAPI — explicitly disable when not requested
+    input.audio = params.withAudio ?? false;
     return input;
   }
 
@@ -278,6 +293,8 @@ export function buildVideoInput(
     if (params.resolution) input.resolution = params.resolution;
     if (params.withAudio) input.generate_audio = true;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.imageUrl) input.image_url = params.imageUrl;
+    if (params.endImageUrl) input.tail_image_url = params.endImageUrl;
     return input;
   }
 
@@ -294,7 +311,13 @@ export function buildVideoInput(
   if (piApiModel === "seedance") {
     if (params.durationSec) input.duration = params.durationSec;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
-    if (params.imageUrl) input.image_urls = [params.imageUrl];
+    if (params.imageUrl) {
+      input.image_urls = [params.imageUrl];
+      // Seedance uses @image1 reference syntax in prompt (like Kling 3.0 Omni)
+      if (!params.prompt.includes("@image1")) {
+        input.prompt = `@image1 ${params.prompt}`;
+      }
+    }
     if (params.videoUrl) input.video_urls = [params.videoUrl];
     return input;
   }
