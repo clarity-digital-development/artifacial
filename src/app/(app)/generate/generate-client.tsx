@@ -220,6 +220,14 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  // If in Motion mode but selected model is not Kling, fall back to T2V
+  useEffect(() => {
+    if (mode === "MOTION_TRANSFER" && !selectedModel?.id.startsWith("kling")) {
+      setMode("T2V");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModelId]);
+
   // When model changes, clamp duration, aspect ratio, resolution
   useEffect(() => {
     if (!selectedModel) return;
@@ -493,7 +501,13 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
         {/* Mode Toggle */}
         <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
-          {(["T2V", "I2V"] as const).map((tab) => (
+          {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
+            .filter((tab) => {
+              if (tab !== "MOTION_TRANSFER") return true;
+              // Show Motion tab only when a Kling model is selected
+              return selectedModel?.id.startsWith("kling");
+            })
+            .map((tab) => (
             <button
               key={tab}
               onClick={() => setMode(tab)}
@@ -503,7 +517,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {tab === "T2V" ? "Text → Video" : "Image → Video"}
+              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : "Motion"}
             </button>
           ))}
         </div>
