@@ -493,15 +493,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
         {/* Mode Toggle */}
         <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
-          {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
-            .filter((tab) => {
-              // Only show Motion tab if there are motion models for user's content mode
-              if (tab === "MOTION_TRANSFER") {
-                return availableModels.some((m) => m.supportedModes.includes("MOTION_TRANSFER"));
-              }
-              return true;
-            })
-            .map((tab) => (
+          {(["T2V", "I2V"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setMode(tab)}
@@ -511,7 +503,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : "Motion"}
+              {tab === "T2V" ? "Text → Video" : "Image → Video"}
             </button>
           ))}
         </div>
