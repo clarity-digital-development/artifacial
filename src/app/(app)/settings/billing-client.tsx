@@ -29,7 +29,7 @@ const PLANS = [
   { key: "STARTER", name: "Starter", price: "$15", credits: 15000, billing: "monthly" as const },
   { key: "CREATOR", name: "Creator", price: "$50", credits: 60000, billing: "monthly" as const },
   { key: "PRO", name: "Pro", price: "$100", credits: 125000, billing: "monthly" as const },
-  { key: "STUDIO", name: "Studio", price: "$165", credits: 300000, billing: "annual" as const },
+  { key: "STUDIO", name: "Studio (Annual Only)", price: "$165", credits: 300000, billing: "annual" as const },
 ];
 
 const CREDIT_PACKS = [
