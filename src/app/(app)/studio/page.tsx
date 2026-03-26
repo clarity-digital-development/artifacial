@@ -82,8 +82,10 @@ export default async function StudioPage() {
   );
 
   return (
-    <div className="flex flex-col gap-12">
-      <QuickCreateBar />
+    <div className="flex flex-col gap-6 md:gap-12">
+      <div className="hidden md:block">
+        <QuickCreateBar />
+      </div>
       {characters.length > 0 && <CharacterReel characters={characterCards} />}
       {generationCards.length > 0 && <RecentGenerations generations={generationCards} />}
     </div>

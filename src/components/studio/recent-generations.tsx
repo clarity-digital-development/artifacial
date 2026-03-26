@@ -92,7 +92,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
           </Link>
           <button
             onClick={() => scroll("left")}
-            className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[var(--text-muted)] transition-all duration-200 hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+            className="hidden md:flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[var(--text-muted)] transition-all duration-200 hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
             aria-label="Scroll left"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -101,7 +101,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
           </button>
           <button
             onClick={() => scroll("right")}
-            className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[var(--text-muted)] transition-all duration-200 hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+            className="hidden md:flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-[var(--text-muted)] transition-all duration-200 hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
             aria-label="Scroll right"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -111,9 +111,38 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         </div>
       </div>
 
+      {/* Mobile grid */}
+      <div className="grid grid-cols-2 gap-3 md:hidden">
+        <Link href="/generate" className="flex aspect-[3/2] items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)]">
+          <div className="text-center">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-[var(--accent-amber)]/50">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--accent-amber)]">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <span className="text-xs text-[var(--text-muted)]">New Generation</span>
+          </div>
+        </Link>
+        {generations.map((g) => (
+          <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+            {g.videoUrl ? (
+              <video src={g.videoUrl} muted playsInline className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
+                {g.status === "COMPLETED" ? "No preview" : g.status}
+              </div>
+            )}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+              <p className="truncate text-[10px] text-white/70">{g.modelId}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Desktop horizontal scroll — hide on mobile */}
       <div
         ref={scrollRef}
-        className="scrollbar-none flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
+        className="hidden md:flex scrollbar-none snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
         style={{ scrollbarWidth: "none" }}
       >
         {/* New Generation CTA */}
