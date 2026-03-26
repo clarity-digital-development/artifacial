@@ -68,7 +68,7 @@ Tapping the bottom button opens the settings sheet as a bottom sheet overlay.
 - **Backdrop**: semi-transparent black overlay (`rgba(0,0,0,0.5)`) behind the sheet, tapping it closes the sheet
 - **Height**: auto based on content, but max 85vh (leave the top bar visible so the user doesn't feel trapped)
 - **Drag handle**: 40px wide x 4px tall rounded pill centered at top of sheet, `rgba(255,255,255,0.3)`, 12px top padding
-- Optional: support drag-to-dismiss (swipe down closes), but not required for v1
+- **Drag-to-dismiss required**: touch listener maps deltaY to translateY; dismiss if drag exceeds 100px threshold. The slide animation already tracks the sheet transform, so this is minimal extra work and users will instinctively try it
 - Border-radius: 16px on top-left and top-right corners
 - Background: match existing sidebar/panel background color (the dark surface from your current left panel)
 
@@ -291,6 +291,26 @@ No new components needed for the controls themselves (model dropdown, prompt tex
 
 ---
 
+## Desktop Right Panel — Eliminated
+
+The existing desktop layout has a 300px right panel ("Select a generation to view details") that shows status, prompt, metadata, and action buttons for the selected generation. This panel is eliminated on **all screen sizes**, not just mobile.
+
+**Rationale**: The `GenerationDetailsCard` component replaces it with a better UX — details live directly beneath each generation's output, so there's no "select to view" indirection. This simplifies the desktop layout from three panels to two (settings left + output right) and creates a consistent experience across breakpoints.
+
+**Desktop layout after this change**:
+- Left panel: 320px settings sidebar (unchanged)
+- Right panel: flex-1 output area with vertically stacked generation entries (video + details card)
+- The 300px details sidebar is removed entirely
+
+**What moves into GenerationDetailsCard**:
+- Prompt text (full, not truncated)
+- Model, duration, resolution, audio status
+- Credits used, timestamp, generation time
+- Download and Regenerate action buttons
+- Post-process action buttons (Face Swap, Background Removal, etc.)
+
+---
+
 ## Implementation Notes
 
 ### Current Architecture
@@ -301,6 +321,10 @@ No new components needed for the controls themselves (model dropdown, prompt tex
 
 ### Recommended Approach
 
-Extract the settings panel content (tabs, model selector, prompt, pills, generate button) into a shared `StudioSettingsContent` component. On desktop, render it inside the existing left panel. On mobile, render it inside the `StudioSettingsSheet` bottom sheet. This avoids duplicating form logic and keeps the controls identical across both layouts.
+1. **Extract settings content** into a shared `StudioSettingsContent` component. On desktop, render inside the existing left panel. On mobile, render inside the `StudioSettingsSheet` bottom sheet. Avoids duplicating form logic.
 
-Use a `useIsMobile()` hook (based on `window.matchMedia('(max-width: 768px)')`) to conditionally render the desktop three-panel layout vs the mobile single-panel + bottom sheet layout.
+2. **Extract `GenerationDetailsCard`** as a standalone component used on both desktop and mobile. Replace the desktop right panel entirely — details cards render inline beneath each generation output.
+
+3. **Desktop becomes two-panel**: 320px settings left + flex-1 output area. Simpler layout, consistent UX with mobile.
+
+4. **Use `useIsMobile()` hook** (based on `window.matchMedia('(max-width: 768px)')`) to conditionally render desktop two-panel layout vs mobile single-panel + bottom sheet.
