@@ -14,21 +14,27 @@ const STYLE_OPTIONS = [
 type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra" };
 
 const SFW_MODEL_OPTIONS: ModelOption[] = [
-  // Budget (30 cr/img)
-  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 30, tier: "budget" },
-  { value: "flux-schnell", label: "Flux Schnell", cost: 30, tier: "budget" },
-  // Standard (50 cr/img)
-  { value: "qwen-image", label: "Qwen Image", cost: 50, tier: "standard" },
-  { value: "seedream-5", label: "Seedream 5 Lite", cost: 50, tier: "standard" },
-  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 50, tier: "standard" },
-  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 50, tier: "standard" },
-  // Ultra (150 cr/img)
-  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 150, tier: "ultra" },
+  // Fast (10 cr/img)
+  { value: "flux-schnell", label: "Flux Schnell", cost: 10, tier: "budget" },
+  // Quick (40 cr/img)
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 40, tier: "budget" },
+  // Standard (90 cr/img)
+  { value: "flux-dev", label: "Flux Dev", cost: 90, tier: "standard" },
+  { value: "qwen-image", label: "Qwen Image", cost: 90, tier: "standard" },
+  { value: "seedream-5", label: "Seedream 5 Lite", cost: 90, tier: "standard" },
+  // Premium (150 cr/img)
+  { value: "gemini-2.5-flash-image", label: "Nano Banana", cost: 150, tier: "ultra" },
+  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 150, tier: "ultra" },
+  // Ultra (450 cr/img)
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 450, tier: "ultra" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
-  // Matches registry: z-image-turbo=30
-  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 30, tier: "budget" },
+  { value: "z-image-turbo-nsfw", label: "Z-Image Turbo", cost: 50, tier: "standard" },
+  { value: "chroma", label: "Chroma", cost: 50, tier: "standard" },
+  { value: "lustify-sdxl", label: "Lustify SDXL", cost: 50, tier: "standard" },
+  { value: "lustify-v7", label: "Lustify V7", cost: 50, tier: "standard" },
+  { value: "wai-illustrious", label: "WAI Illustrious", cost: 50, tier: "standard" },
 ];
 
 const TIER_COLORS: Record<string, string> = {

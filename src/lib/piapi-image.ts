@@ -12,31 +12,40 @@ import {
 // ─── Model definitions ───
 
 export const PIAPI_IMAGE_MODELS = [
-  // Budget
-  {
-    id: "z-image-turbo",
-    name: "Z-Image Turbo",
-    piApiModel: "Qubico/z-image",
-    taskType: "txt2img",
-    costPerImage: 0.004,
-    creditCost: 30,
-  },
+  // Fast (10 cr)
   {
     id: "flux-schnell",
     name: "Flux Schnell",
     piApiModel: "Qubico/flux1-schnell",
     taskType: "txt2img",
-    costPerImage: 0.01,
-    creditCost: 30,
+    costPerImage: 0.0015,
+    creditCost: 10,
   },
-  // Standard
+  // Quick (40 cr)
+  {
+    id: "z-image-turbo",
+    name: "Z-Image Turbo",
+    piApiModel: "Qubico/z-image",
+    taskType: "txt2img",
+    costPerImage: 0.008,
+    creditCost: 40,
+  },
+  // Standard (90 cr)
+  {
+    id: "flux-dev",
+    name: "Flux Dev",
+    piApiModel: "Qubico/flux1-dev",
+    taskType: "txt2img",
+    costPerImage: 0.02,
+    creditCost: 90,
+  },
   {
     id: "qwen-image",
     name: "Qwen Image",
     piApiModel: "qwen-image",
     taskType: "txt2img",
     costPerImage: 0.015,
-    creditCost: 50,
+    creditCost: 90,
   },
   {
     id: "seedream-5",
@@ -44,23 +53,15 @@ export const PIAPI_IMAGE_MODELS = [
     piApiModel: "seedream",
     taskType: "seedream-5-lite",
     costPerImage: 0.028,
-    creditCost: 50,
+    creditCost: 90,
   },
-  // Ultra — Nano Banana (Gemini via PiAPI)
+  // Premium (150 cr) — Nano Banana
   {
     id: "gemini-2.5-flash-image",
-    name: "Nano Banana Flash",
+    name: "Nano Banana",
     piApiModel: "gemini",
     taskType: "gemini-2.5-flash-image",
     costPerImage: 0.03,
-    creditCost: 50,
-  },
-  {
-    id: "gemini-3-pro-image-preview",
-    name: "Nano Banana Pro",
-    piApiModel: "gemini",
-    taskType: "nano-banana-pro",
-    costPerImage: 0.105,
     creditCost: 150,
   },
   {
@@ -69,7 +70,16 @@ export const PIAPI_IMAGE_MODELS = [
     piApiModel: "gemini",
     taskType: "nano-banana-2",
     costPerImage: 0.03,
-    creditCost: 50,
+    creditCost: 150,
+  },
+  // Ultra (450 cr) — Nano Banana Pro
+  {
+    id: "gemini-3-pro-image-preview",
+    name: "Nano Banana Pro",
+    piApiModel: "gemini",
+    taskType: "nano-banana-pro",
+    costPerImage: 0.105,
+    creditCost: 450,
   },
 ] as const;
 

@@ -36,6 +36,7 @@ export interface ModelConfig {
   tier: ModelTier;
   creditCost: number;                     // Flat cost for images, or base/fallback for video
   creditCostTable?: CreditCostTable;      // Duration+resolution cost lookup for video models
+  audioCreditAddon?: Record<string, number>; // Audio surcharge keyed by "${duration}" (e.g. "5": 1000)
   supportedModes: ModelMode[];
   maxDuration: number;
   maxResolution: string;
@@ -63,18 +64,18 @@ const WAN_26_SFW: ModelConfig = {
     costKey: "wan-26",
   },
   tier: "BUDGET",
-  creditCost: 500,
+  creditCost: 1700,
   creditCostTable: {
-    "5_720p": 500, "10_720p": 1000, "15_720p": 1500,
-    "5_1080p": 800, "10_1080p": 1500, "15_1080p": 2250,
+    "5_720p": 1700, "10_720p": 3300,
+    "5_1080p": 2500, "10_1080p": 4900,
   },
   supportedModes: ["T2V", "I2V"],
-  maxDuration: 15,
+  maxDuration: 10,
   maxResolution: "1080p",
   supportsAudio: false,
   contentMode: "SFW",
-  description: "Budget option. Up to 15 seconds.",
-  durations: [5, 10, 15],
+  description: "Budget option. Up to 10 seconds.",
+  durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: false,
@@ -138,8 +139,9 @@ const KLING_26_STD: ModelConfig = {
     costKey: "kling-26-std",
   },
   tier: "STANDARD",
-  creditCost: 300,
-  creditCostTable: { "5": 300, "10": 550 },
+  creditCost: 850,
+  creditCostTable: { "5": 850, "10": 1700 },
+  audioCreditAddon: { "5": 550, "10": 1100 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 10,
   maxResolution: "720p",
@@ -162,15 +164,15 @@ const SEEDANCE_2: ModelConfig = {
     costKey: "seedance-2-fast",
   },
   tier: "STANDARD",
-  creditCost: 350,
-  creditCostTable: { "5": 350, "10": 700, "15": 1050 },
+  creditCost: 1100,
+  creditCostTable: { "5": 1100 },
   supportedModes: ["T2V", "I2V"],
-  maxDuration: 15,
+  maxDuration: 5,
   maxResolution: "1080p",
   supportsAudio: false,
   contentMode: "SFW",
-  description: "ByteDance's latest. Up to 15 seconds.",
-  durations: [5, 10, 15],
+  description: "ByteDance's latest.",
+  durations: [5],
   aspectRatios: ["16:9", "9:16", "4:3", "3:4"],
   resolutions: [],
   supportsEndFrame: false,
@@ -211,8 +213,9 @@ const KLING_26_PRO: ModelConfig = {
     costKey: "kling-26-pro",
   },
   tier: "ULTRA",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 900 },
+  creditCost: 1400,
+  creditCostTable: { "5": 1400, "10": 2700 },
+  audioCreditAddon: { "5": 550, "10": 1100 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -236,15 +239,19 @@ const KLING_30_PRO: ModelConfig = {
     costKey: "kling-30-pro",
   },
   tier: "ULTRA",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 900, "15": 1350 },
+  creditCost: 2100,
+  creditCostTable: {
+    "5_720p": 2100, "10_720p": 4100,
+    "5_1080p": 3100, "10_1080p": 6100,
+  },
+  audioCreditAddon: { "5": 1000, "10": 2000 },
   supportedModes: ["T2V", "I2V"],
-  maxDuration: 15,
+  maxDuration: 10,
   maxResolution: "1080p",
   supportsAudio: true,
   contentMode: "SFW",
-  description: "Best overall quality. Up to 15 seconds with audio.",
-  durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  description: "Best overall quality. Up to 10 seconds with audio.",
+  durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: true,
@@ -314,15 +321,15 @@ const SEEDANCE_2_PRO: ModelConfig = {
     costKey: "seedance-2",
   },
   tier: "ULTRA",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
+  creditCost: 1100,
+  creditCostTable: { "5": 1100 },
   supportedModes: ["T2V", "I2V"],
-  maxDuration: 15,
+  maxDuration: 5,
   maxResolution: "1080p",
   supportsAudio: false,
   contentMode: "SFW",
-  description: "ByteDance premium. Higher quality, longer queue.",
-  durations: [5, 10, 15],
+  description: "ByteDance premium. Higher quality.",
+  durations: [5],
   aspectRatios: ["16:9", "9:16", "4:3", "3:4"],
   resolutions: [],
   supportsEndFrame: false,
@@ -343,8 +350,8 @@ const KLING_26_MOTION_STD: ModelConfig = {
     costKey: "kling-26-std",
   },
   tier: "STANDARD",
-  creditCost: 300,
-  creditCostTable: { "5": 300, "10": 550 },
+  creditCost: 850,
+  creditCostTable: { "5": 850, "10": 1700 },
   supportedModes: ["MOTION_TRANSFER"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -368,8 +375,8 @@ const KLING_26_MOTION_PRO: ModelConfig = {
     costKey: "kling-26-pro",
   },
   tier: "ULTRA",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 900 },
+  creditCost: 1400,
+  creditCostTable: { "5": 1400, "10": 2700 },
   supportedModes: ["MOTION_TRANSFER"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -396,15 +403,15 @@ const WAN26_NSFW_T2V: ModelConfig = {
   },
   badge: "Beta",
   tier: "STANDARD",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
+  creditCost: 1700,
+  creditCostTable: { "5": 1700, "10": 3300 },
   supportedModes: ["T2V"],
-  maxDuration: 15,
+  maxDuration: 10,
   maxResolution: "1080p",
   supportsAudio: false,
   contentMode: "NSFW",
-  description: "Unrestricted text-to-video. Up to 15 seconds.",
-  durations: [5, 10, 15],
+  description: "Unrestricted text-to-video. Up to 10 seconds.",
+  durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: false,
@@ -420,15 +427,15 @@ const WAN26_NSFW_I2V: ModelConfig = {
   },
   badge: "Beta",
   tier: "STANDARD",
-  creditCost: 500,
-  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
+  creditCost: 1700,
+  creditCostTable: { "5": 1700, "10": 3300 },
   supportedModes: ["I2V"],
-  maxDuration: 15,
+  maxDuration: 10,
   maxResolution: "1080p",
   supportsAudio: false,
   contentMode: "NSFW",
-  description: "Unrestricted image-to-video. Up to 15 seconds.",
-  durations: [5, 10, 15],
+  description: "Unrestricted image-to-video. Up to 10 seconds.",
+  durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: ["720p", "1080p"],
   supportsEndFrame: false,
@@ -442,8 +449,9 @@ const WAN22_NSFW_T2V: ModelConfig = {
     model: "wan-2.2-a14b-text-to-video",
     costKey: "venice-wan-22",
   },
-  tier: "STANDARD",
-  creditCost: 400,
+  tier: "BUDGET",
+  creditCost: 1250,
+  creditCostTable: { "5": 1250 },
   supportedModes: ["T2V"],
   maxDuration: 5,
   maxResolution: "720p",
@@ -470,7 +478,7 @@ const Z_IMAGE_TURBO: ModelConfig = {
     costKey: "z-image",
   },
   tier: "BUDGET",
-  creditCost: 30,
+  creditCost: 40,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1440px",
@@ -493,7 +501,7 @@ const FLUX_SCHNELL: ModelConfig = {
     costKey: "flux-schnell",
   },
   tier: "BUDGET",
-  creditCost: 30,
+  creditCost: 10,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1024px",
@@ -516,7 +524,7 @@ const QWEN_IMAGE: ModelConfig = {
     costKey: "qwen-image",
   },
   tier: "STANDARD",
-  creditCost: 50,
+  creditCost: 90,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1024px",
@@ -539,7 +547,7 @@ const SEEDREAM_5: ModelConfig = {
     costKey: "seedream",
   },
   tier: "STANDARD",
-  creditCost: 50,
+  creditCost: 90,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "3K",
@@ -548,6 +556,316 @@ const SEEDREAM_5: ModelConfig = {
   description: "ByteDance image model. Up to 3K resolution.",
   durations: [],
   aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+// ════════════════════════════════════════════════════════════════
+// NEW SFW VIDEO MODELS
+// ════════════════════════════════════════════════════════════════
+
+const LUMA: ModelConfig = {
+  id: "luma",
+  name: "Luma",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "luma",
+    taskTypes: { T2V: "luma-video", I2V: "luma-video" },
+    costKey: "luma",
+  },
+  tier: "STANDARD",
+  creditCost: 850,
+  creditCostTable: { "5": 850 },
+  supportedModes: ["T2V", "I2V"],
+  maxDuration: 5,
+  maxResolution: "720p",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Luma video generation. 5 seconds.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const HAILUO: ModelConfig = {
+  id: "hailuo",
+  name: "Hailuo",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "hailuo",
+    taskTypes: { T2V: "hailuo-video", I2V: "hailuo-video" },
+    costKey: "hailuo",
+  },
+  tier: "STANDARD",
+  creditCost: 850,
+  creditCostTable: { "5": 850 },
+  supportedModes: ["T2V", "I2V"],
+  maxDuration: 5,
+  maxResolution: "720p",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Hailuo video generation. 5 seconds.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+// ════════════════════════════════════════════════════════════════
+// NEW NSFW VIDEO MODELS (Venice AI)
+// ════════════════════════════════════════════════════════════════
+
+const NSFW_LTX_20: ModelConfig = {
+  id: "nsfw-ltx-2.0",
+  name: "LTX 2.0 NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "ltx-2.0-text-to-video",
+    costKey: "venice-ltx-20",
+  },
+  tier: "BUDGET",
+  creditCost: 850,
+  creditCostTable: { "5": 850 },
+  supportedModes: ["T2V"],
+  maxDuration: 5,
+  maxResolution: "720p",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Fast NSFW video generation. 5 seconds.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NSFW_LONGCAT: ModelConfig = {
+  id: "nsfw-longcat",
+  name: "Longcat NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "longcat-text-to-video",
+    costKey: "venice-longcat",
+  },
+  tier: "ULTRA",
+  creditCost: 2100,
+  creditCostTable: { "5": 2100 },
+  supportedModes: ["T2V"],
+  maxDuration: 5,
+  maxResolution: "1080p",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Premium NSFW video. Highest quality.",
+  durations: [5],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+// ════════════════════════════════════════════════════════════════
+// NEW IMAGE MODELS
+// ════════════════════════════════════════════════════════════════
+
+const FLUX_DEV: ModelConfig = {
+  id: "flux-dev",
+  name: "Flux Dev",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "Qubico/flux1-dev",
+    taskTypes: { T2I: "txt2img" },
+    costKey: "flux-dev",
+  },
+  tier: "STANDARD",
+  creditCost: 90,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "High quality Flux generation. Slower but better.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NANO_BANANA: ModelConfig = {
+  id: "gemini-2.5-flash-image",
+  name: "Nano Banana",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "gemini",
+    taskTypes: { T2I: "gemini-2.5-flash-image" },
+    costKey: "nano-banana",
+  },
+  tier: "ULTRA",
+  creditCost: 150,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Gemini-powered image generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NANO_BANANA_2: ModelConfig = {
+  id: "gemini-3.1-flash-image-preview",
+  name: "Nano Banana 2",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "gemini",
+    taskTypes: { T2I: "nano-banana-2" },
+    costKey: "nano-banana-2",
+  },
+  tier: "ULTRA",
+  creditCost: 150,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Gemini-powered image generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NANO_BANANA_PRO: ModelConfig = {
+  id: "gemini-3-pro-image-preview",
+  name: "Nano Banana Pro",
+  provider: "PIAPI",
+  pipiConfig: {
+    model: "gemini",
+    taskTypes: { T2I: "nano-banana-pro" },
+    costKey: "nano-banana-pro",
+  },
+  tier: "ULTRA",
+  creditCost: 450,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Premium Gemini image. Highest quality.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+// ── NSFW Image Models (Venice AI) ──
+
+const NSFW_Z_IMAGE: ModelConfig = {
+  id: "z-image-turbo-nsfw",
+  name: "Z-Image Turbo NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "z-image-turbo",
+    costKey: "venice-z-image",
+  },
+  tier: "STANDARD",
+  creditCost: 50,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1440px",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Fast NSFW photorealistic images.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NSFW_CHROMA: ModelConfig = {
+  id: "chroma",
+  name: "Chroma NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "chroma",
+    costKey: "venice-chroma",
+  },
+  tier: "STANDARD",
+  creditCost: 50,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Artistic NSFW image generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NSFW_LUSTIFY_SDXL: ModelConfig = {
+  id: "lustify-sdxl",
+  name: "Lustify SDXL",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "lustify-sdxl",
+    costKey: "venice-lustify",
+  },
+  tier: "STANDARD",
+  creditCost: 50,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "SDXL-based NSFW generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NSFW_LUSTIFY_V7: ModelConfig = {
+  id: "lustify-v7",
+  name: "Lustify V7",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "lustify-v7",
+    costKey: "venice-lustify",
+  },
+  tier: "STANDARD",
+  creditCost: 50,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Latest Lustify NSFW generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const NSFW_WAI: ModelConfig = {
+  id: "wai-illustrious",
+  name: "WAI Illustrious",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "wai-illustrious",
+    costKey: "venice-wai",
+  },
+  tier: "STANDARD",
+  creditCost: 50,
+  supportedModes: ["T2I"],
+  maxDuration: 0,
+  maxResolution: "1024px",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Anime-style NSFW generation.",
+  durations: [],
+  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
   resolutions: [],
   supportsEndFrame: false,
 };
@@ -574,15 +892,30 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   // Motion Control
   [KLING_26_MOTION_STD.id]: KLING_26_MOTION_STD,
   [KLING_26_MOTION_PRO.id]: KLING_26_MOTION_PRO,
+  // New SFW Video
+  [LUMA.id]: LUMA,
+  [HAILUO.id]: HAILUO,
   // NSFW Video
   [WAN22_NSFW_T2V.id]: WAN22_NSFW_T2V,
   [WAN26_NSFW_T2V.id]: WAN26_NSFW_T2V,
   [WAN26_NSFW_I2V.id]: WAN26_NSFW_I2V,
-  // Image — SFW + NSFW
+  [NSFW_LTX_20.id]: NSFW_LTX_20,
+  [NSFW_LONGCAT.id]: NSFW_LONGCAT,
+  // Image — SFW
   [Z_IMAGE_TURBO.id]: Z_IMAGE_TURBO,
   [FLUX_SCHNELL.id]: FLUX_SCHNELL,
+  [FLUX_DEV.id]: FLUX_DEV,
   [QWEN_IMAGE.id]: QWEN_IMAGE,
   [SEEDREAM_5.id]: SEEDREAM_5,
+  [NANO_BANANA.id]: NANO_BANANA,
+  [NANO_BANANA_2.id]: NANO_BANANA_2,
+  [NANO_BANANA_PRO.id]: NANO_BANANA_PRO,
+  // Image — NSFW (Venice AI)
+  [NSFW_Z_IMAGE.id]: NSFW_Z_IMAGE,
+  [NSFW_CHROMA.id]: NSFW_CHROMA,
+  [NSFW_LUSTIFY_SDXL.id]: NSFW_LUSTIFY_SDXL,
+  [NSFW_LUSTIFY_V7.id]: NSFW_LUSTIFY_V7,
+  [NSFW_WAI.id]: NSFW_WAI,
 };
 
 // ─── Lookup helpers ───
@@ -599,44 +932,68 @@ export function isValidModelId(id: string): boolean {
  * Calculate credit cost for a generation.
  * Uses creditCostTable if available (keyed by "${duration}_${resolution}"),
  * falls back to flat creditCost for images or simple multiplier for video.
+ * Audio surcharge is added on top when audio=true and model has audioCreditAddon.
  */
-export function calculateCreditCost(modelId: string, durationSec: number, resolution?: string): number {
+export function calculateCreditCost(modelId: string, durationSec: number, resolution?: string, audio: boolean = false): number {
   const model = getModelById(modelId);
   if (!model) throw new Error(`Unknown model: ${modelId}`);
   if (model.supportedModes.includes("T2I")) return model.creditCost;
 
-  // Try exact lookup in cost table: "5_720p" → 300
+  let baseCredits: number | undefined;
+
+  // Try exact lookup in cost table: "5_720p" → 2100
   if (model.creditCostTable) {
     const res = resolution || "720p";
     const exactKey = `${durationSec}_${res}`;
-    if (model.creditCostTable[exactKey] != null) return model.creditCostTable[exactKey];
+    if (model.creditCostTable[exactKey] != null) {
+      baseCredits = model.creditCostTable[exactKey];
+    }
 
-    // Try without resolution: "5" → 300
-    const durationKey = `${durationSec}`;
-    if (model.creditCostTable[durationKey] != null) return model.creditCostTable[durationKey];
+    // Try without resolution: "5" → 850
+    if (baseCredits === undefined) {
+      const durationKey = `${durationSec}`;
+      if (model.creditCostTable[durationKey] != null) {
+        baseCredits = model.creditCostTable[durationKey];
+      }
+    }
 
     // Interpolate from nearest entry — ceil to never undercharge
-    const tableKeys = Object.keys(model.creditCostTable)
-      .filter((k) => k.endsWith(`_${res}`) || !k.includes("_"))
-      .map((k) => ({ key: k, dur: parseInt(k) }))
-      .filter((k) => !isNaN(k.dur))
-      .sort((a, b) => a.dur - b.dur);
+    if (baseCredits === undefined) {
+      const tableKeys = Object.keys(model.creditCostTable)
+        .filter((k) => k.endsWith(`_${res}`) || !k.includes("_"))
+        .map((k) => ({ key: k, dur: parseInt(k) }))
+        .filter((k) => !isNaN(k.dur))
+        .sort((a, b) => a.dur - b.dur);
 
-    if (tableKeys.length > 0) {
-      const base = tableKeys[0];
-      const baseCost = model.creditCostTable[base.key];
-      const perSec = baseCost / base.dur;
-      const interpolated = Math.ceil(perSec * durationSec);
-      console.warn(`[credits] Interpolated cost for model=${modelId} dur=${durationSec}s res=${res}: ${interpolated} credits (no exact table entry for "${exactKey}" or "${durationKey}")`);
-      return interpolated;
+      if (tableKeys.length > 0) {
+        const base = tableKeys[0];
+        const baseCost = model.creditCostTable[base.key];
+        const perSec = baseCost / base.dur;
+        baseCredits = Math.ceil(perSec * durationSec);
+        console.warn(`[credits] Interpolated cost for model=${modelId} dur=${durationSec}s res=${res}: ${baseCredits} credits`);
+      }
     }
   }
 
-  // Fallback: no cost table at all — log so we catch misconfigured models
-  const durationMultiplier = Math.ceil(durationSec / 5);
-  const fallbackCost = model.creditCost * durationMultiplier;
-  console.warn(`[credits] Fallback cost for model=${modelId}: ${fallbackCost} credits (no creditCostTable configured)`);
-  return fallbackCost;
+  // Fallback: no cost table match — log so we catch misconfigured models
+  if (baseCredits === undefined) {
+    const durationMultiplier = Math.ceil(durationSec / 5);
+    baseCredits = model.creditCost * durationMultiplier;
+    console.warn(`[credits] Fallback cost for model=${modelId}: ${baseCredits} credits (no creditCostTable match)`);
+  }
+
+  // Add audio surcharge
+  let audioCredits = 0;
+  if (audio && model.audioCreditAddon) {
+    audioCredits = model.audioCreditAddon[`${durationSec}`]
+      ?? model.audioCreditAddon[`${Math.ceil(durationSec / 5) * 5}`]
+      ?? 0;
+    if (audioCredits === 0) {
+      console.warn(`[credits] No audio addon entry for model=${modelId} dur=${durationSec}s`);
+    }
+  }
+
+  return baseCredits + audioCredits;
 }
 
 /**
@@ -655,7 +1012,7 @@ export function getDefaultModelId(mode: ModelMode, contentMode: "SFW" | "NSFW"):
   if (contentMode === "NSFW") {
     if (mode === "T2V") return "wan26-nsfw-t2v";
     if (mode === "I2V") return "wan26-nsfw-i2v";
-    if (mode === "T2I") return "z-image-turbo";
+    if (mode === "T2I") return "z-image-turbo-nsfw";
   }
   if (mode === "MOTION_TRANSFER") return "kling-26-motion-std";
   if (mode === "T2I") return "z-image-turbo";
@@ -693,9 +1050,9 @@ export function getModelsGroupedByTier(
   const groups: { tier: ModelTier; label: string; models: ModelConfig[] }[] = [];
 
   const tierLabels: Record<ModelTier, string> = {
-    BUDGET: "Budget (1 credit)",
-    STANDARD: "Standard (1 credit)",
-    ULTRA: "Ultra (2 credits)",
+    BUDGET: "Budget",
+    STANDARD: "Standard",
+    ULTRA: "Ultra",
   };
 
   for (const tier of ["BUDGET", "STANDARD", "ULTRA"] as ModelTier[]) {

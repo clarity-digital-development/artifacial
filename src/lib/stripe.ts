@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { SubscriptionTier, WorkflowType } from "@/generated/prisma/client";
+import type { SubscriptionTier } from "@/generated/prisma/client";
 
 let _stripe: Stripe | null = null;
 
@@ -11,35 +11,6 @@ export function getStripe(): Stripe {
     });
   }
   return _stripe;
-}
-
-// ─── Credit Costs ───
-
-export const CREDIT_COSTS = {
-  imageGeneration: 10,     // Per image (1 angle)
-  characterCreation: 40,   // 4 angles × 10
-  videoPerSecond: 40,      // Per second of video
-  video5s: 200,            // 5 × 40
-  video10s: 400,           // 10 × 40
-  upscale720p: 10,         // Quality enhance
-  upscale1080p: 20,        // Creator+
-  upscale1440p: 30,        // Pro+
-} as const;
-
-/**
- * Calculate credit cost for a generation job.
- */
-export function calculateCreditCost(
-  workflowType: WorkflowType,
-  durationSec: number,
-  resolution: string = "720p"
-): number {
-  if (workflowType === "UPSCALE") {
-    if (resolution === "1440p") return CREDIT_COSTS.upscale1440p;
-    if (resolution === "1080p") return CREDIT_COSTS.upscale1080p;
-    return CREDIT_COSTS.upscale720p;
-  }
-  return CREDIT_COSTS.videoPerSecond * durationSec;
 }
 
 // ─── Resolution Gating by Tier ───

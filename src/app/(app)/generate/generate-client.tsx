@@ -21,6 +21,7 @@ type ClientModel = {
   tier: ModelTier;
   creditCost: number;
   creditCostTable?: CreditCostTable;
+  audioCreditAddon?: Record<string, number>;
   supportedModes: ModelMode[];
   maxDuration: number;
   maxResolution: string;
@@ -34,51 +35,75 @@ type ClientModel = {
   badge?: string;
 };
 
-function getModelCreditCost(model: ClientModel, durationSec: number, resolution: string): number {
-  if (!model.creditCostTable) {
-    // Image models or simple flat cost
-    if (model.supportedModes.includes("T2I")) return model.creditCost;
+function getModelCreditCost(model: ClientModel, durationSec: number, resolution: string, audio: boolean = false): number {
+  if (model.supportedModes.includes("T2I")) return model.creditCost;
+
+  let baseCredits: number | undefined;
+
+  if (model.creditCostTable) {
+    // Try exact key: "5_720p"
+    const exact = model.creditCostTable[`${durationSec}_${resolution}`];
+    if (exact != null) baseCredits = exact;
+    // Try duration only: "5"
+    if (baseCredits === undefined) {
+      const durOnly = model.creditCostTable[`${durationSec}`];
+      if (durOnly != null) baseCredits = durOnly;
+    }
+    // Interpolate from first entry
+    if (baseCredits === undefined) {
+      const keys = Object.keys(model.creditCostTable).sort((a, b) => parseInt(a) - parseInt(b));
+      if (keys.length > 0) {
+        const baseDur = parseInt(keys[0]);
+        const baseCost = model.creditCostTable[keys[0]];
+        baseCredits = Math.ceil((baseCost / baseDur) * durationSec);
+      }
+    }
+  }
+
+  if (baseCredits === undefined) {
     const multiplier = Math.ceil(durationSec / 5);
-    return model.creditCost * multiplier;
+    baseCredits = model.creditCost * multiplier;
   }
-  // Try exact key: "5_720p"
-  const exact = model.creditCostTable[`${durationSec}_${resolution}`];
-  if (exact != null) return exact;
-  // Try duration only: "5"
-  const durOnly = model.creditCostTable[`${durationSec}`];
-  if (durOnly != null) return durOnly;
-  // Interpolate from first entry
-  const keys = Object.keys(model.creditCostTable).sort((a, b) => parseInt(a) - parseInt(b));
-  if (keys.length > 0) {
-    const baseDur = parseInt(keys[0]);
-    const baseCost = model.creditCostTable[keys[0]];
-    return Math.round((baseCost / baseDur) * durationSec);
+
+  // Add audio surcharge
+  let audioCredits = 0;
+  if (audio && model.audioCreditAddon) {
+    audioCredits = model.audioCreditAddon[`${durationSec}`]
+      ?? model.audioCreditAddon[`${Math.ceil(durationSec / 5) * 5}`]
+      ?? 0;
   }
-  return model.creditCost;
+
+  return baseCredits + audioCredits;
 }
 
 const MODELS: ClientModel[] = [
   // ── SFW Budget ──
   { id: "wan-22", name: "Wan 2.2", provider: "PIAPI", tier: "BUDGET", creditCost: 300, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Economy option. Fast generation.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  { id: "wan-26", name: "Wan 2.6", provider: "PIAPI", tier: "BUDGET", creditCost: 500, creditCostTable: { "5_720p": 500, "10_720p": 1000, "15_720p": 1500, "5_1080p": 800, "10_1080p": 1500, "15_1080p": 2250 }, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Budget option. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
+  { id: "wan-26", name: "Wan 2.6", provider: "PIAPI", tier: "BUDGET", creditCost: 1700, creditCostTable: { "5_720p": 1700, "10_720p": 3300, "5_1080p": 2500, "10_1080p": 4900 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Budget option. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1", "4:3", "3:4"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "framepack", name: "Framepack", provider: "PIAPI", tier: "BUDGET", creditCost: 300, creditCostTable: { "10": 300, "15": 450, "20": 600, "30": 900 }, supportedModes: ["I2V"], maxDuration: 30, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Long-form I2V. Up to 30 seconds.", durations: [10, 15, 20, 30], aspectRatios: [], resolutions: [], supportsEndFrame: true },
   // ── SFW Standard ──
-  { id: "kling-26-std", name: "Kling 2.6 Standard", provider: "PIAPI", tier: "STANDARD", creditCost: 300, creditCostTable: { "5": 300, "10": 550 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "720p", supportsAudio: true, contentMode: "SFW", description: "Reliable standard quality. Native audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
-  { id: "seedance-2", name: "Seedance 2", provider: "PIAPI", tier: "STANDARD", creditCost: 350, creditCostTable: { "5": 350, "10": 700, "15": 1050 }, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance's latest. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
+  { id: "kling-26-std", name: "Kling 2.6 Standard", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850, "10": 1700 }, audioCreditAddon: { "5": 550, "10": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "720p", supportsAudio: true, contentMode: "SFW", description: "Reliable standard quality. Native audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "seedance-2", name: "Seedance 2", provider: "PIAPI", tier: "STANDARD", creditCost: 1100, creditCostTable: { "5": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance's latest.", durations: [5], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
+  { id: "luma", name: "Luma", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Luma video generation.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: false },
+  { id: "hailuo", name: "Hailuo", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Hailuo video generation.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: false },
   { id: "sora-2", name: "Sora 2", provider: "PIAPI", tier: "STANDARD", creditCost: 300, creditCostTable: { "4": 240, "8": 480, "12": 720 }, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's video model. Up to 12 seconds.", durations: [4, 8, 12], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   // ── SFW Ultra ──
-  { id: "kling-26-pro", name: "Kling 2.6 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "5": 500, "10": 900 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium Kling quality with audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
-  { id: "kling-30-pro", name: "Kling 3.0 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "5": 500, "10": 900, "15": 1350 }, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Best overall quality. Up to 15 seconds with audio.", durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "kling-26-pro", name: "Kling 2.6 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 1400, creditCostTable: { "5": 1400, "10": 2700 }, audioCreditAddon: { "5": 550, "10": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Premium Kling quality with audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: true },
+  { id: "kling-30-pro", name: "Kling 3.0", provider: "PIAPI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5_720p": 2100, "10_720p": 4100, "5_1080p": 3100, "10_1080p": 6100 }, audioCreditAddon: { "5": 1000, "10": 2000 }, supportedModes: ["T2V", "I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Best overall quality. Up to 10 seconds with audio.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: true },
   { id: "sora-2-pro", name: "Sora 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "4_720p": 480, "8_720p": 960, "12_720p": 1440, "4_1080p": 720, "8_1080p": 1440, "12_1080p": 2160 }, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. 1080p up to 12 seconds.", durations: [4, 8, 12], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "veo-31", name: "Veo 3.1", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "4_720p": 480, "6_720p": 720, "8_720p": 960, "4_1080p": 720, "6_1080p": 1080, "8_1080p": 1440 }, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Google's best. Cinematic quality with audio.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
-  { id: "seedance-2-pro", name: "Seedance 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "5": 500, "10": 1000, "15": 1500 }, supportedModes: ["T2V", "I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance premium. Higher quality.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
+  { id: "seedance-2-pro", name: "Seedance 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 1100, creditCostTable: { "5": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance premium. Higher quality.", durations: [5], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
   // ── Motion Control ──
-  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 300, creditCostTable: { "5": 300, "10": 550 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "5": 500, "10": 900 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850, "10": 1700 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 1400, creditCostTable: { "5": 1400, "10": 2700 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  // ── NSFW Budget ──
+  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1250, creditCostTable: { "5": 1250 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
+  { id: "nsfw-ltx-2.0", name: "LTX 2.0 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 850, creditCostTable: { "5": 850 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Fast NSFW video generation.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: false },
   // ── NSFW Standard ──
-  { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 400, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
-  { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 500, creditCostTable: { "5": 500, "10": 1000, "15": 1500 }, supportedModes: ["T2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
-  { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 500, creditCostTable: { "5": 500, "10": 1000, "15": 1500 }, supportedModes: ["I2V"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
+  { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1700, creditCostTable: { "5": 1700, "10": 3300 }, supportedModes: ["T2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
+  { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1700, creditCostTable: { "5": 1700, "10": 3300 }, supportedModes: ["I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
+  // ── NSFW Ultra ──
+  { id: "nsfw-longcat", name: "Longcat NSFW", provider: "VENICE", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Premium NSFW video. Highest quality.", durations: [5], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: [], supportsEndFrame: false },
 ];
 
 const TIER_LABELS: Record<ModelTier, string> = {
@@ -216,7 +241,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const selectedModel = availableModels.find((m) => m.id === selectedModelId) ?? filteredModels[0];
 
   // Credit cost: use table lookup when available, fallback to base cost
-  const creditCost = selectedModel ? getModelCreditCost(selectedModel, durationSec, resolution) : 1;
+  const audioEnabled = withAudio && (selectedModel?.supportsAudio ?? false);
+  const creditCost = selectedModel ? getModelCreditCost(selectedModel, durationSec, resolution, audioEnabled) : 1;
   const canAfford = credits >= creditCost;
 
   // Available options based on model capabilities
@@ -609,7 +635,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   </>
                 )}
                 <span>&middot;</span>
-                <span>{selectedModel ? `${getModelCreditCost(selectedModel, durationSec, resolution)} cr` : ""}</span>
+                <span>{selectedModel ? `${getModelCreditCost(selectedModel, durationSec, resolution, audioEnabled).toLocaleString()} cr` : ""}</span>
               </div>
             </div>
             <svg
