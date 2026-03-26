@@ -12,13 +12,14 @@ import {
 // ─── Model definitions ───
 
 export const PIAPI_IMAGE_MODELS = [
+  // Budget
   {
     id: "z-image-turbo",
     name: "Z-Image Turbo",
     piApiModel: "Qubico/z-image",
     taskType: "txt2img",
     costPerImage: 0.004,
-    creditCost: 1,
+    creditCost: 30,
   },
   {
     id: "flux-schnell",
@@ -26,15 +27,16 @@ export const PIAPI_IMAGE_MODELS = [
     piApiModel: "Qubico/flux1-schnell",
     taskType: "txt2img",
     costPerImage: 0.01,
-    creditCost: 1,
+    creditCost: 30,
   },
+  // Standard
   {
     id: "qwen-image",
     name: "Qwen Image",
     piApiModel: "qwen-image",
     taskType: "txt2img",
     costPerImage: 0.015,
-    creditCost: 1,
+    creditCost: 50,
   },
   {
     id: "seedream-5",
@@ -42,7 +44,32 @@ export const PIAPI_IMAGE_MODELS = [
     piApiModel: "seedream",
     taskType: "seedream-5-lite",
     costPerImage: 0.028,
-    creditCost: 1,
+    creditCost: 50,
+  },
+  // Ultra — Nano Banana (Gemini via PiAPI)
+  {
+    id: "gemini-2.5-flash-image",
+    name: "Nano Banana Flash",
+    piApiModel: "gemini",
+    taskType: "gemini-2.5-flash-image",
+    costPerImage: 0.03,
+    creditCost: 50,
+  },
+  {
+    id: "gemini-3-pro-image-preview",
+    name: "Nano Banana Pro",
+    piApiModel: "gemini",
+    taskType: "nano-banana-pro",
+    costPerImage: 0.105,
+    creditCost: 150,
+  },
+  {
+    id: "gemini-3.1-flash-image-preview",
+    name: "Nano Banana 2",
+    piApiModel: "gemini",
+    taskType: "nano-banana-2",
+    costPerImage: 0.03,
+    creditCost: 50,
   },
 ] as const;
 
@@ -93,15 +120,25 @@ export async function generateImageWithPiApi(
   const model = getPiApiImageModel(modelId);
   if (!model) throw new Error(`Unknown PiAPI image model: ${modelId}`);
 
+  const isGemini = model.piApiModel === "gemini";
   const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
 
-  console.log(`[piapi-image] generate: model=${modelId}, aspectRatio=${aspectRatio}, dims=${dims.width}x${dims.height}`);
+  console.log(`[piapi-image] generate: model=${modelId}, piApiModel=${model.piApiModel}, taskType=${model.taskType}, aspectRatio=${aspectRatio}`);
 
-  const input = buildImageInput(model.piApiModel, model.taskType, {
-    prompt,
-    width: dims.width,
-    height: dims.height,
-  });
+  // Gemini models use aspect_ratio directly; others use width/height
+  const input = isGemini
+    ? buildImageInput(model.piApiModel, model.taskType, { prompt })
+    : buildImageInput(model.piApiModel, model.taskType, {
+        prompt,
+        width: dims.width,
+        height: dims.height,
+      });
+
+  // For Gemini, set aspect_ratio directly on input (buildImageInput handles width/height derivation
+  // but we want the exact string since Gemini supports it natively)
+  if (isGemini && aspectRatio) {
+    input.aspect_ratio = aspectRatio;
+  }
 
   const { taskId } = await submitTask(model.piApiModel, model.taskType, input);
 

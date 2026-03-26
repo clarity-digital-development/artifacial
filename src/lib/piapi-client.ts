@@ -122,7 +122,8 @@ export async function getTaskStatus(taskId: string): Promise<PiAPITaskResult> {
   let thumbnailUrl: string | undefined;
 
   if (mappedStatus === "completed") {
-    const output = task.output || task.result || {};
+    // Gemini models use task_result.task_output, others use output
+    const output = task.output || task.task_result?.task_output || task.result || {};
 
     // Video URLs — each PiAPI model returns video in a different location:
     // Kling: output.works[0].video.resource_without_watermark or .resource
@@ -404,6 +405,27 @@ export function buildImageInput(
   // Seedream
   if (piApiModel === "seedream") {
     // Uses aspect_ratio instead of width/height
+    return input;
+  }
+
+  // Gemini / Nano Banana — uses aspect_ratio, output_format, resolution, image_urls
+  if (piApiModel === "gemini") {
+    if (params.referenceImageUrl) {
+      input.image_urls = [params.referenceImageUrl];
+    }
+    input.output_format = "png";
+    // Derive aspect_ratio from width/height if provided
+    if (params.width && params.height) {
+      const ratio = params.width / params.height;
+      if (Math.abs(ratio - 1) < 0.05) input.aspect_ratio = "1:1";
+      else if (Math.abs(ratio - 16 / 9) < 0.05) input.aspect_ratio = "16:9";
+      else if (Math.abs(ratio - 9 / 16) < 0.05) input.aspect_ratio = "9:16";
+      else if (Math.abs(ratio - 4 / 3) < 0.05) input.aspect_ratio = "4:3";
+      else if (Math.abs(ratio - 3 / 4) < 0.05) input.aspect_ratio = "3:4";
+      else if (Math.abs(ratio - 3 / 2) < 0.05) input.aspect_ratio = "3:2";
+      else if (Math.abs(ratio - 2 / 3) < 0.05) input.aspect_ratio = "2:3";
+      else input.aspect_ratio = "1:1";
+    }
     return input;
   }
 

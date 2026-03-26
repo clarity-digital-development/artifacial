@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { buildCharacterPrompts, generateImageWithGemini } from "@/lib/gemini";
-import { isPiApiImageModel, generateImageWithPiApi, getPiApiImageModel, type PiApiImageModelId } from "@/lib/piapi-image";
+import { buildCharacterPrompts } from "@/lib/gemini";
+import { generateImageWithPiApi, getPiApiImageModel, type PiApiImageModelId } from "@/lib/piapi-image";
 import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } from "@/lib/r2";
-import { CREDIT_COSTS } from "@/lib/stripe";
+
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
 
 const ANGLE_NAMES = ["main"];
@@ -28,10 +28,12 @@ export async function POST(req: NextRequest) {
 
   console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
 
-  // Calculate cost based on model
-  const usePiApi = isPiApiImageModel(model);
-  const piApiModel = usePiApi ? getPiApiImageModel(model) : null;
-  const perImageCost = piApiModel?.creditCost ?? CREDIT_COSTS.imageGeneration;
+  // Calculate cost based on model — all image models route through PiAPI
+  const piApiModel = getPiApiImageModel(model);
+  if (!piApiModel) {
+    return NextResponse.json({ error: `Unknown image model: ${model}` }, { status: 400 });
+  }
+  const perImageCost = piApiModel.creditCost;
   const cost = perImageCost; // Single image generation
 
   // Check credits
@@ -63,7 +65,6 @@ export async function POST(req: NextRequest) {
   });
 
   // Upload source photo if provided
-  let referenceImageBase64: string | undefined;
   let referenceImageBuffer: Buffer | undefined;
   if (mode === "photo" && photoFile) {
     const bytes = new Uint8Array(await photoFile.arrayBuffer());
@@ -74,9 +75,8 @@ export async function POST(req: NextRequest) {
       where: { id: character.id },
       data: { sourceImage: key },
     });
-    referenceImageBase64 = photoBuffer.toString("base64");
     referenceImageBuffer = photoBuffer;
-    console.log(`[char-gen] Uploaded source photo: key=${key}, base64Len=${referenceImageBase64.length}, bufferSize=${referenceImageBuffer.length}`);
+    console.log(`[char-gen] Uploaded source photo: key=${key}, bufferSize=${referenceImageBuffer.length}`);
   }
 
   // Debit credits upfront
@@ -102,14 +102,7 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(
         prompts.map(async (prompt, index) => {
           try {
-            const imageBuffer = usePiApi
-              ? await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer)
-              : await generateImageWithGemini(
-                  prompt,
-                  referenceImageBase64,
-                  model,
-                  aspectRatio
-                );
+            const imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer);
             const key = r2KeyForCharacterImage(
               userId,
               character.id,
@@ -124,7 +117,7 @@ export async function POST(req: NextRequest) {
             const errDetail = err instanceof Error && (err as unknown as Record<string, unknown>).body
               ? JSON.stringify((err as unknown as Record<string, unknown>).body).slice(0, 500)
               : "";
-            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, usePiApi=${usePiApi}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
+            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
             send({
               type: "error",
               index,

@@ -20,6 +20,10 @@ const SFW_MODEL_OPTIONS: ModelOption[] = [
   // Standard — matches registry: qwen-image=50, seedream-5=50
   { value: "qwen-image", label: "Qwen Image", cost: 50, tier: "standard" },
   { value: "seedream-5", label: "Seedream 5 Lite", cost: 50, tier: "standard" },
+  // Ultra — Gemini models (handled via gemini.ts, not PiAPI)
+  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 50, tier: "ultra" },
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 150, tier: "ultra" },
+  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 50, tier: "ultra" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
@@ -262,7 +266,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const initialPrompt = searchParams.get("prompt") ?? "";
   const isNsfw = contentMode === "NSFW";
   const MODEL_OPTIONS = isNsfw ? NSFW_MODEL_OPTIONS : SFW_MODEL_OPTIONS;
-  const defaultModel = isNsfw ? "z-image-turbo" : "gemini-3-pro-image-preview";
+  const defaultModel = "z-image-turbo";
 
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
