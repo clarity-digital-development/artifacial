@@ -183,8 +183,15 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? null;
 
-  // Generation feed
-  const [generations, setGenerations] = useState<GenerationItem[]>([]);
+  // Generation feed — persisted to sessionStorage so navigating away doesn't lose state
+  const STORAGE_KEY = "artifacial_generations";
+  const [generations, setGenerations] = useState<GenerationItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [credits, setCredits] = useState(totalCredits);
@@ -393,6 +400,27 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     poll();
     pollRefs.current.set(itemId, setInterval(poll, 3000));
   }, [stopPollingFor]);
+
+  // Persist generations to sessionStorage on every change
+  useEffect(() => {
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(generations)); } catch {}
+  }, [generations]);
+
+  // Resume polling for in-progress generations on mount (e.g. after navigating back)
+  const hasResumed = useRef(false);
+  useEffect(() => {
+    if (hasResumed.current) return;
+    hasResumed.current = true;
+    generations.forEach((g) => {
+      if (
+        g.generationId &&
+        (g.status === "queued" || g.status === "processing" || g.status === "submitting")
+      ) {
+        startPollingFor(g.id, g.generationId);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
