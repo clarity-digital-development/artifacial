@@ -122,6 +122,27 @@ function StepPlay({ className }: { className?: string }) {
 export default function LandingPage() {
   return (
     <div className="grain relative min-h-screen bg-[var(--bg-deep)]">
+      {/* ─── Mobile nav ─── */}
+      <nav className="flex items-center justify-between px-5 pt-4 pb-2 md:hidden">
+        <Link href="/" className="font-display text-base font-bold tracking-tight text-[var(--accent-amber)]">
+          Artifacial
+        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/pricing"
+            className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/sign-in"
+            className="rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-sm font-semibold text-[var(--bg-deep)]"
+          >
+            Sign In
+          </Link>
+        </div>
+      </nav>
+
       {/* ─── Nav: hidden on mobile, sticky pill on desktop ─── */}
       <nav className="pointer-events-none sticky top-0 z-50 hidden justify-center px-6 pt-5 pb-3 md:flex">
         <div className="pointer-events-auto flex items-center gap-5 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/80 px-5 py-2.5 shadow-[0_2px_16px_rgba(0,0,0,0.3)] backdrop-blur-md sm:gap-6 sm:px-6">
@@ -158,11 +179,6 @@ export default function LandingPage() {
 
       {/* ─── Hero ─── */}
       <section className="relative z-10 flex flex-col items-center px-5 pt-12 pb-10 text-center md:min-h-[calc(100vh-72px)] md:justify-center md:px-16 md:pt-0 md:pb-16">
-        {/* Mobile logo */}
-        <span className="mb-6 font-display text-lg font-bold tracking-tight text-[var(--accent-amber)] md:hidden">
-          Artifacial
-        </span>
-
         <h1 className="max-w-lg font-display text-4xl font-extrabold leading-[1.1] tracking-[0.03em] text-[var(--text-primary)] sm:text-5xl md:max-w-4xl md:text-7xl lg:text-8xl">
           Your Characters.
           <br />
@@ -200,6 +216,7 @@ export default function LandingPage() {
                   loop
                   muted
                   playsInline
+                  preload="metadata"
                   className="absolute inset-0 h-full w-full object-cover"
                   src={cap.video}
                 />
