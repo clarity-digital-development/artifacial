@@ -2,19 +2,19 @@ import Link from "next/link";
 import { PricingCards } from "./pricing-client";
 
 const CREDIT_COSTS = [
-  { action: "1 image generation", credits: 10 },
-  { action: "Character creation (4 angles)", credits: 40 },
-  { action: "1 second of video", credits: 40 },
-  { action: "5-second video", credits: 200 },
-  { action: "10-second video", credits: 400 },
-  { action: "Video upscale (720p enhance)", credits: 10 },
-  { action: "Video upscale to 1080p", credits: 20 },
-  { action: "Video upscale to 1440p", credits: 30 },
+  { action: "1 image (budget models)", credits: 30 },
+  { action: "1 image (standard models)", credits: 50 },
+  { action: "5s video (budget, 720p)", credits: "300–500" },
+  { action: "5s video (standard, 720p)", credits: "300–350" },
+  { action: "5s video (ultra, 720p)", credits: "480–500" },
+  { action: "10s video (standard, 720p)", credits: "480–700" },
+  { action: "10s video (ultra, 1080p)", credits: "900–1,440" },
+  { action: "15s video (ultra, 1080p)", credits: "1,350–2,250" },
 ];
 
 const CREDIT_PACKS = [
-  { credits: "500 credits", price: "$9.99" },
-  { credits: "1,250 credits", price: "$24.99" },
+  { credits: "5,000 credits", price: "$9.99" },
+  { credits: "15,000 credits", price: "$24.99" },
 ];
 
 export default function PricingPage() {

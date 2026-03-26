@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import { DM_Sans, Goldman } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { PostHogProvider } from "@/components/posthog-provider";
@@ -38,6 +39,10 @@ export default function RootLayout({
             <PostHogProvider>{children}</PostHogProvider>
           </Suspense>
         </Providers>
+        <Script id="rewardful-queue" strategy="beforeInteractive">
+          {`(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');`}
+        </Script>
+        <Script src="https://r.wdfl.co/rw.js" data-rewardful="a780df" strategy="afterInteractive" />
       </body>
     </html>
   );

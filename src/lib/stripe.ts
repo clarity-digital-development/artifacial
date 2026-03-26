@@ -85,53 +85,53 @@ export const PLANS: Record<PlanKey, {
 }> = {
   FREE: {
     name: "Free",
-    credits: 100,
+    credits: 1_000,
     monthlyPrice: 0,
     annualMonthlyPrice: null,
     stripePriceId: null,
     stripeAnnualPriceId: null,
-    baseCredits: 100,
+    baseCredits: 1_000,
     bonusLabel: null,
   },
   STARTER: {
     name: "Starter",
-    credits: 1_500,
-    monthlyPrice: 1500,
-    annualMonthlyPrice: null, // No annual for Starter
+    credits: 15_000,
+    monthlyPrice: 1500, // $15/mo
+    annualMonthlyPrice: null,
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID,
     stripeAnnualPriceId: null,
-    baseCredits: 1_000,
-    bonusLabel: "+50% bonus credits",
+    baseCredits: 15_000,
+    bonusLabel: null,
   },
   CREATOR: {
     name: "Creator",
-    credits: 5_000,
-    monthlyPrice: 5000,
-    annualMonthlyPrice: 4000, // $40/mo billed annually
+    credits: 60_000,
+    monthlyPrice: 5000, // $50/mo
+    annualMonthlyPrice: 4000,
     stripePriceId: process.env.STRIPE_CREATOR_PRICE_ID,
     stripeAnnualPriceId: process.env.STRIPE_CREATOR_ANNUAL_PRICE_ID,
-    baseCredits: 3_500,
-    bonusLabel: "+43% bonus credits",
+    baseCredits: 60_000,
+    bonusLabel: null,
   },
   PRO: {
     name: "Pro",
-    credits: 15_000,
-    monthlyPrice: 10000,
-    annualMonthlyPrice: 8000, // $80/mo billed annually
+    credits: 125_000,
+    monthlyPrice: 10000, // $100/mo
+    annualMonthlyPrice: 8000,
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
     stripeAnnualPriceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
-    baseCredits: 10_000,
-    bonusLabel: "+50% bonus credits",
+    baseCredits: 125_000,
+    bonusLabel: null,
   },
   STUDIO: {
     name: "Studio",
-    credits: 50_000,
-    monthlyPrice: 16500, // $165/mo (annual only)
+    credits: 300_000,
+    monthlyPrice: 16500, // $165/mo (annual only, billed $1,980/yr)
     annualMonthlyPrice: 16500,
-    stripePriceId: null, // Annual only
+    stripePriceId: null,
     stripeAnnualPriceId: process.env.STRIPE_STUDIO_ANNUAL_PRICE_ID,
-    baseCredits: 35_000,
-    bonusLabel: "Unlimited image gen",
+    baseCredits: 300_000,
+    bonusLabel: null,
   },
 };
 
@@ -139,14 +139,14 @@ export const PLANS: Record<PlanKey, {
 
 export const CREDIT_PACKS = {
   credit_pack: {
-    name: "500 Credits",
-    credits: 500,
+    name: "5,000 Credits",
+    credits: 5_000,
     price: 999, // $9.99
     stripePriceId: process.env.STRIPE_CREDIT_PACK_PRICE_ID,
   },
   credit_pack_plus: {
-    name: "1,250 Credits",
-    credits: 1_250,
+    name: "15,000 Credits",
+    credits: 15_000,
     price: 2499, // $24.99
     stripePriceId: process.env.STRIPE_CREDIT_PACK_PLUS_PRICE_ID,
   },

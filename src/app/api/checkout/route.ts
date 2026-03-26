@@ -9,9 +9,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { type, key } = (await req.json()) as {
+  const { type, key, referral } = (await req.json()) as {
     type: "subscription" | "credit_pack";
     key: string;
+    referral?: string;
   };
 
   const origin = req.headers.get("origin") ?? process.env.NEXTAUTH_URL ?? "";
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
         tier: key,
       },
+      ...(referral ? { client_reference_id: referral } : {}),
       success_url: `${origin}/settings?upgraded=true`,
       cancel_url: `${origin}/settings`,
     });
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
         creditPackKey: key,
       },
+      ...(referral ? { client_reference_id: referral } : {}),
       success_url: `${origin}/settings?purchased=true`,
       cancel_url: `${origin}/settings`,
     });

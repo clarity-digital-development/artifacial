@@ -274,7 +274,7 @@ export async function routeGeneration(
 
     // 5. Calculate credit cost and deduct
     const workflowType = resolveWorkflowType(mode);
-    const creditsCost = calculateCreditCost(modelId, durationSec);
+    const creditsCost = calculateCreditCost(modelId, durationSec, resolution);
     const audioEnabled = withAudio && model.supportsAudio;
 
     const deducted = await deductCredits(

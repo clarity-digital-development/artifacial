@@ -26,15 +26,15 @@ interface BillingClientProps {
 }
 
 const PLANS = [
-  { key: "STARTER", name: "Starter", price: "$15", credits: 1500, baseCredits: 1000, bonusLabel: "+50% bonus" },
-  { key: "CREATOR", name: "Creator", price: "$50", credits: 5000, baseCredits: 3500, bonusLabel: "+43% bonus" },
-  { key: "PRO", name: "Pro", price: "$100", credits: 15000, baseCredits: 10000, bonusLabel: "+50% bonus" },
-  { key: "STUDIO", name: "Studio", price: "$165", credits: 50000, baseCredits: 35000, bonusLabel: "+43% bonus" },
+  { key: "STARTER", name: "Starter", price: "$15", credits: 15000 },
+  { key: "CREATOR", name: "Creator", price: "$50", credits: 60000 },
+  { key: "PRO", name: "Pro", price: "$100", credits: 125000 },
+  { key: "STUDIO", name: "Studio", price: "$165", credits: 300000 },
 ];
 
 const CREDIT_PACKS = [
-  { key: "credit_pack", name: "500 Credits", price: "$9.99" },
-  { key: "credit_pack_plus", name: "1,250 Credits", price: "$24.99" },
+  { key: "credit_pack", name: "5,000 Credits", price: "$9.99" },
+  { key: "credit_pack_plus", name: "15,000 Credits", price: "$24.99" },
 ];
 
 // ─── Component ───
@@ -58,10 +58,14 @@ export function BillingClient({
     setLoading(key);
     setError(null);
     try {
+      // Grab Rewardful referral ID for affiliate attribution
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rw = typeof window !== "undefined" ? (window as any).Rewardful : undefined;
+      const referral: string | null = rw?.referral ?? null;
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, key }),
+        body: JSON.stringify({ type, key, ...(referral ? { referral } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
@@ -159,7 +163,7 @@ export function BillingClient({
 
         {tier === "FREE" ? (
           <p className="mb-5 text-[var(--text-sm)] text-[var(--text-secondary)]">
-            100 credits one-time. Subscribe for monthly credits.
+            1,000 credits one-time. Subscribe for monthly credits.
           </p>
         ) : (
           <p className="mb-5 text-[var(--text-sm)] text-[var(--text-secondary)]">
@@ -186,14 +190,9 @@ export function BillingClient({
                   </span>
                 </p>
                 <p className="mt-2 text-[var(--text-xs)] text-[var(--text-muted)]">
-                  <span className="line-through">{p.baseCredits.toLocaleString()}</span>
-                  {" "}
                   <span className="text-[var(--accent-amber)] font-medium">{p.credits.toLocaleString()}</span>
-                  {" credits"}
+                  {" credits/mo"}
                 </p>
-                <span className="mt-1 inline-block rounded-full bg-[var(--accent-amber)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-amber)]">
-                  {p.bonusLabel}
-                </span>
               </button>
             ))}
           </div>

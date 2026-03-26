@@ -14,19 +14,17 @@ const STYLE_OPTIONS = [
 type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra" };
 
 const SFW_MODEL_OPTIONS: ModelOption[] = [
-  // Budget (1 cr/image)
-  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 1, tier: "budget" },
-  { value: "flux-schnell", label: "Flux Schnell", cost: 1, tier: "budget" },
-  // Standard (1 cr/image)
-  { value: "qwen-image", label: "Qwen Image", cost: 1, tier: "standard" },
-  { value: "seedream-5", label: "Seedream 5 Lite", cost: 1, tier: "standard" },
-  // Gemini (legacy — separate from PiAPI)
-  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 25, tier: "ultra" },
+  // Budget — matches registry: flux-schnell=30, z-image-turbo=30
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 30, tier: "budget" },
+  { value: "flux-schnell", label: "Flux Schnell", cost: 30, tier: "budget" },
+  // Standard — matches registry: qwen-image=50, seedream-5=50
+  { value: "qwen-image", label: "Qwen Image", cost: 50, tier: "standard" },
+  { value: "seedream-5", label: "Seedream 5 Lite", cost: 50, tier: "standard" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
-  // Standard (1 cr/image)
-  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 1, tier: "standard" },
+  // Matches registry: z-image-turbo=30
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 30, tier: "budget" },
 ];
 
 const TIER_COLORS: Record<string, string> = {

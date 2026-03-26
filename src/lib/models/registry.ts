@@ -19,6 +19,13 @@ export interface VeniceConfig {
   costKey: string;                        // Key into cost estimation table
 }
 
+/**
+ * Credit cost lookup table. Keys are "${durationSec}_${resolution}" for video,
+ * or just the flat cost number for images (stored in `creditCost`).
+ * Example: { "5_720p": 300, "10_720p": 550, "5_1080p": 500, "10_1080p": 900 }
+ */
+export type CreditCostTable = Record<string, number>;
+
 export interface ModelConfig {
   id: string;
   name: string;
@@ -27,7 +34,8 @@ export interface ModelConfig {
   veniceConfig?: VeniceConfig;            // Required for VENICE models
   badge?: string;                         // Optional UI badge (e.g. "Beta")
   tier: ModelTier;
-  creditCost: number;
+  creditCost: number;                     // Flat cost for images, or base/fallback for video
+  creditCostTable?: CreditCostTable;      // Duration+resolution cost lookup for video models
   supportedModes: ModelMode[];
   maxDuration: number;
   maxResolution: string;
@@ -55,7 +63,11 @@ const WAN_26_SFW: ModelConfig = {
     costKey: "wan-26",
   },
   tier: "BUDGET",
-  creditCost: 1,
+  creditCost: 500,
+  creditCostTable: {
+    "5_720p": 500, "10_720p": 1000, "15_720p": 1500,
+    "5_1080p": 800, "10_1080p": 1500, "15_1080p": 2250,
+  },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -78,7 +90,7 @@ const WAN_22_SFW: ModelConfig = {
     costKey: "wan-22",
   },
   tier: "BUDGET",
-  creditCost: 1,
+  creditCost: 300,
   supportedModes: ["T2V", "I2V"],
   maxDuration: 5,
   maxResolution: "720p",
@@ -101,7 +113,8 @@ const FRAMEPACK: ModelConfig = {
     costKey: "framepack",
   },
   tier: "BUDGET",
-  creditCost: 1,
+  creditCost: 300,
+  creditCostTable: { "10": 300, "15": 450, "20": 600, "30": 900 },
   supportedModes: ["I2V"],
   maxDuration: 30,
   maxResolution: "720p",
@@ -125,7 +138,8 @@ const KLING_26_STD: ModelConfig = {
     costKey: "kling-26-std",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 300,
+  creditCostTable: { "5": 300, "10": 550 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 10,
   maxResolution: "720p",
@@ -148,7 +162,8 @@ const SEEDANCE_2: ModelConfig = {
     costKey: "seedance-2-fast",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 350,
+  creditCostTable: { "5": 350, "10": 700, "15": 1050 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -171,7 +186,8 @@ const SORA_2: ModelConfig = {
     costKey: "sora-2",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 300,
+  creditCostTable: { "4": 240, "8": 480, "12": 720 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 12,
   maxResolution: "720p",
@@ -195,7 +211,8 @@ const KLING_26_PRO: ModelConfig = {
     costKey: "kling-26-pro",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 900 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -219,7 +236,8 @@ const KLING_30_PRO: ModelConfig = {
     costKey: "kling-30-pro",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 900, "15": 1350 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -242,7 +260,11 @@ const SORA_2_PRO: ModelConfig = {
     costKey: "sora-2-pro",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: {
+    "4_720p": 480, "8_720p": 960, "12_720p": 1440,
+    "4_1080p": 720, "8_1080p": 1440, "12_1080p": 2160,
+  },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 12,
   maxResolution: "1080p",
@@ -265,7 +287,11 @@ const VEO_31: ModelConfig = {
     costKey: "veo-31",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: {
+    "4_720p": 480, "6_720p": 720, "8_720p": 960,
+    "4_1080p": 720, "6_1080p": 1080, "8_1080p": 1440,
+  },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 8,
   maxResolution: "1080p",
@@ -288,7 +314,8 @@ const SEEDANCE_2_PRO: ModelConfig = {
     costKey: "seedance-2",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
   supportedModes: ["T2V", "I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -316,7 +343,8 @@ const KLING_26_MOTION_STD: ModelConfig = {
     costKey: "kling-26-std",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 300,
+  creditCostTable: { "5": 300, "10": 550 },
   supportedModes: ["MOTION_TRANSFER"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -340,7 +368,8 @@ const KLING_26_MOTION_PRO: ModelConfig = {
     costKey: "kling-26-pro",
   },
   tier: "ULTRA",
-  creditCost: 2,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 900 },
   supportedModes: ["MOTION_TRANSFER"],
   maxDuration: 10,
   maxResolution: "1080p",
@@ -367,7 +396,8 @@ const WAN26_NSFW_T2V: ModelConfig = {
   },
   badge: "Beta",
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
   supportedModes: ["T2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -390,7 +420,8 @@ const WAN26_NSFW_I2V: ModelConfig = {
   },
   badge: "Beta",
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 500,
+  creditCostTable: { "5": 500, "10": 1000, "15": 1500 },
   supportedModes: ["I2V"],
   maxDuration: 15,
   maxResolution: "1080p",
@@ -411,8 +442,8 @@ const WAN22_NSFW_T2V: ModelConfig = {
     model: "wan-2.2-a14b-text-to-video",
     costKey: "venice-wan-22",
   },
-  tier: "BUDGET",
-  creditCost: 1,
+  tier: "STANDARD",
+  creditCost: 400,
   supportedModes: ["T2V"],
   maxDuration: 5,
   maxResolution: "720p",
@@ -439,7 +470,7 @@ const Z_IMAGE_TURBO: ModelConfig = {
     costKey: "z-image",
   },
   tier: "BUDGET",
-  creditCost: 1,
+  creditCost: 30,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1440px",
@@ -462,7 +493,7 @@ const FLUX_SCHNELL: ModelConfig = {
     costKey: "flux-schnell",
   },
   tier: "BUDGET",
-  creditCost: 1,
+  creditCost: 30,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1024px",
@@ -485,7 +516,7 @@ const QWEN_IMAGE: ModelConfig = {
     costKey: "qwen-image",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 50,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "1024px",
@@ -508,7 +539,7 @@ const SEEDREAM_5: ModelConfig = {
     costKey: "seedream",
   },
   tier: "STANDARD",
-  creditCost: 1,
+  creditCost: 50,
   supportedModes: ["T2I"],
   maxDuration: 0,
   maxResolution: "3K",
@@ -566,14 +597,46 @@ export function isValidModelId(id: string): boolean {
 
 /**
  * Calculate credit cost for a generation.
- * Base cost from model tier, multiplied by duration (5s = 1x, 10s = 2x, 15s = 3x).
+ * Uses creditCostTable if available (keyed by "${duration}_${resolution}"),
+ * falls back to flat creditCost for images or simple multiplier for video.
  */
-export function calculateCreditCost(modelId: string, durationSec: number): number {
+export function calculateCreditCost(modelId: string, durationSec: number, resolution?: string): number {
   const model = getModelById(modelId);
   if (!model) throw new Error(`Unknown model: ${modelId}`);
   if (model.supportedModes.includes("T2I")) return model.creditCost;
+
+  // Try exact lookup in cost table: "5_720p" → 300
+  if (model.creditCostTable) {
+    const res = resolution || "720p";
+    const exactKey = `${durationSec}_${res}`;
+    if (model.creditCostTable[exactKey] != null) return model.creditCostTable[exactKey];
+
+    // Try without resolution: "5" → 300
+    const durationKey = `${durationSec}`;
+    if (model.creditCostTable[durationKey] != null) return model.creditCostTable[durationKey];
+
+    // Interpolate from nearest entry — ceil to never undercharge
+    const tableKeys = Object.keys(model.creditCostTable)
+      .filter((k) => k.endsWith(`_${res}`) || !k.includes("_"))
+      .map((k) => ({ key: k, dur: parseInt(k) }))
+      .filter((k) => !isNaN(k.dur))
+      .sort((a, b) => a.dur - b.dur);
+
+    if (tableKeys.length > 0) {
+      const base = tableKeys[0];
+      const baseCost = model.creditCostTable[base.key];
+      const perSec = baseCost / base.dur;
+      const interpolated = Math.ceil(perSec * durationSec);
+      console.warn(`[credits] Interpolated cost for model=${modelId} dur=${durationSec}s res=${res}: ${interpolated} credits (no exact table entry for "${exactKey}" or "${durationKey}")`);
+      return interpolated;
+    }
+  }
+
+  // Fallback: no cost table at all — log so we catch misconfigured models
   const durationMultiplier = Math.ceil(durationSec / 5);
-  return model.creditCost * durationMultiplier;
+  const fallbackCost = model.creditCost * durationMultiplier;
+  console.warn(`[credits] Fallback cost for model=${modelId}: ${fallbackCost} credits (no creditCostTable configured)`);
+  return fallbackCost;
 }
 
 /**
