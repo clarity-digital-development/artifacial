@@ -109,7 +109,7 @@ export function TopBar({
 
   return (
     <>
-      <header className="flex h-14 items-center justify-between border-b border-[var(--border-subtle)] px-8">
+      <header className="flex h-14 items-center justify-between border-b border-[var(--border-subtle)] px-4 md:px-8">
         <span className="text-sm font-medium text-[var(--text-primary)]">
           {section}
         </span>
@@ -150,7 +150,7 @@ export function TopBar({
           </button>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-[var(--border-subtle)]" />
+          <div className="hidden md:block h-4 w-px bg-[var(--border-subtle)]" />
 
           {/* Credits */}
           <Link
@@ -158,7 +158,7 @@ export function TopBar({
             className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 transition-colors hover:bg-[var(--bg-elevated)]"
           >
             <span className="text-sm font-medium text-[var(--accent-amber)]">{credits.toLocaleString()}</span>
-            <span className="text-xs text-[var(--text-muted)]">credits</span>
+            <span className="hidden md:inline text-xs text-[var(--text-muted)]">credits</span>
           </Link>
 
           {/* User menu */}

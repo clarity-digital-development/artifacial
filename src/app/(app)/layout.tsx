@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Sidebar } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({
   children,
@@ -45,10 +46,11 @@ export default async function AppLayout({
           subscriptionTier={subscriptionTier}
           hasDateOfBirth={hasDateOfBirth}
         />
-        <main className="stagger-reveal flex-1 overflow-y-auto px-8 py-6 lg:px-12">
+        <main className="stagger-reveal flex-1 overflow-y-auto px-4 py-4 pb-20 md:px-8 md:py-6 md:pb-6 lg:px-12">
           {children}
         </main>
       </div>
+      <MobileNav />
     </div>
   );
 }

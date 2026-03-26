@@ -84,7 +84,7 @@ export function Sidebar({ contentMode }: SidebarProps) {
   const isNsfw = contentMode === "NSFW";
 
   return (
-    <aside className="flex h-full w-[72px] flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6">
+    <aside className="hidden md:flex h-full w-[72px] flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6">
       <Link
         href="/studio"
         className="mb-10 flex h-9 w-9 items-center justify-center"
