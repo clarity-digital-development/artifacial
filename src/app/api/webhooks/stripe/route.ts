@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
               .items.data[0]?.price?.id
           : undefined;
 
+        // Add plan credits on top of any existing balance (preserves unused free credits)
         await prisma.user.update({
           where: { id: userId },
           data: {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
             stripeSubscriptionId: typeof session.subscription === "string"
               ? session.subscription
               : null,
-            subscriptionCredits: planConfig.credits,
+            subscriptionCredits: { increment: planConfig.credits },
             isFoundingMember: true,
             foundingMemberPlan: tier,
             ...(priceId ? { foundingMemberPriceId: priceId } : {}),

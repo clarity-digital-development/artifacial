@@ -26,10 +26,10 @@ interface BillingClientProps {
 }
 
 const PLANS = [
-  { key: "STARTER", name: "Starter", price: "$15", credits: 15000 },
-  { key: "CREATOR", name: "Creator", price: "$50", credits: 60000 },
-  { key: "PRO", name: "Pro", price: "$100", credits: 125000 },
-  { key: "STUDIO", name: "Studio", price: "$165", credits: 300000 },
+  { key: "STARTER", name: "Starter", price: "$15", credits: 15000, billing: "monthly" as const },
+  { key: "CREATOR", name: "Creator", price: "$50", credits: 60000, billing: "monthly" as const },
+  { key: "PRO", name: "Pro", price: "$100", credits: 125000, billing: "monthly" as const },
+  { key: "STUDIO", name: "Studio", price: "$165", credits: 300000, billing: "annual" as const },
 ];
 
 const CREDIT_PACKS = [
@@ -54,7 +54,7 @@ export function BillingClient({
 
   const totalCredits = subscriptionCredits + purchasedCredits;
 
-  const handleCheckout = async (type: "subscription" | "credit_pack", key: string) => {
+  const handleCheckout = async (type: "subscription" | "credit_pack", key: string, billing?: "monthly" | "annual") => {
     setLoading(key);
     setError(null);
     try {
@@ -65,9 +65,15 @@ export function BillingClient({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, key, ...(referral ? { referral } : {}) }),
+        body: JSON.stringify({ type, key, ...(referral ? { referral } : {}), ...(billing ? { billing } : {}) }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Server error (${res.status}): ${text.slice(0, 100)}`);
+      }
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
       if (data.url) window.location.href = data.url;
     } catch (e) {
@@ -176,7 +182,7 @@ export function BillingClient({
             {PLANS.map((p) => (
               <button
                 key={p.key}
-                onClick={() => handleCheckout("subscription", p.key)}
+                onClick={() => handleCheckout("subscription", p.key, p.billing)}
                 disabled={loading === p.key}
                 className="group rounded-[var(--radius-md)] border border-[var(--border-default)] p-4 text-left transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--accent-amber)] hover:shadow-[0_0_24px_rgba(232,166,52,0.08)]"
               >

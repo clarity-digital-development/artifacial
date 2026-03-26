@@ -106,7 +106,7 @@ model User {
 
   // Subscription & credits (two-pool system)
   subscriptionTier      SubscriptionTier @default(FREE)
-  subscriptionCredits   Int              @default(100)
+  subscriptionCredits   Int              @default(1000)
   purchasedCredits      Int              @default(0)
   stripeCustomerId      String?          @unique
   stripeSubscriptionId  String?

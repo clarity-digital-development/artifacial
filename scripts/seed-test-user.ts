@@ -12,11 +12,11 @@ async function seed() {
 
   const user = await prisma.user.upsert({
     where: { email: "test@artifacial.io" },
-    update: { subscriptionCredits: 100 },
+    update: { subscriptionCredits: 1000 },
     create: {
       email: "test@artifacial.io",
       name: "Test User",
-      subscriptionCredits: 100,
+      subscriptionCredits: 1000,
       purchasedCredits: 0,
       subscriptionTier: "STARTER",
     },
