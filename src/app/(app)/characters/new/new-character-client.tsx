@@ -14,16 +14,16 @@ const STYLE_OPTIONS = [
 type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra" };
 
 const SFW_MODEL_OPTIONS: ModelOption[] = [
-  // Budget — matches registry: flux-schnell=30, z-image-turbo=30
+  // Budget (30 cr/img)
   { value: "z-image-turbo", label: "Z-Image Turbo", cost: 30, tier: "budget" },
   { value: "flux-schnell", label: "Flux Schnell", cost: 30, tier: "budget" },
-  // Standard — matches registry: qwen-image=50, seedream-5=50
+  // Standard (50 cr/img)
   { value: "qwen-image", label: "Qwen Image", cost: 50, tier: "standard" },
   { value: "seedream-5", label: "Seedream 5 Lite", cost: 50, tier: "standard" },
-  // Ultra — Gemini models (handled via gemini.ts, not PiAPI)
-  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 50, tier: "ultra" },
+  { value: "gemini-2.5-flash-image", label: "Nano Banana Flash", cost: 50, tier: "standard" },
+  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 50, tier: "standard" },
+  // Ultra (150 cr/img)
   { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 150, tier: "ultra" },
-  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 50, tier: "ultra" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
