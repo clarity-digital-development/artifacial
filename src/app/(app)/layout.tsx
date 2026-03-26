@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getAvailableCredits } from "@/lib/credits";
 import { Sidebar } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
 import { MobileNav } from "@/components/mobile-nav";
@@ -19,17 +20,18 @@ export default async function AppLayout({
   let hasDateOfBirth = false;
 
   if (session?.user?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        subscriptionCredits: true,
-        purchasedCredits: true,
-        contentMode: true,
-        subscriptionTier: true,
-        dateOfBirth: true,
-      },
-    });
-    totalCredits = (user?.subscriptionCredits ?? 0) + (user?.purchasedCredits ?? 0);
+    const [credits, user] = await Promise.all([
+      getAvailableCredits(session.user.id),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          contentMode: true,
+          subscriptionTier: true,
+          dateOfBirth: true,
+        },
+      }),
+    ]);
+    totalCredits = credits.total;
     contentMode = user?.contentMode ?? "SFW";
     subscriptionTier = user?.subscriptionTier ?? "FREE";
     hasDateOfBirth = !!user?.dateOfBirth;

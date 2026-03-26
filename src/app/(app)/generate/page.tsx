@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 // import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getAvailableCredits } from "@/lib/credits";
 import { getSignedR2Url } from "@/lib/r2";
 import { GenerateClient } from "./generate-client";
 
@@ -23,18 +24,16 @@ export default async function GeneratePage() {
   let characters: CharacterOption[] = [];
 
   if (session?.user?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        subscriptionCredits: true,
-        purchasedCredits: true,
-        subscriptionTier: true,
-        contentMode: true,
-      },
-    });
+    const [credits, user] = await Promise.all([
+      getAvailableCredits(session.user.id),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { subscriptionTier: true, contentMode: true },
+      }),
+    ]);
 
+    totalCredits = credits.total;
     if (user) {
-      totalCredits = user.subscriptionCredits + user.purchasedCredits;
       tier = user.subscriptionTier;
       contentMode = user.contentMode;
     }
