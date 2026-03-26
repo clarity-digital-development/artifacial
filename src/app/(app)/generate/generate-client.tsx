@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { UploadZone } from "@/components/upload-zone";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { SettingsSheet } from "@/components/generate/settings-sheet";
+import { BottomButton } from "@/components/generate/bottom-button";
+import { GenerationDetailsCard } from "@/components/generate/generation-details-card";
 
 // ─── Client-side model data (mirrors registry.ts for use in the browser) ───
 
@@ -160,6 +164,9 @@ interface GenerateClientProps {
 // ─── Component ───
 
 export function GenerateClient({ totalCredits, tier, characters = [], contentMode = "SFW" }: GenerateClientProps) {
+  const isMobile = useIsMobile();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   const isFree = tier === "FREE";
   const isNsfw = contentMode === "NSFW" && !isFree;
   const userContentMode = isNsfw ? "NSFW" : "SFW";
@@ -459,6 +466,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // ─── Submit ───
 
   const handleSubmit = async () => {
+    if (isMobile) setSheetOpen(false);
     if (submitting || !canAfford || !prompt.trim() || inFlightCount >= MAX_CONCURRENT) return;
 
     const itemId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -572,31 +580,29 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     setWithAudio(gen.withAudio);
   };
 
-  // ─── Render ───
+  // ─── Settings Content (shared between desktop sidebar and mobile sheet) ───
 
-  return (
-    <div className="-mx-8 -my-6 lg:-mx-12 flex h-[calc(100vh-var(--topbar-h,64px))] relative z-[45] bg-[var(--bg-deep)]">
-      {/* ─── LEFT PANEL ─── */}
-      <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
-        {/* Mode Toggle */}
-        <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
-          {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
-            .filter((tab) => {
-              if (tab !== "MOTION_TRANSFER") return true;
-              // Show Motion tab only when a Kling model is selected
-              return selectedModel?.id.startsWith("kling");
-            })
-            .map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setMode(tab)}
-              className={`flex-1 rounded-[var(--radius-sm)] px-2 py-1.5 text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                mode === tab
-                  ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : "Motion"}
+  const settingsContent = (
+    <>
+      {/* Mode Toggle */}
+      <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
+        {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
+          .filter((tab) => {
+            if (tab !== "MOTION_TRANSFER") return true;
+            // Show Motion tab only when a Kling model is selected
+            return selectedModel?.id.startsWith("kling");
+          })
+          .map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setMode(tab)}
+            className={`flex-1 rounded-[var(--radius-sm)] px-2 py-1.5 text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              mode === tab
+                ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            {tab === "T2V" ? "Text → Video" : tab === "I2V" ? "Image → Video" : "Motion"}
             </button>
           ))}
         </div>
@@ -1172,7 +1178,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           ) : inFlightCount >= MAX_CONCURRENT ? (
             `${MAX_CONCURRENT} in progress — wait`
           ) : (
-            `Generate — ${creditCost} cr`
+            `Generate — ${creditCost.toLocaleString()} cr`
           )}
         </Button>
 
@@ -1181,13 +1187,26 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             {MAX_CONCURRENT} generations in progress — wait for one to complete
           </p>
         )}
-      </div>
+    </>
+  );
+
+  // ─── Render ───
+
+  return (
+    <>
+    <div className={`flex h-[calc(100vh-var(--topbar-h,64px))] relative z-[45] bg-[var(--bg-deep)] ${isMobile ? "-mx-4 -my-4" : "-mx-8 -my-6 lg:-mx-12"}`}>
+      {/* ─── LEFT PANEL (desktop only) ─── */}
+      {!isMobile && (
+        <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
+          {settingsContent}
+        </div>
+      )}
 
       {/* ─── CENTER PANEL ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {generations.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <div className="rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--border-default)] px-12 py-16 text-center">
+            <div className={`rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--border-default)] text-center ${isMobile ? "px-8 py-12" : "px-12 py-16"}`}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 text-[var(--text-muted)]">
                 <rect x="2" y="3" width="20" height="14" rx="2" />
                 <path d="m10 8 5 3-5 3z" />
@@ -1199,11 +1218,62 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                 Your generations will appear here
               </p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                Configure your settings and click Generate
+                {isMobile ? "Tap New Generation to start" : "Configure your settings and click Generate"}
               </p>
             </div>
           </div>
+        ) : isMobile ? (
+          /* Mobile: vertically stacked generations */
+          <div className="flex-1 overflow-y-auto pb-24">
+            <div className="flex flex-col gap-6 p-4">
+              {[...generations].reverse().map((gen) => (
+                <div key={gen.id}>
+                  {gen.status === "completed" && gen.outputUrl ? (
+                    gen.outputUrl.match(/\.(png|jpg|jpeg|webp)($|\?)/) || gen.durationSec === 0 ? (
+                      <img src={gen.outputUrl} alt={gen.prompt} className="w-full rounded-[var(--radius-lg)]" />
+                    ) : (
+                      <video src={gen.outputUrl} controls autoPlay muted playsInline className="w-full rounded-[var(--radius-lg)]" />
+                    )
+                  ) : gen.status === "failed" ? (
+                    <div className="flex aspect-video items-center justify-center rounded-[var(--radius-lg)] border border-[var(--error)]/20 bg-[var(--error)]/5">
+                      <p className="text-sm text-[var(--error)]">Generation Failed</p>
+                    </div>
+                  ) : (
+                    <div className="flex aspect-video items-center justify-center rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                      <div className="text-center">
+                        <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
+                        <p className="text-sm text-[var(--text-muted)]">Generating...</p>
+                        <p className="mt-1 text-xs tabular-nums text-[var(--text-muted)]">{formatElapsed(gen.elapsedSec)}</p>
+                      </div>
+                    </div>
+                  )}
+                  <GenerationDetailsCard
+                    prompt={gen.prompt}
+                    modelName={gen.modelName}
+                    durationSec={gen.durationSec}
+                    resolution={gen.resolution}
+                    withAudio={gen.withAudio}
+                    creditCost={gen.creditCost}
+                    status={gen.status}
+                    errorMessage={gen.errorMessage}
+                    createdAt={gen.createdAt}
+                    generationTimeMs={gen.generationTimeMs}
+                    outputUrl={gen.outputUrl}
+                    onDownload={gen.outputUrl ? () => {
+                      const a = document.createElement("a");
+                      a.href = gen.outputUrl!;
+                      const ext = gen.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
+                      a.download = `artifacial-${gen.generationId}.${ext}`;
+                      a.click();
+                    } : undefined}
+                    onRegenerate={() => handleRegenerate(gen)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
+          /* Desktop: preview + thumbnail strip + inline details */
           <>
             {/* ── Main Preview ── */}
             <div className="flex flex-1 items-center justify-center overflow-hidden p-4">
@@ -1280,6 +1350,49 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               )}
             </div>
 
+            {/* ── Inline Details Card (desktop) ── */}
+            {selectedGeneration && (
+              <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-deep)]/80">
+                <GenerationDetailsCard
+                  prompt={selectedGeneration.prompt}
+                  modelName={selectedGeneration.modelName}
+                  durationSec={selectedGeneration.durationSec}
+                  resolution={selectedGeneration.resolution}
+                  withAudio={selectedGeneration.withAudio}
+                  creditCost={selectedGeneration.creditCost}
+                  status={selectedGeneration.status}
+                  errorMessage={selectedGeneration.errorMessage}
+                  createdAt={selectedGeneration.createdAt}
+                  generationTimeMs={selectedGeneration.generationTimeMs}
+                  outputUrl={selectedGeneration.outputUrl}
+                  onDownload={selectedGeneration.outputUrl ? () => {
+                    const a = document.createElement("a");
+                    a.href = selectedGeneration.outputUrl!;
+                    const ext = selectedGeneration.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
+                    a.download = `artifacial-${selectedGeneration.generationId}.${ext}`;
+                    a.click();
+                  } : undefined}
+                  onRegenerate={() => handleRegenerate(selectedGeneration)}
+                />
+                {/* Post-Processing Buttons */}
+                {selectedGeneration.status === "completed" && selectedGeneration.generationId && (
+                  <div className="px-4 pb-4">
+                    <PostProcessActions
+                      generation={selectedGeneration}
+                      credits={credits}
+                      characters={characters}
+                      onPostProcess={(newGen) => {
+                        setGenerations((prev) => [newGen, ...prev]);
+                        setSelectedId(newGen.id);
+                        setCredits((c) => c - newGen.creditCost);
+                        startPollingFor(newGen.id, newGen.generationId!);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ── Thumbnail Strip ── */}
             {generations.length > 1 && (
               <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-deep)]/80 px-4 py-3">
@@ -1318,167 +1431,21 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           </>
         )}
       </div>
-
-      {/* ─── RIGHT PANEL (Details) ─── */}
-      <div className="w-[300px] shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
-        {selectedGeneration ? (
-          <div className="space-y-5">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Details
-              </h3>
-            </div>
-
-            {/* Status */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-2 w-2 rounded-full ${
-                  selectedGeneration.status === "completed" ? "bg-[var(--success)]" :
-                  selectedGeneration.status === "failed" ? "bg-[var(--error)]" :
-                  "animate-pulse bg-[var(--accent-amber)]"
-                }`}
-              />
-              <span className="text-sm font-medium capitalize text-[var(--text-primary)]">
-                {selectedGeneration.status}
-              </span>
-              {(selectedGeneration.status === "queued" || selectedGeneration.status === "processing" || selectedGeneration.status === "submitting") && (
-                <span className="ml-auto text-xs tabular-nums text-[var(--text-muted)]">
-                  {formatElapsed(selectedGeneration.elapsedSec)}
-                </span>
-              )}
-            </div>
-
-            {/* Progress */}
-            {(selectedGeneration.status === "queued" || selectedGeneration.status === "processing") && (
-              <div>
-                <ProgressBar
-                  progress={selectedGeneration.progress}
-                  animated={selectedGeneration.status === "processing"}
-                />
-                <p className="mt-1 text-center text-[10px] tabular-nums text-[var(--text-muted)]">
-                  {selectedGeneration.progress}%
-                </p>
-              </div>
-            )}
-
-            {/* Error */}
-            {selectedGeneration.status === "failed" && selectedGeneration.errorMessage && (
-              <div className="rounded-[var(--radius-md)] border border-[var(--error)]/20 bg-[var(--error)]/5 px-3 py-2.5">
-                <p className="text-xs text-[var(--error)]">{selectedGeneration.errorMessage}</p>
-              </div>
-            )}
-
-            {/* Prompt */}
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Prompt
-              </label>
-              <p className="max-h-32 overflow-y-auto text-xs leading-relaxed text-[var(--text-secondary)]">
-                {selectedGeneration.prompt}
-              </p>
-            </div>
-
-            {/* Metadata */}
-            <div className="space-y-2">
-              <MetaRow label="Model" value={selectedGeneration.modelName} />
-              {selectedGeneration.durationSec > 0 && (
-                <MetaRow label="Duration" value={`${selectedGeneration.durationSec}s`} />
-              )}
-              {selectedGeneration.durationSec > 0 && (
-                <MetaRow label="Audio" value={selectedGeneration.withAudio ? "Yes" : "No"} />
-              )}
-              <MetaRow label="Credits" value={`${selectedGeneration.creditCost}`} />
-              <MetaRow label="Created" value={new Date(selectedGeneration.createdAt).toLocaleTimeString()} />
-              {selectedGeneration.generationTimeMs && (
-                <MetaRow label="Gen time" value={`${(selectedGeneration.generationTimeMs / 1000).toFixed(1)}s`} />
-              )}
-            </div>
-
-            {/* Post-process chain link */}
-            {selectedGeneration.parentGenerationId && (
-              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2">
-                <p className="text-[10px] text-[var(--text-muted)]">Enhanced from</p>
-                <button
-                  onClick={() => {
-                    const parent = generations.find(
-                      (g) => g.generationId === selectedGeneration.parentGenerationId
-                    );
-                    if (parent) setSelectedId(parent.id);
-                  }}
-                  className="text-xs font-medium text-[var(--accent-amber)] hover:underline"
-                >
-                  Parent generation
-                </button>
-                {selectedGeneration.postProcessType && (
-                  <Badge variant="default" className="ml-2 !text-[9px]">
-                    {selectedGeneration.postProcessType.replace(/_/g, " ")}
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="space-y-2 pt-2">
-              {selectedGeneration.status === "completed" && selectedGeneration.outputUrl && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  fullWidth
-                  onClick={() => {
-                    const a = document.createElement("a");
-                    a.href = selectedGeneration.outputUrl!;
-                    const ext = isImageMode || selectedGeneration.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
-                    a.download = `artifacial-${selectedGeneration.generationId}.${ext}`;
-                    a.click();
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Download
-                </Button>
-              )}
-
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth
-                onClick={() => handleRegenerate(selectedGeneration)}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
-                  <polyline points="23 4 23 10 17 10" />
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                </svg>
-                Regenerate
-              </Button>
-
-              {/* Post-Processing Buttons */}
-              {selectedGeneration.status === "completed" && selectedGeneration.generationId && (
-                <PostProcessActions
-                  generation={selectedGeneration}
-                  credits={credits}
-                  characters={characters}
-                  onPostProcess={(newGen) => {
-                    setGenerations((prev) => [newGen, ...prev]);
-                    setSelectedId(newGen.id);
-                    setCredits((c) => c - newGen.creditCost);
-                    startPollingFor(newGen.id, newGen.generationId!);
-                  }}
-                />
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-center text-xs text-[var(--text-muted)]">
-              Select a generation<br />to view details
-            </p>
-          </div>
-        )}
-      </div>
     </div>
+
+    {/* Mobile bottom button + settings sheet */}
+    {isMobile && (
+      <>
+        <BottomButton
+          isGenerating={submitting || inFlightCount > 0}
+          onClick={() => setSheetOpen(true)}
+        />
+        <SettingsSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+          {settingsContent}
+        </SettingsSheet>
+      </>
+    )}
+    </>
   );
 }
 
