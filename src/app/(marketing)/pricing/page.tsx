@@ -1,17 +1,6 @@
 import Link from "next/link";
 import { PricingCards } from "./pricing-client";
 
-const CREDIT_COSTS = [
-  { action: "1 image (budget models)", credits: 30 },
-  { action: "1 image (standard models)", credits: 50 },
-  { action: "5s video (budget, 720p)", credits: "300–500" },
-  { action: "5s video (standard, 720p)", credits: "300–350" },
-  { action: "5s video (ultra, 720p)", credits: "480–500" },
-  { action: "10s video (standard, 720p)", credits: "480–700" },
-  { action: "10s video (ultra, 1080p)", credits: "900–1,440" },
-  { action: "15s video (ultra, 1080p)", credits: "1,350–2,250" },
-];
-
 const CREDIT_PACKS = [
   { credits: "5,000 credits", price: "$9.99" },
   { credits: "15,000 credits", price: "$24.99" },
@@ -54,28 +43,6 @@ export default function PricingPage() {
       {/* Plan Cards */}
       <section className="relative z-10 mx-auto max-w-7xl px-8 pb-20 lg:px-16">
         <PricingCards />
-      </section>
-
-      {/* Credit Cost Table */}
-      <section className="relative z-10 mx-auto max-w-3xl px-8 py-16 lg:px-16">
-        <h2 className="mb-8 text-center font-display text-2xl font-bold text-[var(--text-primary)]">
-          Credit Costs
-        </h2>
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden">
-          {CREDIT_COSTS.map((item, i) => (
-            <div
-              key={item.action}
-              className={`flex items-center justify-between px-6 py-3.5 ${
-                i < CREDIT_COSTS.length - 1 ? "border-b border-[var(--border-subtle)]" : ""
-              }`}
-            >
-              <span className="text-sm text-[var(--text-secondary)]">{item.action}</span>
-              <span className="text-sm font-semibold text-[var(--accent-amber)]">
-                {item.credits} credits
-              </span>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* Credit Packs */}

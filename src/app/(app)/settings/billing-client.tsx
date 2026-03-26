@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 
@@ -51,6 +52,8 @@ export function BillingClient({
 }: BillingClientProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const autoCheckoutDone = useRef(false);
 
   const totalCredits = subscriptionCredits + purchasedCredits;
 
@@ -82,6 +85,18 @@ export function BillingClient({
       setLoading(null);
     }
   };
+
+  // Auto-trigger checkout when redirected from pricing page with ?plan=KEY&billing=monthly|annual
+  useEffect(() => {
+    if (autoCheckoutDone.current) return;
+    const plan = searchParams.get("plan");
+    const billing = searchParams.get("billing") as "monthly" | "annual" | null;
+    if (plan && tier === "FREE") {
+      autoCheckoutDone.current = true;
+      handleCheckout("subscription", plan, billing ?? "monthly");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleManageBilling = async () => {
     setLoading("portal");

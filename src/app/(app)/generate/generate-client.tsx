@@ -208,7 +208,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const modelGroups = (["BUDGET", "STANDARD", "ULTRA"] as ModelTier[])
     .map((t) => ({
       tier: t,
-      label: `${TIER_LABELS[t]} (${t === "ULTRA" ? "2 credits" : "1 credit"})`,
+      label: TIER_LABELS[t],
       models: filteredModels.filter((m) => m.tier === t),
     }))
     .filter((g) => g.models.length > 0);
@@ -609,7 +609,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   </>
                 )}
                 <span>&middot;</span>
-                <span>{selectedModel?.tier === "ULTRA" ? "2 cr" : "1 cr"}</span>
+                <span>{selectedModel ? `${getModelCreditCost(selectedModel, durationSec, resolution)} cr` : ""}</span>
               </div>
             </div>
             <svg

@@ -5,6 +5,7 @@ import Link from "next/link";
 
 const PLANS = [
   {
+    key: "STARTER",
     name: "Starter",
     monthlyPrice: "$15",
     annualPrice: null,
@@ -24,6 +25,7 @@ const PLANS = [
     hasAnnual: false,
   },
   {
+    key: "CREATOR",
     name: "Creator",
     monthlyPrice: "$50",
     annualPrice: "$40",
@@ -44,6 +46,7 @@ const PLANS = [
     hasAnnual: true,
   },
   {
+    key: "PRO",
     name: "Pro",
     monthlyPrice: "$100",
     annualPrice: "$80",
@@ -64,7 +67,8 @@ const PLANS = [
     hasAnnual: true,
   },
   {
-    name: "Studio",
+    key: "STUDIO",
+    name: "Studio (Annual Only)",
     monthlyPrice: null,
     annualPrice: "$165",
     displayPrice: "$165",
@@ -197,7 +201,7 @@ export function PricingCards() {
               </ul>
 
               <Link
-                href={unavailable ? "#" : "/sign-up"}
+                href={unavailable ? "#" : `/settings?plan=${plan.key}&billing=${isAnnual ? "annual" : "monthly"}`}
                 className={`mt-6 block rounded-[var(--radius-md)] px-4 py-2.5 text-center text-sm font-semibold transition-all duration-200 ${
                   unavailable
                     ? "pointer-events-none border border-[var(--border-subtle)] text-[var(--text-muted)]"
