@@ -70,11 +70,13 @@ function Dropdown({
   onChange,
   options,
   icon,
+  direction = "up",
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   icon?: React.ReactNode;
+  direction?: "up" | "down";
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+        <div className={`absolute left-0 z-50 min-w-[180px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl ${direction === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}>
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -495,23 +497,17 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         }}
       />
 
-      {/* Model + Quality row */}
-      <div className="flex gap-3">
-        <div className="flex-1 space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Model</label>
-          <ModelDropdown value={model} onChange={handleModelChange} options={MODEL_OPTIONS} direction="down" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quality</label>
-          <PillGroup
-            options={QUALITY_OPTIONS.map((q) => ({
-              ...q,
-              disabled: q.value !== "1k" && maxQuality === "1k",
-            }))}
-            value={quality}
-            onChange={(v) => setQuality(v as Quality)}
-          />
-        </div>
+      {/* Model + Quality — same line */}
+      <div className="flex items-center gap-2">
+        <ModelDropdown value={model} onChange={handleModelChange} options={MODEL_OPTIONS} direction="down" />
+        <PillGroup
+          options={QUALITY_OPTIONS.map((q) => ({
+            ...q,
+            disabled: q.value !== "1k" && maxQuality === "1k",
+          }))}
+          value={quality}
+          onChange={(v) => setQuality(v as Quality)}
+        />
       </div>
 
       {/* Style */}
@@ -534,29 +530,9 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         </div>
       </div>
 
-      {/* Aspect Ratio */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</label>
-        <div className="flex flex-wrap gap-1.5">
-          {ASPECT_RATIO_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setAspectRatio(opt.value)}
-              className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-all duration-150 ${
-                aspectRatio === opt.value
-                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
-                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Count */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Count</label>
+      {/* Aspect Ratio (dropdown) + Count — same line */}
+      <div className="flex items-center gap-2">
+        <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} direction="down" />
         <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
       </div>
 
