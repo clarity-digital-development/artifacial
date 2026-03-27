@@ -241,9 +241,10 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
 function GenerationCardItem({ gen }: { gen: GenerationCard }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const hasThumbnail = !!gen.thumbnailUrl;
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const hasThumbnail = !!gen.thumbnailUrl && !thumbFailed;
 
-  // Force first frame on mobile for videos without thumbnails
+  // Force first frame on mobile when no working thumbnail
   useForceFirstFrame(videoRef, gen.status === "COMPLETED" && !!gen.videoUrl && !hasThumbnail);
 
   useEffect(() => {
@@ -285,9 +286,10 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
                   />
                   {!isHovered && (
                     <img
-                      src={gen.thumbnailUrl}
+                      src={gen.thumbnailUrl!}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
+                      onError={() => setThumbFailed(true)}
                     />
                   )}
                 </>

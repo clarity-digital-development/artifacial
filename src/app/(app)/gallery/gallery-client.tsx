@@ -263,11 +263,12 @@ function GalleryCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [lazyRef, isVisible] = useLazyVisible("200px");
+  const [thumbFailed, setThumbFailed] = useState(false);
 
   const isImage = item.workflowType === "TEXT_TO_IMAGE";
-  const hasThumbnail = !!item.thumbnailUrl;
+  const hasThumbnail = !!item.thumbnailUrl && !thumbFailed;
 
-  // Force first frame load on mobile for videos without thumbnails
+  // Force first frame load on mobile when no working thumbnail
   useForceFirstFrame(videoRef, isVisible && !isImage && !hasThumbnail);
 
   // Play/pause on hover or select
@@ -383,9 +384,10 @@ function GalleryCard({
                 {/* Thumbnail overlay — shown until video plays */}
                 {!isHovered && !isSelected && (
                   <img
-                    src={item.thumbnailUrl}
+                    src={item.thumbnailUrl!}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
+                    onError={() => setThumbFailed(true)}
                   />
                 )}
               </>
