@@ -13,30 +13,31 @@ const STYLE_OPTIONS = [
   { value: "anime", label: "Anime" },
 ];
 
-type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra" };
+type Quality = "1k" | "2k";
+type ModelOption = { value: string; label: string; cost: number; tier: "budget" | "standard" | "ultra"; maxQuality: Quality };
 
 const SFW_MODEL_OPTIONS: ModelOption[] = [
-  // Fast (10 cr/img)
-  { value: "flux-schnell", label: "Flux Schnell", cost: 10, tier: "budget" },
-  // Quick (40 cr/img)
-  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 40, tier: "budget" },
-  // Standard (90 cr/img)
-  { value: "flux-dev", label: "Flux Dev", cost: 90, tier: "standard" },
-  { value: "qwen-image", label: "Qwen Image", cost: 90, tier: "standard" },
-  { value: "seedream-5", label: "Seedream 5 Lite", cost: 90, tier: "standard" },
-  // Premium (150 cr/img)
-  { value: "gemini-2.5-flash-image", label: "Nano Banana", cost: 150, tier: "ultra" },
-  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 150, tier: "ultra" },
-  // Ultra (450 cr/img)
-  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 450, tier: "ultra" },
+  { value: "flux-schnell", label: "Flux Schnell", cost: 10, tier: "budget", maxQuality: "1k" },
+  { value: "z-image-turbo", label: "Z-Image Turbo", cost: 40, tier: "budget", maxQuality: "2k" },
+  { value: "flux-dev", label: "Flux Dev", cost: 90, tier: "standard", maxQuality: "2k" },
+  { value: "qwen-image", label: "Qwen Image", cost: 90, tier: "standard", maxQuality: "1k" },       // hard-capped 1024px
+  { value: "seedream-5", label: "Seedream 5 Lite", cost: 90, tier: "standard", maxQuality: "1k" },   // aspect_ratio only
+  { value: "gemini-2.5-flash-image", label: "Nano Banana", cost: 150, tier: "ultra", maxQuality: "1k" },
+  { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 150, tier: "ultra", maxQuality: "1k" },
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro", cost: 450, tier: "ultra", maxQuality: "1k" },
 ];
 
 const NSFW_MODEL_OPTIONS: ModelOption[] = [
-  { value: "z-image-turbo-nsfw", label: "Z-Image Turbo", cost: 50, tier: "standard" },
-  { value: "chroma", label: "Chroma", cost: 50, tier: "standard" },
-  { value: "lustify-sdxl", label: "Lustify SDXL", cost: 50, tier: "standard" },
-  { value: "lustify-v7", label: "Lustify V7", cost: 50, tier: "standard" },
-  { value: "wai-illustrious", label: "WAI Illustrious", cost: 50, tier: "standard" },
+  { value: "z-image-turbo-nsfw", label: "Z-Image Turbo", cost: 50, tier: "standard", maxQuality: "2k" },
+  { value: "chroma", label: "Chroma", cost: 50, tier: "standard", maxQuality: "1k" },
+  { value: "lustify-sdxl", label: "Lustify SDXL", cost: 50, tier: "standard", maxQuality: "1k" },
+  { value: "lustify-v7", label: "Lustify V7", cost: 50, tier: "standard", maxQuality: "1k" },
+  { value: "wai-illustrious", label: "WAI Illustrious", cost: 50, tier: "standard", maxQuality: "1k" },
+];
+
+const QUALITY_OPTIONS: { value: Quality; label: string }[] = [
+  { value: "1k", label: "1K" },
+  { value: "2k", label: "2K" },
 ];
 
 const TIER_COLORS: Record<string, string> = {
@@ -146,10 +147,12 @@ function ModelDropdown({
   value,
   onChange,
   options,
+  direction = "up",
 }: {
   value: string;
   onChange: (v: string) => void;
   options: ModelOption[];
+  direction?: "up" | "down";
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -202,7 +205,7 @@ function ModelDropdown({
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[220px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+        <div className={`absolute left-0 z-50 min-w-[220px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl ${direction === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}>
           {groups.map((group) => (
             <div key={group.tier}>
               <div className="px-3.5 pb-0.5 pt-2">
@@ -244,7 +247,7 @@ function PillGroup({
   value,
   onChange,
 }: {
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -254,11 +257,14 @@ function PillGroup({
         <button
           key={opt.value}
           type="button"
+          disabled={opt.disabled}
           onClick={() => onChange(opt.value)}
           className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-all duration-150 ${
-            value === opt.value
-              ? "bg-[var(--accent-amber)] text-[var(--bg-deep)]"
-              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            opt.disabled
+              ? "cursor-not-allowed text-[var(--text-muted)]/30"
+              : value === opt.value
+                ? "bg-[var(--accent-amber)] text-[var(--bg-deep)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           }`}
         >
           {opt.label}
@@ -279,6 +285,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
   const [model, setModel] = useState(defaultModel);
+  const [quality, setQuality] = useState<Quality>("1k");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [count, setCount] = useState("1");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -297,7 +304,17 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
   const photoPreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const modelCost = MODEL_OPTIONS.find((m) => m.value === model)?.cost ?? 10;
+  const selectedModel = MODEL_OPTIONS.find((m) => m.value === model);
+  const modelCost = selectedModel?.cost ?? 10;
+  const maxQuality = selectedModel?.maxQuality ?? "1k";
+
+  const handleModelChange = useCallback((v: string) => {
+    setModel(v);
+    const newModel = MODEL_OPTIONS.find((m) => m.value === v);
+    if (newModel && quality !== "1k" && newModel.maxQuality === "1k") {
+      setQuality("1k");
+    }
+  }, [quality, MODEL_OPTIONS]);
   const creditCost = parseInt(count) * modelCost;
 
   const hasImages = images.some((img) => img !== null);
@@ -357,6 +374,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
       formData.append("style", style);
       formData.append("mode", mode);
       formData.append("model", model);
+      formData.append("quality", quality);
       formData.append("aspectRatio", aspectRatio);
       if (description.trim()) formData.append("description", description.trim());
       if (photo) formData.append("photo", photo);
@@ -477,24 +495,22 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         }}
       />
 
-      {/* Model */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Model</label>
-        <div className="flex flex-wrap gap-1.5">
-          {MODEL_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setModel(opt.value)}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
-                model === opt.value
-                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
-                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              {opt.label}
-              <span className={`text-[9px] font-bold uppercase ${TIER_COLORS[opt.tier]}`}>{opt.cost} cr</span>
-            </button>
-          ))}
+      {/* Model + Quality row */}
+      <div className="flex gap-3">
+        <div className="flex-1 space-y-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Model</label>
+          <ModelDropdown value={model} onChange={handleModelChange} options={MODEL_OPTIONS} direction="down" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quality</label>
+          <PillGroup
+            options={QUALITY_OPTIONS.map((q) => ({
+              ...q,
+              disabled: q.value !== "1k" && maxQuality === "1k",
+            }))}
+            value={quality}
+            onChange={(v) => setQuality(v as Quality)}
+          />
         </div>
       </div>
 
@@ -518,30 +534,30 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         </div>
       </div>
 
-      {/* Aspect Ratio + Count row */}
-      <div className="flex gap-4">
-        <div className="flex-1 space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</label>
-          <div className="flex flex-wrap gap-1.5">
-            {ASPECT_RATIO_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setAspectRatio(opt.value)}
-                className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-all duration-150 ${
-                  aspectRatio === opt.value
-                    ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
-                    : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+      {/* Aspect Ratio */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</label>
+        <div className="flex flex-wrap gap-1.5">
+          {ASPECT_RATIO_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setAspectRatio(opt.value)}
+              className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-all duration-150 ${
+                aspectRatio === opt.value
+                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
+                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Count</label>
-          <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
-        </div>
+      </div>
+
+      {/* Count */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Count</label>
+        <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
       </div>
 
       {/* Photo reference */}
@@ -673,8 +689,16 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
             <div className="mb-2.5 flex items-center gap-2">
               <ModelDropdown
                 value={model}
-                onChange={setModel}
+                onChange={handleModelChange}
                 options={MODEL_OPTIONS}
+              />
+              <PillGroup
+                options={QUALITY_OPTIONS.map((q) => ({
+                  ...q,
+                  disabled: q.value !== "1k" && maxQuality === "1k",
+                }))}
+                value={quality}
+                onChange={(v) => setQuality(v as Quality)}
               />
               <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
               <div className="h-4 w-px bg-[var(--border-default)]" />

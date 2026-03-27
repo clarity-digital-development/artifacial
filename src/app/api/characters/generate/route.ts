@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   const description = (formData.get("description") as string) ?? "";
   const model = (formData.get("model") as string) ?? "";
   const aspectRatio = (formData.get("aspectRatio") as string) ?? "1:1";
+  const quality = ((formData.get("quality") as string) ?? "1k") as "1k" | "2k";
   const photoFile = formData.get("photo") as File | null;
 
   console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(
         prompts.map(async (prompt, index) => {
           try {
-            const imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer);
+            const imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer, quality);
             const key = r2KeyForCharacterImage(
               userId,
               character.id,

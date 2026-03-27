@@ -125,15 +125,19 @@ export async function generateImageWithPiApi(
   prompt: string,
   modelId: PiApiImageModelId,
   aspectRatio: string = "1:1",
-  _referenceImageBuffer?: Buffer
+  _referenceImageBuffer?: Buffer,
+  quality: "1k" | "2k" = "1k"
 ): Promise<Buffer> {
   const model = getPiApiImageModel(modelId);
   if (!model) throw new Error(`Unknown PiAPI image model: ${modelId}`);
 
   const isGemini = model.piApiModel === "gemini";
-  const dims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
+  const baseDims = ASPECT_RATIO_MAP[aspectRatio] ?? ASPECT_RATIO_MAP["1:1"];
+  // Scale dimensions for 2K quality (only for models that accept width/height)
+  const scale = quality === "2k" && !isGemini && model.piApiModel !== "seedream" ? 2 : 1;
+  const dims = { width: baseDims.width * scale, height: baseDims.height * scale };
 
-  console.log(`[piapi-image] generate: model=${modelId}, piApiModel=${model.piApiModel}, taskType=${model.taskType}, aspectRatio=${aspectRatio}`);
+  console.log(`[piapi-image] generate: model=${modelId}, piApiModel=${model.piApiModel}, taskType=${model.taskType}, aspectRatio=${aspectRatio}, quality=${quality}, dims=${dims.width}x${dims.height}`);
 
   // Gemini models use aspect_ratio directly; others use width/height
   const input = isGemini
