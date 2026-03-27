@@ -1350,49 +1350,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               )}
             </div>
 
-            {/* ── Inline Details Card (desktop) ── */}
-            {selectedGeneration && (
-              <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-deep)]/80">
-                <GenerationDetailsCard
-                  prompt={selectedGeneration.prompt}
-                  modelName={selectedGeneration.modelName}
-                  durationSec={selectedGeneration.durationSec}
-                  resolution={selectedGeneration.resolution}
-                  withAudio={selectedGeneration.withAudio}
-                  creditCost={selectedGeneration.creditCost}
-                  status={selectedGeneration.status}
-                  errorMessage={selectedGeneration.errorMessage}
-                  createdAt={selectedGeneration.createdAt}
-                  generationTimeMs={selectedGeneration.generationTimeMs}
-                  outputUrl={selectedGeneration.outputUrl}
-                  onDownload={selectedGeneration.outputUrl ? () => {
-                    const a = document.createElement("a");
-                    a.href = selectedGeneration.outputUrl!;
-                    const ext = selectedGeneration.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
-                    a.download = `artifacial-${selectedGeneration.generationId}.${ext}`;
-                    a.click();
-                  } : undefined}
-                  onRegenerate={() => handleRegenerate(selectedGeneration)}
-                />
-                {/* Post-Processing Buttons */}
-                {selectedGeneration.status === "completed" && selectedGeneration.generationId && (
-                  <div className="px-4 pb-4">
-                    <PostProcessActions
-                      generation={selectedGeneration}
-                      credits={credits}
-                      characters={characters}
-                      onPostProcess={(newGen) => {
-                        setGenerations((prev) => [newGen, ...prev]);
-                        setSelectedId(newGen.id);
-                        setCredits((c) => c - newGen.creditCost);
-                        startPollingFor(newGen.id, newGen.generationId!);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* ── Thumbnail Strip ── */}
             {generations.length > 1 && (
               <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-deep)]/80 px-4 py-3">
@@ -1431,6 +1388,168 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           </>
         )}
       </div>
+
+      {/* ─── RIGHT PANEL (Details) — desktop only ─── */}
+      {!isMobile && (
+        <div className="w-[300px] shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
+          {selectedGeneration ? (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Details
+                </h3>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    selectedGeneration.status === "completed" ? "bg-[var(--success)]" :
+                    selectedGeneration.status === "failed" ? "bg-[var(--error)]" :
+                    "animate-pulse bg-[var(--accent-amber)]"
+                  }`}
+                />
+                <span className="text-sm font-medium capitalize text-[var(--text-primary)]">
+                  {selectedGeneration.status}
+                </span>
+                {(selectedGeneration.status === "queued" || selectedGeneration.status === "processing" || selectedGeneration.status === "submitting") && (
+                  <span className="ml-auto text-xs tabular-nums text-[var(--text-muted)]">
+                    {formatElapsed(selectedGeneration.elapsedSec)}
+                  </span>
+                )}
+              </div>
+
+              {/* Progress */}
+              {(selectedGeneration.status === "queued" || selectedGeneration.status === "processing") && (
+                <div>
+                  <ProgressBar
+                    progress={selectedGeneration.progress}
+                    animated={selectedGeneration.status === "processing"}
+                  />
+                  <p className="mt-1 text-center text-[10px] tabular-nums text-[var(--text-muted)]">
+                    {selectedGeneration.progress}%
+                  </p>
+                </div>
+              )}
+
+              {/* Error */}
+              {selectedGeneration.status === "failed" && selectedGeneration.errorMessage && (
+                <div className="rounded-[var(--radius-md)] border border-[var(--error)]/20 bg-[var(--error)]/5 px-3 py-2.5">
+                  <p className="text-xs text-[var(--error)]">{selectedGeneration.errorMessage}</p>
+                </div>
+              )}
+
+              {/* Prompt */}
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Prompt
+                </label>
+                <p className="max-h-32 overflow-y-auto text-xs leading-relaxed text-[var(--text-secondary)]">
+                  {selectedGeneration.prompt}
+                </p>
+              </div>
+
+              {/* Metadata */}
+              <div className="space-y-2">
+                <MetaRow label="Model" value={selectedGeneration.modelName} />
+                {selectedGeneration.durationSec > 0 && (
+                  <MetaRow label="Duration" value={`${selectedGeneration.durationSec}s`} />
+                )}
+                {selectedGeneration.durationSec > 0 && (
+                  <MetaRow label="Audio" value={selectedGeneration.withAudio ? "Yes" : "No"} />
+                )}
+                <MetaRow label="Credits" value={`${selectedGeneration.creditCost.toLocaleString()}`} />
+                <MetaRow label="Created" value={new Date(selectedGeneration.createdAt).toLocaleTimeString()} />
+                {selectedGeneration.generationTimeMs && (
+                  <MetaRow label="Gen time" value={`${(selectedGeneration.generationTimeMs / 1000).toFixed(1)}s`} />
+                )}
+              </div>
+
+              {/* Post-process chain link */}
+              {selectedGeneration.parentGenerationId && (
+                <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2">
+                  <p className="text-[10px] text-[var(--text-muted)]">Enhanced from</p>
+                  <button
+                    onClick={() => {
+                      const parent = generations.find(
+                        (g) => g.generationId === selectedGeneration.parentGenerationId
+                      );
+                      if (parent) setSelectedId(parent.id);
+                    }}
+                    className="text-xs font-medium text-[var(--accent-amber)] hover:underline"
+                  >
+                    Parent generation
+                  </button>
+                  {selectedGeneration.postProcessType && (
+                    <Badge variant="default" className="ml-2 !text-[9px]">
+                      {selectedGeneration.postProcessType.replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="space-y-2 pt-2">
+                {selectedGeneration.status === "completed" && selectedGeneration.outputUrl && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = selectedGeneration.outputUrl!;
+                      const ext = selectedGeneration.outputUrl?.match(/\.(png|jpg|jpeg|webp)/) ? "webp" : "mp4";
+                      a.download = `artifacial-${selectedGeneration.generationId}.${ext}`;
+                      a.click();
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download
+                  </Button>
+                )}
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => handleRegenerate(selectedGeneration)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  Regenerate
+                </Button>
+
+                {/* Post-Processing Buttons */}
+                {selectedGeneration.status === "completed" && selectedGeneration.generationId && (
+                  <PostProcessActions
+                    generation={selectedGeneration}
+                    credits={credits}
+                    characters={characters}
+                    onPostProcess={(newGen) => {
+                      setGenerations((prev) => [newGen, ...prev]);
+                      setSelectedId(newGen.id);
+                      setCredits((c) => c - newGen.creditCost);
+                      startPollingFor(newGen.id, newGen.generationId!);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-center text-xs text-[var(--text-muted)]">
+                Select a generation<br />to view details
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
 
     {/* Mobile bottom button + settings sheet */}
