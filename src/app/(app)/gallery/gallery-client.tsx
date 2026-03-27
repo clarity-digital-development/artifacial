@@ -102,6 +102,28 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
+  // Track the item being shown in the mobile sheet (persists during close animation)
+  const [mobileSheetItem, setMobileSheetItem] = useState<GalleryItem | null>(null);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
+  // Open mobile sheet when an item is selected
+  useEffect(() => {
+    if (selectedItem) {
+      setMobileSheetItem(selectedItem);
+      // Trigger open on next frame so the transition plays
+      requestAnimationFrame(() => setMobileSheetOpen(true));
+    }
+  }, [selectedItem]);
+
+  const handleMobileClose = useCallback(() => {
+    setMobileSheetOpen(false);
+    // Wait for the exit animation before clearing state
+    setTimeout(() => {
+      setSelectedId(null);
+      setMobileSheetItem(null);
+    }, 300);
+  }, []);
+
   return (
     <div className="flex gap-6">
       {/* Grid */}
@@ -179,10 +201,8 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
         </div>
       )}
 
-      {/* Mobile Detail Overlay */}
-      {selectedItem && (
-        <MobileDetailSheet item={selectedItem} onClose={() => setSelectedId(null)} />
-      )}
+      {/* Mobile Detail Sheet — always mounted for animation */}
+      <MobileDetailSheet item={mobileSheetItem} open={mobileSheetOpen} onClose={handleMobileClose} />
     </div>
   );
 }
@@ -411,110 +431,134 @@ function GalleryCard({
 
 // ─── Mobile Detail Sheet ───
 
-function MobileDetailSheet({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+function MobileDetailSheet({ item, open, onClose }: { item: GalleryItem | null; open: boolean; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const isImage = item.workflowType === "TEXT_TO_IMAGE";
+  const isImage = item?.workflowType === "TEXT_TO_IMAGE";
 
+  // Play/pause video based on open state
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isImage) return;
-    video.play().catch(() => {});
-    return () => { video.pause(); };
-  }, [item.id, isImage]);
+    if (open) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [open, item?.id, isImage]);
 
   // Lock body scroll when open
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [open]);
 
-  const modelName = MODEL_NAMES[item.modelId] ?? item.modelId;
-  const workflowLabel = WORKFLOW_LABELS[item.workflowType] ?? item.workflowType;
+  const modelName = item ? (MODEL_NAMES[item.modelId] ?? item.modelId) : "";
+  const workflowLabel = item ? (WORKFLOW_LABELS[item.workflowType] ?? item.workflowType) : "";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg-deep)] lg:hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Details</h3>
-        <button
-          onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-50 bg-black/70 transition-opacity duration-300 lg:hidden ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      />
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
-        {/* Large preview */}
-        {item.videoUrl && (
-          <div className={`overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] ${isImage ? "" : "aspect-video"}`}>
-            {isImage ? (
-              <img
-                src={item.videoUrl}
-                alt={item.prompt ?? "Generated image"}
-                className="w-full object-contain"
+      {/* Sheet */}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col rounded-t-2xl bg-[var(--bg-deep)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
+          open ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {/* Drag handle + close */}
+        <div className="flex items-center justify-between px-4 pb-2 pt-3">
+          <div className="h-1 w-10 rounded-full bg-white/20" />
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        {item && (
+          <div className="flex-1 overflow-y-auto px-4 pb-24">
+            {/* Large preview */}
+            {item.videoUrl && (
+              <div className={`overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] ${isImage ? "" : "aspect-video"}`}>
+                {isImage ? (
+                  <img
+                    src={item.videoUrl}
+                    alt={item.prompt ?? "Generated image"}
+                    className="w-full object-contain"
+                  />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    src={item.videoUrl}
+                    muted
+                    loop
+                    playsInline
+                    controls
+                    preload="auto"
+                    className="h-full w-full object-contain"
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Prompt */}
+            {item.prompt && (
+              <div className="mt-4">
+                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Prompt
+                </label>
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+                  {item.prompt}
+                </p>
+              </div>
+            )}
+
+            {/* Metadata */}
+            <div className="mt-4 space-y-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+              <MetaRow label="Model" value={modelName} />
+              <MetaRow label="Type" value={workflowLabel} />
+              <MetaRow label="Duration" value={`${item.durationSec}s`} />
+              <MetaRow label="Resolution" value={item.resolution} />
+              <MetaRow label="Audio" value={item.withAudio ? "Yes" : "No"} />
+              <MetaRow label="Credits" value={`${item.creditsCost}`} />
+              {item.generationTimeMs && (
+                <MetaRow label="Gen time" value={`${(item.generationTimeMs / 1000).toFixed(1)}s`} />
+              )}
+              <MetaRow
+                label="Created"
+                value={new Date(item.completedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
               />
-            ) : (
-              <video
-                ref={videoRef}
-                src={item.videoUrl}
-                muted
-                loop
-                playsInline
-                controls
-                preload="auto"
-                className="h-full w-full object-contain"
-              />
+            </div>
+
+            {/* Download */}
+            {item.videoUrl && (
+              <div className="mt-4">
+                <DownloadButton item={item} />
+              </div>
             )}
           </div>
         )}
-
-        {/* Prompt */}
-        {item.prompt && (
-          <div className="mt-4">
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Prompt
-            </label>
-            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-              {item.prompt}
-            </p>
-          </div>
-        )}
-
-        {/* Metadata */}
-        <div className="mt-4 space-y-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-          <MetaRow label="Model" value={modelName} />
-          <MetaRow label="Type" value={workflowLabel} />
-          <MetaRow label="Duration" value={`${item.durationSec}s`} />
-          <MetaRow label="Resolution" value={item.resolution} />
-          <MetaRow label="Audio" value={item.withAudio ? "Yes" : "No"} />
-          <MetaRow label="Credits" value={`${item.creditsCost}`} />
-          {item.generationTimeMs && (
-            <MetaRow label="Gen time" value={`${(item.generationTimeMs / 1000).toFixed(1)}s`} />
-          )}
-          <MetaRow
-            label="Created"
-            value={new Date(item.completedAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          />
-        </div>
-
-        {/* Download */}
-        {item.videoUrl && (
-          <div className="mt-4">
-            <DownloadButton item={item} />
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 
