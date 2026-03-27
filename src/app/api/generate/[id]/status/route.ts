@@ -17,16 +17,21 @@ function r2KeyForGeneration(userId: string, generationId: string, ext: string) {
   return `users/${userId}/generations/${generationId}/output.${ext}`;
 }
 
+function r2KeyForThumbnail(generationId: string) {
+  return `thumbnails/${generationId}.webp`;
+}
+
 /**
  * Download media from a URL and upload it to R2.
- * Returns the R2 key. External URLs expire, so we must persist to our own storage.
+ * Returns the R2 key and the downloaded buffer (for thumbnail generation).
+ * External URLs expire, so we must persist to our own storage.
  */
 async function persistMediaToR2(
   mediaUrl: string,
   userId: string,
   generationId: string,
   defaultExt: string = "mp4"
-): Promise<string> {
+): Promise<{ key: string; buffer: Buffer; contentType: string }> {
   const response = await fetch(mediaUrl);
   if (!response.ok) {
     throw new Error(`Failed to download media: ${response.status}`);
@@ -43,7 +48,33 @@ async function persistMediaToR2(
   const key = r2KeyForGeneration(userId, generationId, ext);
 
   await uploadToR2(key, buffer, contentType);
-  return key;
+  return { key, buffer, contentType };
+}
+
+/**
+ * Generate a thumbnail from an image buffer using sharp.
+ * Resizes to max 400px wide, quality 70, WebP format.
+ * Returns the R2 key or null if thumbnail generation fails.
+ */
+async function generateImageThumbnail(
+  imageBuffer: Buffer,
+  generationId: string
+): Promise<string | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const thumbnailBuffer = await sharp(imageBuffer)
+      .resize({ width: 400, withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .toBuffer();
+
+    const thumbnailKey = r2KeyForThumbnail(generationId);
+    await uploadToR2(thumbnailKey, thumbnailBuffer, "image/webp");
+    console.log(`[status] Thumbnail generated: ${thumbnailKey} (${thumbnailBuffer.length} bytes)`);
+    return thumbnailKey;
+  } catch (err) {
+    console.error(`[status] Thumbnail generation failed for gen=${generationId}:`, err);
+    return null;
+  }
 }
 
 // ─── Route Handler ───
@@ -96,12 +127,22 @@ export async function GET(
       outputUrl = await getSignedR2Url(outputUrl, 3600);
     }
 
+    // Sign thumbnail URL if it's an R2 key
+    let thumbnailUrl = generation.thumbnailUrl;
+    if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
+      try {
+        thumbnailUrl = await getSignedR2Url(thumbnailUrl, 3600);
+      } catch {
+        thumbnailUrl = null;
+      }
+    }
+
     return NextResponse.json({
       id: generation.id,
       status: generation.status,
       progress: generation.status === "COMPLETED" ? 100 : generation.progress,
       outputUrl,
-      thumbnailUrl: generation.thumbnailUrl,
+      thumbnailUrl,
       errorMessage: generation.errorMessage,
       queuedAt: generation.queuedAt,
       startedAt: generation.startedAt,
@@ -310,11 +351,21 @@ export async function GET(
       const isImage = !piStatus.videoUrl && !!piStatus.imageUrl;
       const defaultExt = isImage ? "webp" : "mp4";
       let r2Key: string | null = null;
+      let thumbnailKey: string | null = null;
       try {
-        r2Key = await persistMediaToR2(outputUrl, session.user.id, generation.id, defaultExt);
+        const result = await persistMediaToR2(outputUrl, session.user.id, generation.id, defaultExt);
+        r2Key = result.key;
+
+        // Generate thumbnail for images (TEXT_TO_IMAGE)
+        if (isImage) {
+          thumbnailKey = await generateImageThumbnail(result.buffer, generation.id);
+        }
       } catch (r2Error) {
         console.error("Failed to persist output to R2:", r2Error);
       }
+
+      // Use our generated thumbnail, fall back to PiAPI's thumbnail if available
+      const finalThumbnailKey = thumbnailKey || piStatus.thumbnailUrl || null;
 
       await prisma.generation.update({
         where: { id: generation.id },
@@ -322,7 +373,7 @@ export async function GET(
           status: "COMPLETED",
           progress: 100,
           outputUrl: r2Key ?? outputUrl,
-          thumbnailUrl: piStatus.thumbnailUrl || null,
+          thumbnailUrl: finalThumbnailKey,
           durationSec,
           completedAt,
           generationTimeMs,
@@ -333,12 +384,22 @@ export async function GET(
         ? await getSignedR2Url(r2Key, 3600)
         : outputUrl;
 
+      // Sign thumbnail URL if it's an R2 key
+      let signedThumbnailUrl = finalThumbnailKey;
+      if (finalThumbnailKey && !finalThumbnailKey.startsWith("http")) {
+        try {
+          signedThumbnailUrl = await getSignedR2Url(finalThumbnailKey, 3600);
+        } catch {
+          signedThumbnailUrl = null;
+        }
+      }
+
       return NextResponse.json({
         id: generation.id,
         status: "COMPLETED",
         progress: 100,
         outputUrl: signedUrl,
-        thumbnailUrl: piStatus.thumbnailUrl,
+        thumbnailUrl: signedThumbnailUrl,
         completedAt,
         generationTimeMs,
       });

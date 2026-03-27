@@ -54,6 +54,7 @@ interface GenerationCard {
   durationSec: number;
   withAudio: boolean;
   videoUrl: string | null;
+  thumbnailUrl?: string | null;
   progress: number;
   prompt: string;
   completedAt: string;
@@ -126,7 +127,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         {generations.slice(0, 3).map((g) => (
           <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {g.videoUrl ? (
-              <video src={g.videoUrl} muted playsInline className="h-full w-full object-cover" />
+              <video src={g.videoUrl} poster={g.thumbnailUrl ?? undefined} muted playsInline preload="none" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
                 {g.status === "COMPLETED" ? "No preview" : g.status}
@@ -203,10 +204,11 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
               <video
                 ref={videoRef}
                 src={gen.videoUrl}
+                poster={gen.thumbnailUrl ?? undefined}
                 muted
                 loop
                 playsInline
-                preload="metadata"
+                preload="none"
                 className="h-full w-full object-cover"
               />
               {/* Viewfinder corners on hover */}

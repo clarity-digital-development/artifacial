@@ -55,9 +55,21 @@ export default async function GalleryPage() {
       const params = g.inputParams as Record<string, unknown> | null;
       const prompt = (params?.prompt as string) ?? null;
 
+      let signedThumbnailUrl: string | null = null;
+      try {
+        if (g.thumbnailUrl) {
+          signedThumbnailUrl = g.thumbnailUrl.startsWith("http")
+            ? g.thumbnailUrl
+            : await getSignedR2Url(g.thumbnailUrl, 86400);
+        }
+      } catch {
+        // R2 may not be configured in dev
+      }
+
       return {
         id: g.id,
         videoUrl,
+        thumbnailUrl: signedThumbnailUrl,
         prompt,
         modelId: g.modelId ?? "unknown",
         workflowType: g.workflowType,

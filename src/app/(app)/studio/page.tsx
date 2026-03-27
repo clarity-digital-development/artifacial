@@ -28,6 +28,7 @@ export default async function StudioPage() {
         durationSec: true,
         withAudio: true,
         outputUrl: true,
+        thumbnailUrl: true,
         progress: true,
         queuedAt: true,
         completedAt: true,
@@ -66,6 +67,17 @@ export default async function StudioPage() {
       const params = g.inputParams as Record<string, unknown> | null;
       const prompt = (params?.prompt as string) ?? "";
 
+      let signedThumbnailUrl: string | null = null;
+      if (g.thumbnailUrl) {
+        try {
+          signedThumbnailUrl = g.thumbnailUrl.startsWith("http")
+            ? g.thumbnailUrl
+            : await getSignedR2Url(g.thumbnailUrl, 3600);
+        } catch {
+          // R2 may not be configured
+        }
+      }
+
       return {
         id: g.id,
         status: g.status,
@@ -74,6 +86,7 @@ export default async function StudioPage() {
         durationSec: g.durationSec ?? 5,
         withAudio: g.withAudio,
         videoUrl,
+        thumbnailUrl: signedThumbnailUrl,
         progress: g.progress,
         prompt,
         completedAt: g.completedAt?.toISOString() ?? g.queuedAt.toISOString(),

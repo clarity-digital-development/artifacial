@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 
 // ─── Model name lookup (client-side, matches registry) ───
@@ -53,6 +53,7 @@ const WORKFLOW_LABELS: Record<string, string> = {
 interface GalleryItem {
   id: string;
   videoUrl: string | null;
+  thumbnailUrl?: string | null;
   prompt: string | null;
   modelId: string;
   workflowType: string;
@@ -62,6 +63,37 @@ interface GalleryItem {
   creditsCost: number;
   generationTimeMs: number | null;
   completedAt: string;
+}
+
+// ─── Lazy visibility hook (IntersectionObserver) ───
+
+function useLazyVisible(rootMargin = "200px"): [React.RefCallback<HTMLElement>, boolean] {
+  const [isVisible, setIsVisible] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const ref = useCallback((node: HTMLElement | null) => {
+    // Disconnect previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    if (!node || isVisible) return;
+
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observerRef.current?.disconnect();
+          observerRef.current = null;
+        }
+      },
+      { rootMargin }
+    );
+    observerRef.current.observe(node);
+  }, [isVisible, rootMargin]);
+
+  return [ref, isVisible];
 }
 
 // ─── Component ───
@@ -112,15 +144,17 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
                   <img
                     src={selectedItem.videoUrl}
                     alt={selectedItem.prompt ?? "Generated image"}
+                    loading="lazy"
                     className="w-full object-cover"
                   />
                 ) : (
                   <video
                     src={selectedItem.videoUrl}
+                    poster={selectedItem.thumbnailUrl ?? undefined}
                     className="w-full object-cover"
                     controls
                     playsInline
-                    preload="metadata"
+                    preload="none"
                   />
                 )}
               </div>
@@ -217,9 +251,11 @@ function GalleryCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [lazyRef, isVisible] = useLazyVisible("200px");
 
   const isImage = item.workflowType === "TEXT_TO_IMAGE";
 
+  // Load video data on hover or select (since preload="none")
   useEffect(() => {
     if (isImage) return;
     const video = videoRef.current;
@@ -292,6 +328,7 @@ function GalleryCard({
 
   return (
     <div
+      ref={lazyRef}
       role="button"
       tabIndex={0}
       onClick={onSelect}
@@ -307,21 +344,26 @@ function GalleryCard({
         }`}
       >
         <div className={`relative ${isImage ? "aspect-square" : "aspect-video"} overflow-hidden bg-[var(--bg-elevated)]`}>
-          {item.videoUrl ? (
+          {!isVisible ? (
+            /* Placeholder shown until card scrolls near viewport */
+            <div className="h-full w-full bg-[var(--bg-elevated)]" />
+          ) : item.videoUrl ? (
             isImage ? (
               <img
-                src={item.videoUrl}
+                src={isSelected ? item.videoUrl : (item.thumbnailUrl ?? item.videoUrl)}
                 alt={item.prompt ?? "Generated image"}
+                loading="lazy"
                 className="h-full w-full object-cover"
               />
             ) : (
               <video
                 ref={videoRef}
                 src={item.videoUrl}
+                poster={item.thumbnailUrl ?? undefined}
                 muted
                 loop
                 playsInline
-                preload="metadata"
+                preload="none"
                 className="h-full w-full object-cover"
               />
             )
