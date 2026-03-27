@@ -364,8 +364,23 @@ export async function GET(
         console.error("Failed to persist output to R2:", r2Error);
       }
 
-      // Use our generated thumbnail, fall back to PiAPI's thumbnail if available
-      const finalThumbnailKey = thumbnailKey || piStatus.thumbnailUrl || null;
+      // Persist PiAPI video thumbnail to R2 (external URLs expire)
+      if (!thumbnailKey && piStatus.thumbnailUrl) {
+        try {
+          const thumbResp = await fetch(piStatus.thumbnailUrl);
+          if (thumbResp.ok) {
+            const thumbBuffer = Buffer.from(await thumbResp.arrayBuffer());
+            const thumbKey = r2KeyForThumbnail(generation.id);
+            await uploadToR2(thumbKey, thumbBuffer, "image/webp");
+            thumbnailKey = thumbKey;
+            console.log(`[status] Video thumbnail persisted: ${thumbKey}`);
+          }
+        } catch (thumbErr) {
+          console.error(`[status] Failed to persist video thumbnail:`, thumbErr);
+        }
+      }
+
+      const finalThumbnailKey = thumbnailKey || null;
 
       await prisma.generation.update({
         where: { id: generation.id },

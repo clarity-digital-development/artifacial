@@ -130,7 +130,13 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
               g.thumbnailUrl ? (
                 <img src={g.thumbnailUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <video src={g.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-[var(--bg-elevated)]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </div>
+                </div>
               )
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
@@ -225,15 +231,14 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
                   )}
                 </>
               ) : (
-                <video
-                  ref={videoRef}
-                  src={gen.videoUrl}
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-cover"
-                />
+                <div className="flex h-full flex-col items-center justify-center gap-2 bg-[var(--bg-elevated)]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">{modelName}</span>
+                </div>
               )}
               {/* Viewfinder corners on hover */}
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
