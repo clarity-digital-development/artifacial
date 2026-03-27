@@ -78,7 +78,7 @@ export function SettingsSheet({ open, onClose, children }: SettingsSheetProps) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={`no-stagger fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-transform duration-300 md:hidden ${
-          open ? "translate-y-0" : "translate-y-full"
+          open ? "translate-y-0" : "translate-y-full pointer-events-none"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
