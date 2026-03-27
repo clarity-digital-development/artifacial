@@ -118,7 +118,7 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
         </div>
       </div>
 
-      {/* Detail Sidebar */}
+      {/* Desktop Detail Sidebar — prompt + metadata only, no preview */}
       {selectedItem && (
         <div className="hidden w-[280px] shrink-0 lg:block">
           <div className="sticky top-6 space-y-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
@@ -136,29 +136,6 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
                 </svg>
               </button>
             </div>
-
-            {/* Preview */}
-            {selectedItem.videoUrl && (
-              <div className="overflow-hidden rounded-[var(--radius-md)]">
-                {selectedItem.workflowType === "TEXT_TO_IMAGE" ? (
-                  <img
-                    src={selectedItem.videoUrl}
-                    alt={selectedItem.prompt ?? "Generated image"}
-                    loading="lazy"
-                    className="w-full object-cover"
-                  />
-                ) : (
-                  <video
-                    src={selectedItem.videoUrl}
-                    poster={selectedItem.thumbnailUrl ?? undefined}
-                    className="w-full object-cover"
-                    controls
-                    playsInline
-                    preload="none"
-                  />
-                )}
-              </div>
-            )}
 
             {/* Prompt */}
             {selectedItem.prompt && (
@@ -194,45 +171,17 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
               />
             </div>
 
-            {/* Actions */}
+            {/* Download */}
             {selectedItem.videoUrl && (
-              <button
-                onClick={async () => {
-                  const ext = selectedItem.workflowType === "TEXT_TO_IMAGE" ? "webp" : "mp4";
-                  const mimeType = selectedItem.workflowType === "TEXT_TO_IMAGE" ? "image/webp" : "video/mp4";
-                  const fileName = `artifacial-${selectedItem.id}.${ext}`;
-                  try {
-                    const res = await fetch(selectedItem.videoUrl!);
-                    const blob = await res.blob();
-                    if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
-                      await navigator.share({ files: [new File([blob], fileName, { type: mimeType })] });
-                      return;
-                    }
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = fileName;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  } catch {
-                    const a = document.createElement("a");
-                    a.href = selectedItem.videoUrl!;
-                    a.download = fileName;
-                    a.click();
-                  }
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-all duration-200 hover:bg-[var(--bg-elevated)]"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download
-              </button>
+              <DownloadButton item={selectedItem} />
             )}
           </div>
         </div>
+      )}
+
+      {/* Mobile Detail Overlay */}
+      {selectedItem && (
+        <MobileDetailSheet item={selectedItem} onClose={() => setSelectedId(null)} />
       )}
     </div>
   );
@@ -457,6 +406,161 @@ function GalleryCard({
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Mobile Detail Sheet ───
+
+function MobileDetailSheet({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isImage = item.workflowType === "TEXT_TO_IMAGE";
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || isImage) return;
+    video.play().catch(() => {});
+    return () => { video.pause(); };
+  }, [item.id, isImage]);
+
+  // Lock body scroll when open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const modelName = MODEL_NAMES[item.modelId] ?? item.modelId;
+  const workflowLabel = WORKFLOW_LABELS[item.workflowType] ?? item.workflowType;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg-deep)] lg:hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Details</h3>
+        <button
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-4 pb-24">
+        {/* Large preview */}
+        {item.videoUrl && (
+          <div className={`overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] ${isImage ? "" : "aspect-video"}`}>
+            {isImage ? (
+              <img
+                src={item.videoUrl}
+                alt={item.prompt ?? "Generated image"}
+                className="w-full object-contain"
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                src={item.videoUrl}
+                muted
+                loop
+                playsInline
+                controls
+                preload="auto"
+                className="h-full w-full object-contain"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Prompt */}
+        {item.prompt && (
+          <div className="mt-4">
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Prompt
+            </label>
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+              {item.prompt}
+            </p>
+          </div>
+        )}
+
+        {/* Metadata */}
+        <div className="mt-4 space-y-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+          <MetaRow label="Model" value={modelName} />
+          <MetaRow label="Type" value={workflowLabel} />
+          <MetaRow label="Duration" value={`${item.durationSec}s`} />
+          <MetaRow label="Resolution" value={item.resolution} />
+          <MetaRow label="Audio" value={item.withAudio ? "Yes" : "No"} />
+          <MetaRow label="Credits" value={`${item.creditsCost}`} />
+          {item.generationTimeMs && (
+            <MetaRow label="Gen time" value={`${(item.generationTimeMs / 1000).toFixed(1)}s`} />
+          )}
+          <MetaRow
+            label="Created"
+            value={new Date(item.completedAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          />
+        </div>
+
+        {/* Download */}
+        {item.videoUrl && (
+          <div className="mt-4">
+            <DownloadButton item={item} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Download Button ───
+
+function DownloadButton({ item }: { item: GalleryItem }) {
+  const isImage = item.workflowType === "TEXT_TO_IMAGE";
+
+  const handleDownload = async () => {
+    if (!item.videoUrl) return;
+    const ext = isImage ? "webp" : "mp4";
+    const mimeType = isImage ? "image/webp" : "video/mp4";
+    const fileName = `artifacial-${item.id}.${ext}`;
+    try {
+      const res = await fetch(item.videoUrl);
+      const blob = await res.blob();
+      if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
+        await navigator.share({ files: [new File([blob], fileName, { type: mimeType })] });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      const a = document.createElement("a");
+      a.href = item.videoUrl!;
+      a.download = fileName;
+      a.click();
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-all duration-200 hover:bg-[var(--bg-elevated)]"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      Download
+    </button>
   );
 }
 
