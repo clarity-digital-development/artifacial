@@ -27,14 +27,14 @@ export const POST_PROCESS_WORKFLOW_MAP: Record<PostProcessType, WorkflowType> = 
   AI_HUG: "AI_HUG",
 };
 
-/** Credit costs per post-process operation */
+/** Credit costs per post-process operation (1 credit = $0.00025) */
 export const POST_PROCESS_CREDITS: Record<PostProcessType, number> = {
-  FACE_SWAP: 1,           // $0.01 per swap — PiAPI image toolkit
-  VIDEO_FACE_SWAP: 2,     // $0.004/frame — PiAPI video toolkit
-  UPSCALE: 1,             // Future — not yet implemented via PiAPI
-  BACKGROUND_REMOVAL: 1,  // $0.001 per image — PiAPI image toolkit
-  VIRTUAL_TRY_ON: 1,      // $0.07 per output — Kling virtual try-on
-  AI_HUG: 1,              // PiAPI hug-video
+  FACE_SWAP: 40,            // $0.01 per swap — PiAPI image toolkit
+  VIDEO_FACE_SWAP: 2400,    // ~$0.60 per 5s video (~150 frames × $0.004) — PiAPI video toolkit
+  UPSCALE: 40,              // ~$0.01 est. — not yet implemented via PiAPI
+  BACKGROUND_REMOVAL: 5,    // $0.001 per image — PiAPI image toolkit
+  VIRTUAL_TRY_ON: 280,      // $0.07 per output — Kling virtual try-on
+  AI_HUG: 80,               // ~$0.02 — PiAPI hug-video
 };
 
 /**
