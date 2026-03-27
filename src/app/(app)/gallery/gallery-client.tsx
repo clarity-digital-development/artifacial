@@ -96,6 +96,48 @@ function useLazyVisible(rootMargin = "200px"): [React.RefCallback<HTMLElement>, 
   return [ref, isVisible];
 }
 
+// ─── Force first frame on mobile (play→pause trick) ───
+
+function useForceFirstFrame(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  enabled: boolean
+) {
+  const forced = useRef(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !enabled || forced.current) return;
+
+    const tryForce = () => {
+      if (forced.current) return;
+      forced.current = true;
+      // Brief play forces mobile Safari to fetch the first frame
+      video.play().then(() => {
+        video.pause();
+        video.currentTime = 0;
+      }).catch(() => {});
+    };
+
+    // If video already has data, no need to force
+    if (video.readyState >= 2) return;
+
+    // Wait for enough data to play, then force
+    video.addEventListener("loadeddata", tryForce, { once: true });
+
+    // Fallback: if loadeddata never fires (preload ignored), trigger a load
+    const timer = setTimeout(() => {
+      if (!forced.current && video.readyState < 2) {
+        video.load();
+      }
+    }, 500);
+
+    return () => {
+      video.removeEventListener("loadeddata", tryForce);
+      clearTimeout(timer);
+    };
+  }, [videoRef, enabled]);
+}
+
 // ─── Component ───
 
 export function GalleryClient({ items }: { items: GalleryItem[] }) {
@@ -223,8 +265,12 @@ function GalleryCard({
   const [lazyRef, isVisible] = useLazyVisible("200px");
 
   const isImage = item.workflowType === "TEXT_TO_IMAGE";
+  const hasThumbnail = !!item.thumbnailUrl;
 
-  // Load video data on hover or select (since preload="none")
+  // Force first frame load on mobile for videos without thumbnails
+  useForceFirstFrame(videoRef, isVisible && !isImage && !hasThumbnail);
+
+  // Play/pause on hover or select
   useEffect(() => {
     if (isImage) return;
     const video = videoRef.current;

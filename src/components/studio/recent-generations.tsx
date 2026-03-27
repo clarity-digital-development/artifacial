@@ -1,8 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+
+// ─── Force first frame on mobile (play→pause trick) ───
+
+function useForceFirstFrame(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  enabled: boolean
+) {
+  const forced = useRef(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !enabled || forced.current) return;
+
+    const tryForce = () => {
+      if (forced.current) return;
+      forced.current = true;
+      video.play().then(() => {
+        video.pause();
+        video.currentTime = 0;
+      }).catch(() => {});
+    };
+
+    if (video.readyState >= 2) return;
+
+    video.addEventListener("loadeddata", tryForce, { once: true });
+
+    const timer = setTimeout(() => {
+      if (!forced.current && video.readyState < 2) {
+        video.load();
+      }
+    }, 500);
+
+    return () => {
+      video.removeEventListener("loadeddata", tryForce);
+      clearTimeout(timer);
+    };
+  }, [videoRef, enabled]);
+}
 
 // ─── Model name lookup ───
 
@@ -187,6 +225,10 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
 function GenerationCardItem({ gen }: { gen: GenerationCard }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const hasThumbnail = !!gen.thumbnailUrl;
+
+  // Force first frame on mobile for videos without thumbnails
+  useForceFirstFrame(videoRef, gen.status === "COMPLETED" && !!gen.videoUrl && !hasThumbnail);
 
   useEffect(() => {
     const video = videoRef.current;
