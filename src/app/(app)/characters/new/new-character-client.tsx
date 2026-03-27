@@ -497,88 +497,95 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         }}
       />
 
-      {/* Model + Quality — same line */}
-      <div className="flex items-center gap-2">
-        <ModelDropdown value={model} onChange={handleModelChange} options={MODEL_OPTIONS} direction="down" />
-        <PillGroup
-          options={QUALITY_OPTIONS.map((q) => ({
-            ...q,
-            disabled: q.value !== "1k" && maxQuality === "1k",
-          }))}
-          value={quality}
-          onChange={(v) => setQuality(v as Quality)}
-        />
-      </div>
+      {/* ── Configuration rows ── */}
+      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-deep)]/60">
+        {/* Model */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">Model</span>
+          <ModelDropdown value={model} onChange={handleModelChange} options={MODEL_OPTIONS} direction="down" />
+        </div>
+        <div className="mx-4 border-t border-[var(--border-subtle)]" />
 
-      {/* Style */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Style</label>
-        <div className="flex flex-wrap gap-1.5">
-          {STYLE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setStyle(opt.value)}
-              className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
-                style === opt.value
-                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
-                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        {/* Quality */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">Quality</span>
+          <PillGroup
+            options={QUALITY_OPTIONS.map((q) => ({
+              ...q,
+              disabled: q.value !== "1k" && maxQuality === "1k",
+            }))}
+            value={quality}
+            onChange={(v) => setQuality(v as Quality)}
+          />
+        </div>
+        <div className="mx-4 border-t border-[var(--border-subtle)]" />
+
+        {/* Style */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">Style</span>
+          <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} direction="down" />
+        </div>
+        <div className="mx-4 border-t border-[var(--border-subtle)]" />
+
+        {/* Aspect Ratio */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">Ratio</span>
+          <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} direction="down" />
+        </div>
+        <div className="mx-4 border-t border-[var(--border-subtle)]" />
+
+        {/* Count */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-[13px] font-medium text-[var(--text-secondary)]">Images</span>
+          <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
         </div>
       </div>
 
-      {/* Aspect Ratio (dropdown) + Count — same line */}
-      <div className="flex items-center gap-2">
-        <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} direction="down" />
-        <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
-      </div>
-
-      {/* Photo reference */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Reference Photo</label>
-        {photoPreview ? (
-          <div className="flex items-center gap-3">
-            <div className="group relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg">
-              <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
-              <button
-                onClick={removePhoto}
-                className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <span className="text-xs text-[var(--text-muted)]">Tap to remove</span>
+      {/* ── Reference photo ── */}
+      {photoPreview ? (
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-deep)]/60 px-4 py-3">
+          <div className="group relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg">
+            <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
+            <button
+              onClick={removePhoto}
+              className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-        ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-input)] py-4 text-[12px] font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent-amber)] hover:text-[var(--accent-amber)]"
-            type="button"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex-1">
+            <p className="text-[13px] font-medium text-[var(--text-primary)]">Reference photo</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Tap image to remove</p>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-deep)]/40 px-4 py-3.5 transition-colors hover:border-[var(--accent-amber)]/50"
+          type="button"
+        >
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--bg-elevated)]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)]">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <polyline points="21 15 16 10 5 21" />
             </svg>
-            Upload a selfie or reference
-          </button>
-        )}
-      </div>
+          </div>
+          <div className="text-left">
+            <p className="text-[13px] font-medium text-[var(--text-secondary)]">Add reference photo</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Upload a selfie or image</p>
+          </div>
+        </button>
+      )}
 
-      {/* Description */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Description</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
-          rows={3}
-          className="w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-3 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]"
-        />
-      </div>
+      {/* ── Description ── */}
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
+        rows={3}
+        className="w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-deep)]/60 px-4 py-3 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus:outline-none focus:border-[var(--accent-amber)]/40"
+      />
 
       {/* Error */}
       {error && (
@@ -594,7 +601,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
           if (isMobile) setSheetOpen(false);
         }}
         disabled={generating}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-amber)] py-3 text-[14px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-amber)] py-3.5 text-[14px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {generating ? (
           <>
