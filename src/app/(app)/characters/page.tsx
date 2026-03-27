@@ -4,17 +4,12 @@ import { redirect } from "next/navigation";
 import { getCharactersWithSignedUrls } from "@/lib/characters";
 
 export default async function CharactersPage() {
-  const t0 = Date.now();
   const session = await auth();
-  console.log(`[characters] auth: ${Date.now() - t0}ms`);
   // TODO: re-enable auth redirect before shipping
   // if (!session?.user?.id) redirect("/sign-in");
   const userId = session?.user?.id;
 
-  const t1 = Date.now();
   const characters = userId ? await getCharactersWithSignedUrls(userId) : [];
-  console.log(`[characters] getCharacters (${characters.length}): ${Date.now() - t1}ms`);
-  console.log(`[characters] total: ${Date.now() - t0}ms`);
 
   return (
     <div>
