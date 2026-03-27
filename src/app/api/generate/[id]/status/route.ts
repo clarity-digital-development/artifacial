@@ -77,6 +77,56 @@ async function generateImageThumbnail(
   }
 }
 
+/**
+ * Extract first frame from a video buffer using ffmpeg, then resize with sharp.
+ * ffmpeg reads from stdin and writes a PNG frame to stdout — no temp files.
+ * Returns the R2 key or null if extraction fails.
+ */
+async function generateVideoThumbnail(
+  videoBuffer: Buffer,
+  generationId: string
+): Promise<string | null> {
+  try {
+    const { execFile } = await import("child_process");
+    const sharp = (await import("sharp")).default;
+
+    // Extract first frame: ffmpeg reads from stdin, writes single PNG to stdout
+    const frameBuffer = await new Promise<Buffer>((resolve, reject) => {
+      const proc = execFile(
+        "ffmpeg",
+        [
+          "-i", "pipe:0",        // read from stdin
+          "-vframes", "1",       // one frame only
+          "-f", "image2pipe",    // output as image pipe
+          "-vcodec", "png",      // PNG format
+          "pipe:1",              // write to stdout
+        ],
+        { maxBuffer: 10 * 1024 * 1024, encoding: "buffer" as BufferEncoding },
+        (err, stdout) => {
+          if (err) reject(err);
+          else resolve(Buffer.from(stdout as unknown as ArrayBuffer));
+        }
+      );
+      proc.stdin?.write(videoBuffer);
+      proc.stdin?.end();
+    });
+
+    // Resize with sharp to 400px webp
+    const thumbnailBuffer = await sharp(frameBuffer)
+      .resize({ width: 400, withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .toBuffer();
+
+    const thumbnailKey = r2KeyForThumbnail(generationId);
+    await uploadToR2(thumbnailKey, thumbnailBuffer, "image/webp");
+    console.log(`[status] Video thumbnail generated: ${thumbnailKey} (${thumbnailBuffer.length} bytes)`);
+    return thumbnailKey;
+  } catch (err) {
+    console.error(`[status] Video thumbnail generation failed for gen=${generationId}:`, err);
+    return null;
+  }
+}
+
 // ─── Route Handler ───
 
 export async function GET(
@@ -356,15 +406,17 @@ export async function GET(
         const result = await persistMediaToR2(outputUrl, session.user.id, generation.id, defaultExt);
         r2Key = result.key;
 
-        // Generate thumbnail for images (TEXT_TO_IMAGE)
+        // Generate thumbnail — images via sharp, videos via ffmpeg first-frame extraction
         if (isImage) {
           thumbnailKey = await generateImageThumbnail(result.buffer, generation.id);
+        } else {
+          thumbnailKey = await generateVideoThumbnail(result.buffer, generation.id);
         }
       } catch (r2Error) {
         console.error("Failed to persist output to R2:", r2Error);
       }
 
-      // Persist PiAPI video thumbnail to R2 (external URLs expire)
+      // Fallback: persist PiAPI's thumbnail URL to R2 if ffmpeg extraction failed
       if (!thumbnailKey && piStatus.thumbnailUrl) {
         try {
           const thumbResp = await fetch(piStatus.thumbnailUrl);
@@ -373,10 +425,10 @@ export async function GET(
             const thumbKey = r2KeyForThumbnail(generation.id);
             await uploadToR2(thumbKey, thumbBuffer, "image/webp");
             thumbnailKey = thumbKey;
-            console.log(`[status] Video thumbnail persisted: ${thumbKey}`);
+            console.log(`[status] Video thumbnail persisted from PiAPI: ${thumbKey}`);
           }
         } catch (thumbErr) {
-          console.error(`[status] Failed to persist video thumbnail:`, thumbErr);
+          console.error(`[status] Failed to persist PiAPI thumbnail:`, thumbErr);
         }
       }
 
