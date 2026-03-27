@@ -87,8 +87,8 @@ export function SettingsSheet({ open, onClose, children }: SettingsSheetProps) {
           <div className="h-1 w-10 rounded-full bg-white/20" />
         </div>
 
-        {/* Content */}
-        <div className="px-4 pb-6">
+        {/* Content — pb-20 clears the mobile nav bar */}
+        <div className="px-4 pb-20">
           {children}
         </div>
       </div>
