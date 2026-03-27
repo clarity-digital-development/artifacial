@@ -1194,7 +1194,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   return (
     <>
-    <div className={`flex h-[calc(100vh-var(--topbar-h,64px))] relative z-[45] bg-[var(--bg-deep)] ${isMobile ? "-mx-4 -my-4" : "-mx-8 -my-6 lg:-mx-12"}`}>
+    <div className={`flex relative bg-[var(--bg-deep)] ${isMobile ? "-mx-4 -my-4 h-[calc(100vh-56px-60px)] pb-16" : "-mx-8 -my-6 lg:-mx-12 h-[calc(100vh-var(--topbar-h,64px))]"}`}>
       {/* ─── LEFT PANEL (desktop only) ─── */}
       {!isMobile && (
         <div className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--border-subtle)] bg-[var(--bg-deep)]/50 p-5">
