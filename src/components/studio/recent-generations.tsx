@@ -98,6 +98,35 @@ interface GenerationCard {
   completedAt: string;
 }
 
+// ─── Mobile Thumbnail (with broken-image fallback) ───
+
+function MobileThumbnail({ thumbnailUrl, modelId }: { thumbnailUrl: string | null; modelId: string }) {
+  const [failed, setFailed] = useState(false);
+  const modelName = MODEL_NAMES[modelId] ?? modelId;
+
+  if (thumbnailUrl && !failed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt=""
+        className="h-full w-full object-cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-[var(--bg-elevated)]">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+      </div>
+      <span className="text-[9px] text-[var(--text-muted)]">{modelName}</span>
+    </div>
+  );
+}
+
 // ─── Component ───
 
 export function RecentGenerations({ generations }: { generations: GenerationCard[] }) {
@@ -165,20 +194,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         {generations.slice(0, 3).map((g) => (
           <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {g.videoUrl ? (
-              g.thumbnailUrl ? (
-                <img src={g.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="relative h-full w-full">
-                  <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-elevated)]">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
-                    </div>
-                  </div>
-                  <video src={g.videoUrl} muted playsInline preload="metadata" className="relative h-full w-full object-cover" />
-                </div>
-              )
+              <MobileThumbnail thumbnailUrl={g.thumbnailUrl ?? null} modelId={g.modelId} />
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
                 {g.status === "COMPLETED" ? "No preview" : g.status}
