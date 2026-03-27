@@ -208,13 +208,34 @@ function GalleryCard({
     const video = videoRef.current;
     if (!video) return;
 
-    if (isHovered) {
+    if (isHovered || isSelected) {
       video.play().catch(() => {});
     } else {
       video.pause();
       video.currentTime = 0;
     }
-  }, [isHovered, isImage]);
+  }, [isHovered, isSelected, isImage]);
+
+  const handleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (video) {
+      video.requestFullscreen?.().catch(() => {});
+    } else if (isImage && item.videoUrl) {
+      // For images, open in a new tab
+      window.open(item.videoUrl, "_blank");
+    }
+  };
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!item.videoUrl) return;
+    const a = document.createElement("a");
+    a.href = item.videoUrl;
+    const ext = isImage ? "webp" : "mp4";
+    a.download = `artifacial-${item.id}.${ext}`;
+    a.click();
+  };
 
   const modelName = MODEL_NAMES[item.modelId] ?? item.modelId;
   const workflowLabel = WORKFLOW_LABELS[item.workflowType] ?? item.workflowType;
@@ -259,12 +280,43 @@ function GalleryCard({
           )}
 
           {/* Hover overlay: viewfinder corners */}
-          <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+          <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${isHovered && !isSelected ? "opacity-100" : "opacity-0"}`}>
             <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-[var(--accent-amber)]/50" />
             <span className="absolute right-3 top-3 h-3 w-3 border-r border-t border-[var(--accent-amber)]/50" />
             <span className="absolute bottom-3 left-3 h-3 w-3 border-b border-l border-[var(--accent-amber)]/50" />
             <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[var(--accent-amber)]/50" />
           </div>
+
+          {/* Action buttons when selected */}
+          {isSelected && item.videoUrl && (
+            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2.5 pt-8">
+              {/* Save */}
+              <button
+                onClick={handleSave}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70"
+                title="Save"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </button>
+              {/* Fullscreen */}
+              <button
+                onClick={handleFullscreen}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70"
+                title="Fullscreen"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer — model badge + metadata */}
