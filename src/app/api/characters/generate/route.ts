@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildCharacterPrompts } from "@/lib/gemini";
 import { generateImageWithPiApi, getPiApiImageModel, type PiApiImageModelId } from "@/lib/piapi-image";
+import { generateVeniceImage } from "@/lib/venice";
+import { getModelById } from "@/lib/models/registry";
 import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } from "@/lib/r2";
 
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
@@ -29,12 +31,16 @@ export async function POST(req: NextRequest) {
 
   console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
 
-  // Calculate cost based on model — all image models route through PiAPI
+  // Look up model from registry (supports both PiAPI and Venice)
+  const registryModel = getModelById(model);
   const piApiModel = getPiApiImageModel(model);
-  if (!piApiModel) {
+
+  if (!registryModel && !piApiModel) {
     return NextResponse.json({ error: `Unknown image model: ${model}` }, { status: 400 });
   }
-  const perImageCost = piApiModel.creditCost;
+
+  const isVenice = registryModel?.provider === "VENICE";
+  const perImageCost = registryModel?.creditCost ?? piApiModel!.creditCost;
   const cost = perImageCost; // Single image generation
 
   // Check credits
@@ -99,11 +105,25 @@ export async function POST(req: NextRequest) {
 
       const referenceImageKeys: string[] = [];
 
-      // Generate all 4 angles concurrently
+      // Generate all angles concurrently
       const results = await Promise.allSettled(
         prompts.map(async (prompt, index) => {
           try {
-            const imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer, quality);
+            let imageBuffer: Buffer;
+
+            if (isVenice && registryModel?.veniceConfig) {
+              // Venice AI generation
+              imageBuffer = await generateVeniceImage({
+                model: registryModel.veniceConfig.model,
+                prompt,
+                aspectRatio,
+                safeMode: false,
+              });
+            } else {
+              // PiAPI generation
+              imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer, quality);
+            }
+
             const key = r2KeyForCharacterImage(
               userId,
               character.id,

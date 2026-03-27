@@ -111,7 +111,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         </div>
       </div>
 
-      {/* Mobile grid */}
+      {/* Mobile grid — show up to 3 generations + "New" CTA (4 cells total) */}
       <div className="grid grid-cols-2 gap-3 md:hidden">
         <Link href="/generate" className="flex aspect-[3/2] items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)]">
           <div className="text-center">
@@ -123,7 +123,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
             <span className="text-xs text-[var(--text-muted)]">New Generation</span>
           </div>
         </Link>
-        {generations.map((g) => (
+        {generations.slice(0, 3).map((g) => (
           <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {g.videoUrl ? (
               <video src={g.videoUrl} muted playsInline className="h-full w-full object-cover" />

@@ -60,7 +60,7 @@ export function CharacterReel({ characters }: { characters: CharacterCard[] }) {
         </div>
       </div>
 
-      {/* Mobile grid */}
+      {/* Mobile grid — show up to 3 characters + "New" CTA (4 cells total) */}
       <div className="grid grid-cols-2 gap-3 md:hidden">
         <Link href="/characters/new" className="flex aspect-[3/4] items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] transition-colors hover:border-[var(--accent-amber)]">
           <div className="text-center">
@@ -72,7 +72,7 @@ export function CharacterReel({ characters }: { characters: CharacterCard[] }) {
             <span className="text-xs text-[var(--text-muted)]">New Character</span>
           </div>
         </Link>
-        {characters.map((c) => (
+        {characters.slice(0, 3).map((c) => (
           <Link key={c.id} href={`/characters/${c.id}`} className="relative aspect-[3/4] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {c.thumbnailUrl ? (
               <img src={c.thumbnailUrl} alt={c.name} className="h-full w-full object-cover" />

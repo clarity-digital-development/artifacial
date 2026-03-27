@@ -853,7 +853,7 @@ const NSFW_WAI: ModelConfig = {
   name: "WAI Illustrious",
   provider: "VENICE",
   veniceConfig: {
-    model: "wai-illustrious",
+    model: "wai-Illustrious",       // Venice API uses capital I
     costKey: "venice-wai",
   },
   tier: "STANDARD",
@@ -869,6 +869,7 @@ const NSFW_WAI: ModelConfig = {
   resolutions: [],
   supportsEndFrame: false,
 };
+
 
 // ════════════════════════════════════════════════════════════════
 // REGISTRY

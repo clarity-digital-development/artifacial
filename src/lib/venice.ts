@@ -331,3 +331,89 @@ export async function retrieveVeniceVideo(
     };
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// Venice Image Generation API
+// Docs: POST /api/v1/image/generate
+// ════════════════════════════════════════════════════════════════
+
+const VENICE_IMAGE_BASE = "https://api.venice.ai/api/v1/image/generate";
+
+const VENICE_ASPECT_RATIO_MAP: Record<string, { width: number; height: number }> = {
+  "1:1": { width: 1024, height: 1024 },
+  "3:4": { width: 768, height: 1024 },
+  "4:3": { width: 1024, height: 768 },
+  "2:3": { width: 680, height: 1024 },  // divisible by 8
+  "3:2": { width: 1024, height: 680 },
+  "4:5": { width: 816, height: 1024 },  // divisible by 8
+  "5:4": { width: 1024, height: 816 },
+  "9:16": { width: 576, height: 1024 },
+  "16:9": { width: 1024, height: 576 },
+};
+
+export type VeniceImageParams = {
+  model: string;       // Venice model ID (e.g., "lustify-v7")
+  prompt: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  negativePrompt?: string;
+  safeMode?: boolean;
+};
+
+/**
+ * Generate an image via Venice AI's image generation API.
+ * Returns the image as a Buffer.
+ */
+export async function generateVeniceImage(
+  params: VeniceImageParams
+): Promise<Buffer> {
+  const dims = VENICE_ASPECT_RATIO_MAP[params.aspectRatio ?? "1:1"] ?? VENICE_ASPECT_RATIO_MAP["1:1"];
+
+  const body: Record<string, unknown> = {
+    model: params.model,
+    prompt: params.prompt,
+    width: params.width ?? dims.width,
+    height: params.height ?? dims.height,
+    safe_mode: params.safeMode ?? false,
+    format: "webp",
+  };
+
+  if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
+
+  console.log(`[venice-image] generate: model=${params.model}, dims=${body.width}x${body.height}`);
+
+  const res = await withVeniceRetry(
+    async () => {
+      const response = await fetch(VENICE_IMAGE_BASE, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getVeniceApiKey()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Venice image ${response.status}: ${errorBody}`);
+      }
+
+      return response;
+    },
+    2,
+    "venice-image",
+  );
+
+  const data = await res.json();
+
+  // Venice returns images array with base64 data
+  const images = data.images;
+  if (!images || images.length === 0) {
+    throw new Error(`Venice image generation returned no images: ${JSON.stringify(data).slice(0, 500)}`);
+  }
+
+  const base64 = images[0];
+  console.log(`[venice-image] success: model=${params.model}`);
+  return Buffer.from(base64, "base64");
+}
