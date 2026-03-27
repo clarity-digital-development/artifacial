@@ -354,7 +354,7 @@ function GalleryCard({
                 alt={item.prompt ?? "Generated image"}
                 className="h-full w-full object-cover"
               />
-            ) : (
+            ) : item.thumbnailUrl ? (
               <>
                 <video
                   ref={videoRef}
@@ -366,7 +366,7 @@ function GalleryCard({
                   className="h-full w-full object-cover"
                 />
                 {/* Thumbnail overlay — shown until video plays */}
-                {item.thumbnailUrl && !isHovered && !isSelected && (
+                {!isHovered && !isSelected && (
                   <img
                     src={item.thumbnailUrl}
                     alt=""
@@ -374,6 +374,16 @@ function GalleryCard({
                   />
                 )}
               </>
+            ) : (
+              <video
+                ref={videoRef}
+                src={item.videoUrl}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-cover"
+              />
             )
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
