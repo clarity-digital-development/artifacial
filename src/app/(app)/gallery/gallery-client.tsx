@@ -344,15 +344,26 @@ function GalleryCard({
                 )}
               </>
             ) : (
-              /* No thumbnail available — show placeholder with play icon */
-              <div className="flex h-full flex-col items-center justify-center gap-2 bg-[var(--bg-elevated)]">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
+              /* No thumbnail — video with preload for desktop, placeholder behind for mobile */
+              <>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--bg-elevated)]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">{MODEL_NAMES[item.modelId] ?? item.modelId}</span>
                 </div>
-                <span className="text-[10px] text-[var(--text-muted)]">{MODEL_NAMES[item.modelId] ?? item.modelId}</span>
-              </div>
+                <video
+                  ref={videoRef}
+                  src={item.videoUrl}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="relative h-full w-full object-cover"
+                />
+              </>
             )
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
