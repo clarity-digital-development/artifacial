@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CharacterPreviewGrid } from "@/components/character-preview-grid";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { SettingsSheet } from "@/components/generate/settings-sheet";
 
 const STYLE_OPTIONS = [
   { value: "photorealistic", label: "Photorealistic" },
@@ -290,6 +292,8 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const [selectedSaveImage, setSelectedSaveImage] = useState(0);
   const [saving, setSaving] = useState(false);
   const [generatedCharacterId, setGeneratedCharacterId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const photoPreviewRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -457,10 +461,171 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
     }
   };
 
+  // ─── Settings content (reused in desktop toolbar + mobile sheet) ───
+  const settingsContent = (
+    <>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoSelect(file);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Model */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Model</label>
+        <div className="flex flex-wrap gap-1.5">
+          {MODEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setModel(opt.value)}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+                model === opt.value
+                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
+                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              }`}
+            >
+              {opt.label}
+              <span className={`text-[9px] font-bold uppercase ${TIER_COLORS[opt.tier]}`}>{opt.cost} cr</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Style */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Style</label>
+        <div className="flex flex-wrap gap-1.5">
+          {STYLE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStyle(opt.value)}
+              className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+                style === opt.value
+                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
+                  : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Aspect Ratio + Count row */}
+      <div className="flex gap-4">
+        <div className="flex-1 space-y-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</label>
+          <div className="flex flex-wrap gap-1.5">
+            {ASPECT_RATIO_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setAspectRatio(opt.value)}
+                className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-all duration-150 ${
+                  aspectRatio === opt.value
+                    ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]"
+                    : "border-[var(--border-default)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Count</label>
+          <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
+        </div>
+      </div>
+
+      {/* Photo reference */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Reference Photo</label>
+        {photoPreview ? (
+          <div className="flex items-center gap-3">
+            <div className="group relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg">
+              <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
+              <button
+                onClick={removePhoto}
+                className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <span className="text-xs text-[var(--text-muted)]">Tap to remove</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-default)] bg-[var(--bg-input)] py-4 text-[12px] font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent-amber)] hover:text-[var(--accent-amber)]"
+            type="button"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            Upload a selfie or reference
+          </button>
+        )}
+      </div>
+
+      {/* Description */}
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
+          rows={3}
+          className="w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-3 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]"
+        />
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-950/90 px-3 py-2 text-[var(--text-xs)] text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Generate button */}
+      <button
+        onClick={() => {
+          handleGenerate();
+          if (isMobile) setSheetOpen(false);
+        }}
+        disabled={generating}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent-amber)] py-3 text-[14px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {generating ? (
+          <>
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
+            <span>Generating...</span>
+          </>
+        ) : (
+          <>
+            <span>Generate</span>
+            <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+              {creditCost}
+            </span>
+          </>
+        )}
+      </button>
+    </>
+  );
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="no-stagger flex h-full flex-col">
       {/* ═══ Canvas ═══ */}
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden px-8 py-6">
+      <div className={`relative flex flex-1 items-center justify-center overflow-hidden ${isMobile ? "px-4 py-4" : "px-8 py-6"}`}>
         {hasImages || generating ? (
           <div className="w-full max-w-4xl">
             <CharacterPreviewGrid images={images} generating={generating} />
@@ -494,115 +659,152 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         )}
       </div>
 
-      {/* ═══ Floating Toolbar ═══ */}
-      <div className="relative z-10 flex justify-center pb-5 pt-2">
-        {error && (
-          <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-red-500/20 bg-red-950/90 px-4 py-1.5 text-[var(--text-xs)] text-red-400 backdrop-blur-sm">
-            {error}
-          </div>
-        )}
+      {/* ═══ Desktop: Floating Toolbar ═══ */}
+      {!isMobile && (
+        <div className="relative z-10 flex justify-center pb-5 pt-2">
+          {error && (
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-red-500/20 bg-red-950/90 px-4 py-1.5 text-[var(--text-xs)] text-red-400 backdrop-blur-sm">
+              {error}
+            </div>
+          )}
 
-        <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
-          {/* Controls row */}
-          <div className="mb-2.5 flex items-center gap-2">
-            <ModelDropdown
-              value={model}
-              onChange={setModel}
-              options={MODEL_OPTIONS}
-            />
-            <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
-            <div className="h-4 w-px bg-[var(--border-default)]" />
-            <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
-            <div className="h-4 w-px bg-[var(--border-default)]" />
-            <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
-          </div>
+          <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+            {/* Controls row */}
+            <div className="mb-2.5 flex items-center gap-2">
+              <ModelDropdown
+                value={model}
+                onChange={setModel}
+                options={MODEL_OPTIONS}
+              />
+              <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
+              <div className="h-4 w-px bg-[var(--border-default)]" />
+              <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
+              <div className="h-4 w-px bg-[var(--border-default)]" />
+              <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
+            </div>
 
-          {/* Prompt row */}
-          <div className="relative">
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handlePhotoSelect(file);
-                e.target.value = "";
-              }}
-            />
+            {/* Prompt row */}
+            <div className="relative">
+              {/* Hidden file input (desktop) */}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handlePhotoSelect(file);
+                  e.target.value = "";
+                }}
+                ref={!isMobile ? fileInputRef : undefined}
+              />
 
-            {/* Photo thumbnail or add-image button — top-left of textarea */}
-            {photoPreview ? (
-              <div className="absolute left-2.5 top-2.5 z-10">
-                <div className="group relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
-                  <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
-                  <button
-                    onClick={removePhoto}
-                    className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
+              {/* Photo thumbnail or add-image button */}
+              {photoPreview ? (
+                <div className="absolute left-2.5 top-2.5 z-10">
+                  <div className="group relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg">
+                    <img src={photoPreview} alt="Ref" className="h-full w-full object-cover" />
+                    <button
+                      onClick={removePhoto}
+                      className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute left-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-lg px-1 py-1 text-[var(--accent-amber)] transition-colors hover:bg-[var(--accent-amber)]/10 hover:text-[var(--accent-amber)]"
+                  title="Add reference image"
+                  type="button"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Textarea */}
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
+                rows={2}
+                className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-40 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${photoPreview ? "pl-14" : "pl-12"}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !generating) {
+                    e.preventDefault();
+                    handleGenerate();
+                  }
+                }}
+              />
+
+              {/* Generate button */}
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute left-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-lg px-1 py-1 text-[var(--accent-amber)] transition-colors hover:bg-[var(--accent-amber)]/10 hover:text-[var(--accent-amber)]"
-                title="Add reference image"
-                type="button"
+                onClick={handleGenerate}
+                disabled={generating}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-5 py-2.5 text-[13px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
+                {generating ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
+                    <span>Generating</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Generate</span>
+                    <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                      {creditCost}
+                    </span>
+                  </>
+                )}
               </button>
-            )}
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Textarea */}
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={photo ? "Style, clothing, mood, setting..." : "Describe your character in detail..."}
-              rows={2}
-              className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-40 text-[var(--text-sm)] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] ${photoPreview ? "pl-14" : "pl-12"}`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !generating) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
-              }}
-            />
-
-            {/* Generate button — vertically centered right */}
+      {/* ═══ Mobile: Bottom Button + Settings Sheet ═══ */}
+      {isMobile && (
+        <>
+          <div className="no-stagger fixed bottom-16 left-0 right-0 z-40 px-4 pb-[env(safe-area-inset-bottom)] md:hidden">
             <button
-              onClick={handleGenerate}
+              onClick={() => generating ? undefined : setSheetOpen(true)}
               disabled={generating}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-5 py-2.5 text-[13px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-[var(--accent-amber)] text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.2)] transition-all duration-200 disabled:opacity-50"
             >
               {generating ? (
                 <>
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
-                  <span>Generating</span>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 2v4m0 12v4m-7.07-3.93 2.83-2.83m8.48-8.48 2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83" />
+                  </svg>
+                  Generating...
                 </>
               ) : (
                 <>
-                  <span>Generate</span>
-                  <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-                    {creditCost}
-                  </span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  New Character
                 </>
               )}
             </button>
           </div>
-        </div>
-      </div>
+          <SettingsSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+            <div className="space-y-5">
+              {settingsContent}
+            </div>
+          </SettingsSheet>
+        </>
+      )}
 
       {/* ═══ Save Modal ═══ */}
       {showSaveModal && (
