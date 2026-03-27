@@ -66,7 +66,7 @@ export function SettingsSheet({ open, onClose, children }: SettingsSheetProps) {
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-50 bg-black transition-opacity duration-300 md:hidden ${
+        className={`no-stagger fixed inset-0 z-50 bg-black transition-opacity duration-300 md:hidden ${
           open ? "opacity-50 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       />
@@ -77,7 +77,7 @@ export function SettingsSheet({ open, onClose, children }: SettingsSheetProps) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-transform duration-300 md:hidden ${
+        className={`no-stagger fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-transform duration-300 md:hidden ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}

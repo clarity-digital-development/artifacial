@@ -7,7 +7,7 @@ type BottomButtonProps = {
 
 export function BottomButton({ isGenerating, onClick }: BottomButtonProps) {
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-[env(safe-area-inset-bottom)] md:hidden">
+    <div className="no-stagger fixed bottom-16 left-0 right-0 z-40 px-4 pb-[env(safe-area-inset-bottom)] md:hidden">
       <button
         onClick={onClick}
         disabled={isGenerating}
