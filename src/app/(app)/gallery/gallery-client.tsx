@@ -352,20 +352,28 @@ function GalleryCard({
               <img
                 src={isSelected ? item.videoUrl : (item.thumbnailUrl ?? item.videoUrl)}
                 alt={item.prompt ?? "Generated image"}
-                loading="lazy"
                 className="h-full w-full object-cover"
               />
             ) : (
-              <video
-                ref={videoRef}
-                src={item.videoUrl}
-                poster={item.thumbnailUrl ?? undefined}
-                muted
-                loop
-                playsInline
-                preload="none"
-                className="h-full w-full object-cover"
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={(isHovered || isSelected) ? item.videoUrl : undefined}
+                  muted
+                  loop
+                  playsInline
+                  preload="none"
+                  className="h-full w-full object-cover"
+                />
+                {/* Thumbnail overlay — shown until video plays */}
+                {item.thumbnailUrl && !isHovered && !isSelected && (
+                  <img
+                    src={item.thumbnailUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+              </>
             )
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
