@@ -163,12 +163,29 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
             {/* Actions */}
             {selectedItem.videoUrl && (
               <button
-                onClick={() => {
-                  const a = document.createElement("a");
-                  a.href = selectedItem.videoUrl!;
+                onClick={async () => {
                   const ext = selectedItem.workflowType === "TEXT_TO_IMAGE" ? "webp" : "mp4";
-                  a.download = `artifacial-${selectedItem.id}.${ext}`;
-                  a.click();
+                  const mimeType = selectedItem.workflowType === "TEXT_TO_IMAGE" ? "image/webp" : "video/mp4";
+                  const fileName = `artifacial-${selectedItem.id}.${ext}`;
+                  try {
+                    const res = await fetch(selectedItem.videoUrl!);
+                    const blob = await res.blob();
+                    if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
+                      await navigator.share({ files: [new File([blob], fileName, { type: mimeType })] });
+                      return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    const a = document.createElement("a");
+                    a.href = selectedItem.videoUrl!;
+                    a.download = fileName;
+                    a.click();
+                  }
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-all duration-200 hover:bg-[var(--bg-elevated)]"
               >
@@ -218,34 +235,69 @@ function GalleryCard({
 
   const handleFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     const video = videoRef.current;
     if (video) {
-      video.requestFullscreen?.().catch(() => {});
+      // iOS Safari requires webkitEnterFullscreen on the video element
+      const v = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+      if (v.webkitEnterFullscreen) {
+        v.webkitEnterFullscreen();
+      } else if (v.requestFullscreen) {
+        v.requestFullscreen().catch(() => {});
+      }
     } else if (isImage && item.videoUrl) {
-      // For images, open in a new tab
       window.open(item.videoUrl, "_blank");
     }
   };
 
-  const handleSave = (e: React.MouseEvent) => {
+  const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!item.videoUrl) return;
-    const a = document.createElement("a");
-    a.href = item.videoUrl;
+
     const ext = isImage ? "webp" : "mp4";
-    a.download = `artifacial-${item.id}.${ext}`;
-    a.click();
+    const mimeType = isImage ? "image/webp" : "video/mp4";
+    const fileName = `artifacial-${item.id}.${ext}`;
+
+    try {
+      // Fetch as blob to handle cross-origin R2 URLs
+      const res = await fetch(item.videoUrl);
+      const blob = await res.blob();
+
+      // Use Web Share API on mobile for native "Save to camera roll" sheet
+      if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
+        const file = new File([blob], fileName, { type: mimeType });
+        await navigator.share({ files: [file] });
+        return;
+      }
+
+      // Fallback: blob download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Last resort: direct link
+      const a = document.createElement("a");
+      a.href = item.videoUrl;
+      a.download = fileName;
+      a.click();
+    }
   };
 
   const modelName = MODEL_NAMES[item.modelId] ?? item.modelId;
   const workflowLabel = WORKFLOW_LABELS[item.workflowType] ?? item.workflowType;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="block w-full text-left"
+      className="block w-full cursor-pointer text-left"
     >
       <div
         className={`overflow-hidden rounded-[var(--radius-lg)] border bg-[var(--bg-surface)] transition-all duration-200 ${
@@ -344,7 +396,7 @@ function GalleryCard({
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
