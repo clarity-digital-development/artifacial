@@ -127,7 +127,11 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         {generations.slice(0, 3).map((g) => (
           <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {g.videoUrl ? (
-              <video src={g.videoUrl} poster={g.thumbnailUrl ?? undefined} muted playsInline preload="none" className="h-full w-full object-cover" />
+              g.thumbnailUrl ? (
+                <img src={g.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <video src={g.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+              )
             ) : (
               <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
                 {g.status === "COMPLETED" ? "No preview" : g.status}
@@ -201,16 +205,36 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
         <div className="relative h-[152px] overflow-hidden bg-[var(--bg-elevated)]">
           {gen.status === "COMPLETED" && gen.videoUrl ? (
             <>
-              <video
-                ref={videoRef}
-                src={gen.videoUrl}
-                poster={gen.thumbnailUrl ?? undefined}
-                muted
-                loop
-                playsInline
-                preload="none"
-                className="h-full w-full object-cover"
-              />
+              {gen.thumbnailUrl ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    src={isHovered ? gen.videoUrl : undefined}
+                    muted
+                    loop
+                    playsInline
+                    preload="none"
+                    className="h-full w-full object-cover"
+                  />
+                  {!isHovered && (
+                    <img
+                      src={gen.thumbnailUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  )}
+                </>
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={gen.videoUrl}
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full object-cover"
+                />
+              )}
               {/* Viewfinder corners on hover */}
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}>
                 <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-[var(--accent-amber)]/50" />
