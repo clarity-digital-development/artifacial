@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 
 // ─── Force first frame on mobile (play→pause trick) ───
@@ -25,7 +25,10 @@ function useForceFirstFrame(
       }).catch(() => {});
     };
 
-    if (video.readyState >= 2) return;
+    if (video.readyState >= 2) {
+      tryForce();
+      return;
+    }
 
     video.addEventListener("loadeddata", tryForce, { once: true });
 
@@ -273,7 +276,7 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
         <div className="relative h-[152px] overflow-hidden bg-[var(--bg-elevated)]">
           {gen.status === "COMPLETED" && gen.videoUrl ? (
             <>
-              {gen.thumbnailUrl ? (
+              {hasThumbnail ? (
                 <>
                   <video
                     ref={videoRef}

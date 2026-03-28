@@ -118,8 +118,11 @@ function useForceFirstFrame(
       }).catch(() => {});
     };
 
-    // If video already has data, no need to force
-    if (video.readyState >= 2) return;
+    // If video already has data, force immediately
+    if (video.readyState >= 2) {
+      tryForce();
+      return;
+    }
 
     // Wait for enough data to play, then force
     video.addEventListener("loadeddata", tryForce, { once: true });
@@ -370,7 +373,7 @@ function GalleryCard({
                 alt={item.prompt ?? "Generated image"}
                 className="h-full w-full object-cover"
               />
-            ) : item.thumbnailUrl ? (
+            ) : hasThumbnail ? (
               <>
                 <video
                   ref={videoRef}
