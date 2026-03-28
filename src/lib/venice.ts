@@ -179,7 +179,8 @@ export async function submitVeniceVideo(
 
   if (params.resolution) body.resolution = params.resolution;
   if (params.aspectRatio) body.aspect_ratio = params.aspectRatio;
-  if (params.audio !== undefined) body.audio = params.audio;
+  // Only send audio:true — sending audio:false causes 400 on models that don't support the field
+  if (params.audio === true) body.audio = true;
   if (params.imageUrl) body.image_url = params.imageUrl;
   if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
   if (params.endImageUrl) body.end_image_url = params.endImageUrl;

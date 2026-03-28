@@ -354,13 +354,16 @@ export async function routeGeneration(
       if (model.provider === "VENICE" && model.veniceConfig) {
         // ─── Venice AI — native uncensored generation ───
         const isVeniceI2V = !!imageUrl && model.veniceConfig.model.includes("image-to-video");
+        // Wan 2.1 Pro I2V requires aspect_ratio even for I2V (only accepts "16:9")
+        const isWan21Pro = model.veniceConfig.model === "wan-2.1-pro-image-to-video";
+        // Only send resolution if the model supports it (non-empty resolutions list)
+        const supportsResolution = model.resolutions && model.resolutions.length > 0;
         const veniceResult = await submitVeniceVideo({
           model: model.veniceConfig.model,
           prompt: submissionPrompt,
           duration: `${durationSec}s`,
-          resolution: resolution === "1080p" ? "1080p" : "720p",
-          // Venice I2V derives aspect ratio from the input image — sending it causes 400
-          aspectRatio: isVeniceI2V ? undefined : aspectRatio,
+          resolution: supportsResolution ? (resolution === "1080p" ? "1080p" : "720p") : undefined,
+          aspectRatio: isVeniceI2V && !isWan21Pro ? undefined : (isWan21Pro ? "16:9" : aspectRatio),
           audio: audioEnabled,
           imageUrl: imageUrl || undefined,
         });
