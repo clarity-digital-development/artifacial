@@ -23,6 +23,30 @@ export function CharacterDetailClient({
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(character.name);
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [displayName, setDisplayName] = useState(character.name);
+
+  const handleRename = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === displayName) { setRenaming(false); return; }
+    setRenameSaving(true);
+    try {
+      const res = await fetch(`/api/characters/${character.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (!res.ok) throw new Error();
+      setDisplayName(trimmed);
+      setRenaming(false);
+    } catch {
+      // keep modal open on error
+    } finally {
+      setRenameSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm("Delete this character? This cannot be undone.")) return;
@@ -73,9 +97,21 @@ export function CharacterDetailClient({
           <div className="space-y-4 p-5">
             {/* Name + meta */}
             <div>
-              <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">
-                {character.name}
-              </h1>
+              {renaming ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") { setRenaming(false); setNewName(displayName); } }}
+                    className="flex-1 rounded-[var(--radius-md)] border border-[var(--accent-amber)] bg-[var(--bg-elevated)] px-3 py-1.5 font-display text-xl font-bold text-[var(--text-primary)] outline-none"
+                  />
+                </div>
+              ) : (
+                <h1 className="font-display text-xl font-bold text-[var(--text-primary)]">
+                  {displayName}
+                </h1>
+              )}
               <div className="mt-1.5 flex items-center gap-2.5">
                 <Badge variant="amber">{character.style}</Badge>
                 <span className="text-xs text-[var(--text-muted)]">Created {createdLabel}</span>
@@ -83,25 +119,18 @@ export function CharacterDetailClient({
             </div>
 
             {/* Action buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.push("/projects")}
-                className="w-full"
-              >
-                Use in Project
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="w-full"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
+            {renaming ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" size="sm" onClick={() => { setRenaming(false); setNewName(displayName); }} className="w-full">Cancel</Button>
+                <Button variant="primary" size="sm" onClick={handleRename} disabled={renameSaving} className="w-full">{renameSaving ? "Saving…" : "Save"}</Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="secondary" size="sm" onClick={() => router.push("/projects")} className="w-full">Use in Project</Button>
+                <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }} className="w-full">Rename</Button>
+                <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting} className="w-full">{deleting ? "Deleting…" : "Delete"}</Button>
+              </div>
+            )}
 
             {/* Description */}
             {character.description && (
@@ -173,9 +202,19 @@ export function CharacterDetailClient({
               {/* Info panel */}
               <div className="flex flex-1 flex-col p-6">
                 <div className="flex-1">
-                  <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
-                    {character.name}
-                  </h1>
+                  {renaming ? (
+                    <input
+                      autoFocus
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") { setRenaming(false); setNewName(displayName); } }}
+                      className="w-full rounded-[var(--radius-md)] border border-[var(--accent-amber)] bg-[var(--bg-elevated)] px-3 py-1.5 font-display text-2xl font-bold text-[var(--text-primary)] outline-none"
+                    />
+                  ) : (
+                    <h1 className="font-display text-2xl font-bold text-[var(--text-primary)]">
+                      {displayName}
+                    </h1>
+                  )}
                   <div className="mt-2 flex items-center gap-3">
                     <Badge variant="amber">{character.style}</Badge>
                     <span className="text-xs text-[var(--text-muted)]">Created {createdLabel}</span>
@@ -189,21 +228,18 @@ export function CharacterDetailClient({
 
                 {/* Buttons pinned to bottom of panel */}
                 <div className="mt-6 flex gap-2 border-t border-[var(--border-subtle)] pt-5">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => router.push("/projects")}
-                  >
-                    Use in Project
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                  >
-                    {deleting ? "Deleting..." : "Delete"}
-                  </Button>
+                  {renaming ? (
+                    <>
+                      <Button variant="secondary" size="sm" onClick={() => { setRenaming(false); setNewName(displayName); }}>Cancel</Button>
+                      <Button variant="primary" size="sm" onClick={handleRename} disabled={renameSaving}>{renameSaving ? "Saving..." : "Save"}</Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="secondary" size="sm" onClick={() => router.push("/projects")}>Use in Project</Button>
+                      <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }}>Rename</Button>
+                      <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
