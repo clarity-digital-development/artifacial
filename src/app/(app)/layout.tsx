@@ -38,7 +38,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="grain ambient-light flex h-screen bg-[var(--bg-deep)]">
+    <div className="grain ambient-light flex h-dvh bg-[var(--bg-deep)]">
       <Sidebar contentMode={contentMode} />
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
