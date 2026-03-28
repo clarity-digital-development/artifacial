@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 
 // ─── Model name lookup (client-side, matches registry) ───
@@ -150,9 +151,12 @@ function useForceFirstFrame(
 export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
-  // Close overlay on Escape
+  useEffect(() => { setPortalReady(true); }, []);
+
+  // Close on Escape
   useEffect(() => {
     if (!fullscreenUrl) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreenUrl(null); };
@@ -162,32 +166,36 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
 
   return (
     <div className="flex gap-6">
-      {/* Fullscreen overlay */}
-      {fullscreenUrl && (
+      {/* Fullscreen overlay — portalled to body to escape any CSS stacking context */}
+      {portalReady && fullscreenUrl && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ backdropFilter: "blur(12px)", backgroundColor: "rgba(0,0,0,0.55)" }}
           onClick={() => setFullscreenUrl(null)}
         >
-          <video
-            src={fullscreenUrl}
-            autoPlay
-            loop
-            muted={false}
-            playsInline
-            controls
-            className="max-h-screen max-w-full"
-            style={{ objectFit: "contain" }}
+          <div
+            className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] shadow-[0_32px_80px_rgba(0,0,0,0.7)]"
             onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setFullscreenUrl(null)}
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+            <video
+              src={fullscreenUrl}
+              autoPlay
+              loop
+              playsInline
+              controls
+              style={{ display: "block", maxHeight: "85vh", maxWidth: "85vw" }}
+            />
+            <button
+              onClick={() => setFullscreenUrl(null)}
+              className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm hover:bg-black/80"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Masonry grid */}
