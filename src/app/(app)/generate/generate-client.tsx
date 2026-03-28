@@ -1801,12 +1801,6 @@ function PostProcessActions({
 
   return (
     <>
-      <div className="border-t border-[var(--border-subtle)] pt-2">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Enhance
-        </p>
-      </div>
-
       {/* Face Swap — works on both images and videos */}
       <Button variant="secondary" size="sm" fullWidth disabled={credits < faceSwapCost} onClick={() => setActiveModal("FACE_SWAP")}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
