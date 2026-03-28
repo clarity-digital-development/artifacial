@@ -296,27 +296,19 @@ function GalleryCard({
     const fileName = `artifacial-${item.id}.${ext}`;
 
     try {
-      // Proxy through our API to avoid cross-origin download issues
       const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
       const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();
-
-      // Use Web Share API on mobile for native "Save to camera roll" sheet
-      if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
-        const file = new File([blob], fileName, { type: mimeType });
-        await navigator.share({ files: [file] });
-        return;
-      }
-
-      // Desktop: blob download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // Fallback: open proxy URL directly (Content-Disposition will trigger download)
       window.open(`/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`, "_blank");
     }
   };
@@ -549,16 +541,15 @@ function DownloadButton({ item }: { item: GalleryItem }) {
     try {
       const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
       const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();
-      if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
-        await navigator.share({ files: [new File([blob], fileName, { type: mimeType })] });
-        return;
-      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
       window.open(`/api/download?url=${encodeURIComponent(item.videoUrl!)}&filename=${encodeURIComponent(fileName)}`, "_blank");

@@ -20,7 +20,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Only allow downloading from our R2 bucket or known generation API domains
+  const r2Domain = process.env.R2_ACCOUNT_ID
+    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+    : null;
+
   const allowed = [
+    r2Domain,
     process.env.R2_PUBLIC_URL,
     process.env.R2_BUCKET_URL,
     "https://cdn.piapi.ai",
