@@ -206,6 +206,17 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Lock the main scroll container so the fixed-height generate layout
+  // doesn't leave a few stray pixels of scrollable space on mobile.
+  useEffect(() => {
+    if (!isMobile) return;
+    const main = document.querySelector("main");
+    if (!main) return;
+    const prev = main.style.overflow;
+    main.style.overflow = "hidden";
+    return () => { main.style.overflow = prev; };
+  }, [isMobile]);
+
   const isFree = tier === "FREE";
   const isNsfw = contentMode === "NSFW" && !isFree;
   const userContentMode = isNsfw ? "NSFW" : "SFW";
