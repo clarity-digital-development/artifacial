@@ -19,21 +19,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
 
-  // Only allow downloading from our R2 bucket or known generation API domains
-  const r2Domain = process.env.R2_ACCOUNT_ID
-    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-    : null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
 
-  const allowed = [
-    r2Domain,
-    process.env.R2_PUBLIC_URL,
-    process.env.R2_BUCKET_URL,
-    "https://cdn.piapi.ai",
-    "https://resource.piapi.ai",
-  ].filter(Boolean);
+  const hostname = parsed.hostname;
 
-  const isAllowed = allowed.some((prefix) => url.startsWith(prefix!));
-  if (!isAllowed) {
+  // Allow our R2 account domain (*.r2.cloudflarestorage.com scoped to our account)
+  const r2AccountId = process.env.R2_ACCOUNT_ID?.trim();
+  const isR2 = r2AccountId
+    ? hostname === `${r2AccountId}.r2.cloudflarestorage.com`
+    : hostname.endsWith(".r2.cloudflarestorage.com");
+
+  // Allow our configured public/bucket URL prefixes
+  const explicitPrefixes = [
+    process.env.R2_PUBLIC_URL?.trim(),
+    process.env.R2_BUCKET_URL?.trim(),
+  ].filter(Boolean) as string[];
+
+  const matchesPrefix = explicitPrefixes.some((p) => url.startsWith(p));
+
+  // Allow all piapi.ai subdomains (our generation provider CDN)
+  const isPiapi = hostname === "piapi.ai" || hostname.endsWith(".piapi.ai");
+
+  if (!isR2 && !matchesPrefix && !isPiapi) {
+    console.warn(`[download] blocked URL hostname=${hostname}`);
     return NextResponse.json({ error: "URL not allowed" }, { status: 403 });
   }
 

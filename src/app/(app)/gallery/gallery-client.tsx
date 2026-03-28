@@ -309,7 +309,8 @@ function GalleryCard({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      window.open(`/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`, "_blank");
+      // Fallback: open the original URL directly (lets mobile long-press save)
+      window.open(item.videoUrl, "_blank");
     }
   };
 
@@ -552,7 +553,8 @@ function DownloadButton({ item }: { item: GalleryItem }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      window.open(`/api/download?url=${encodeURIComponent(item.videoUrl!)}&filename=${encodeURIComponent(fileName)}`, "_blank");
+      // Fallback: open the original URL directly (lets mobile long-press save)
+      window.open(item.videoUrl!, "_blank");
     }
   };
 
