@@ -146,13 +146,34 @@ function useForceFirstFrame(
   }, [videoRef, enabled]);
 }
 
+// ─── Responsive column count ───
+
+function useColumnCount() {
+  const [count, setCount] = useState(2);
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      setCount(w >= 1024 ? 4 : w >= 640 ? 3 : 2);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return count;
+}
+
 // ─── Component ───
 
 export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const columnCount = useColumnCount();
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
+
+  // Distribute items round-robin across columns to preserve L→R order
+  const columns: GalleryItem[][] = Array.from({ length: columnCount }, () => []);
+  items.forEach((item, i) => columns[i % columnCount].push(item));
 
   useEffect(() => { setPortalReady(true); }, []);
 
@@ -198,17 +219,20 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
         document.body
       )}
 
-      {/* Masonry grid */}
+      {/* Masonry grid — round-robin columns preserve L→R chronological order */}
       <div className="min-w-0 flex-1">
-        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
-          {items.map((item) => (
-            <div key={item.id} className="mb-3 break-inside-avoid">
-              <GalleryCard
-                item={item}
-                isSelected={item.id === selectedId}
-                onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
-                onFullscreen={(url) => setFullscreenUrl(url)}
-              />
+        <div className="flex gap-3">
+          {columns.map((col, ci) => (
+            <div key={ci} className="flex flex-1 flex-col gap-3">
+              {col.map((item) => (
+                <GalleryCard
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedId}
+                  onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
+                  onFullscreen={(url) => setFullscreenUrl(url)}
+                />
+              ))}
             </div>
           ))}
         </div>
