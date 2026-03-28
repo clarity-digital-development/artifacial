@@ -443,7 +443,7 @@ const WAN26_NSFW_I2V: ModelConfig = {
 
 const WAN25_PREVIEW_NSFW_T2V: ModelConfig = {
   id: "wan25-preview-nsfw-t2v",
-  name: "Wan 2.5 Preview NSFW",
+  name: "Wan 2.5 NSFW",
   provider: "VENICE",
   veniceConfig: {
     model: "wan-2.5-preview-text-to-video",
@@ -456,9 +456,9 @@ const WAN25_PREVIEW_NSFW_T2V: ModelConfig = {
   supportedModes: ["T2V"],
   maxDuration: 10,
   maxResolution: "720p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "NSFW",
-  description: "Latest Wan with audio support. Unrestricted T2V.",
+  description: "Latest Wan generation. Unrestricted T2V.",
   durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: [],
@@ -467,7 +467,7 @@ const WAN25_PREVIEW_NSFW_T2V: ModelConfig = {
 
 const WAN25_PREVIEW_NSFW_I2V: ModelConfig = {
   id: "wan25-preview-nsfw-i2v",
-  name: "Wan 2.5 Preview NSFW",
+  name: "Wan 2.5 NSFW",
   provider: "VENICE",
   veniceConfig: {
     model: "wan-2.5-preview-image-to-video",
@@ -480,9 +480,9 @@ const WAN25_PREVIEW_NSFW_I2V: ModelConfig = {
   supportedModes: ["I2V"],
   maxDuration: 10,
   maxResolution: "720p",
-  supportsAudio: true,
+  supportsAudio: false,
   contentMode: "NSFW",
-  description: "Latest Wan with audio support. Unrestricted I2V.",
+  description: "Latest Wan generation. Unrestricted I2V.",
   durations: [5, 10],
   aspectRatios: ["16:9", "9:16", "1:1"],
   resolutions: [],
@@ -507,7 +507,7 @@ const WAN21_PRO_NSFW_I2V: ModelConfig = {
   contentMode: "NSFW",
   description: "Reliable unrestricted image-to-video. 6 seconds.",
   durations: [6],
-  aspectRatios: ["16:9", "9:16", "1:1"],
+  aspectRatios: ["16:9"],
   resolutions: [],
   supportsEndFrame: false,
 };
