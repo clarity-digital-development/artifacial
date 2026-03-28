@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
   // Allow our R2 account domain (*.r2.cloudflarestorage.com scoped to our account)
   const r2AccountId = process.env.R2_ACCOUNT_ID?.trim();
   const isR2 = r2AccountId
-    ? hostname === `${r2AccountId}.r2.cloudflarestorage.com`
+    ? hostname === `${r2AccountId}.r2.cloudflarestorage.com` ||
+      hostname.endsWith(`.${r2AccountId}.r2.cloudflarestorage.com`)
     : hostname.endsWith(".r2.cloudflarestorage.com");
 
   // Allow our configured public/bucket URL prefixes
