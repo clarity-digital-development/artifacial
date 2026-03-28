@@ -153,7 +153,7 @@ function useColumnCount() {
   useEffect(() => {
     const update = () => {
       const w = window.innerWidth;
-      setCount(w >= 1024 ? 4 : w >= 640 ? 3 : 2);
+      setCount(w >= 1024 ? 4 : w >= 640 ? 2 : 1);
     };
     update();
     window.addEventListener("resize", update);
@@ -322,7 +322,14 @@ async function downloadItem(videoUrl: string, id: string, isImage: boolean) {
     // On iOS/Android: use Web Share API → triggers native "Save Video / Save Image" sheet
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] });
+      try {
+        await navigator.share({ files: [file] });
+      } catch (shareErr) {
+        // AbortError = user dismissed the share sheet — don't redirect
+        if ((shareErr as Error)?.name !== "AbortError") {
+          window.open(videoUrl, "_blank");
+        }
+      }
       return;
     }
 
@@ -336,8 +343,9 @@ async function downloadItem(videoUrl: string, id: string, isImage: boolean) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch {
-    // Last resort: open original URL so user can long-press save on mobile
-    window.open(videoUrl, "_blank");
+    // Proxy failed — open original URL as last resort (desktop only path)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) window.open(videoUrl, "_blank");
   }
 }
 
