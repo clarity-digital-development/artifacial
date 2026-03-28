@@ -441,6 +441,77 @@ const WAN26_NSFW_I2V: ModelConfig = {
   supportsEndFrame: false,
 };
 
+const WAN25_PREVIEW_NSFW_T2V: ModelConfig = {
+  id: "wan25-preview-nsfw-t2v",
+  name: "Wan 2.5 Preview NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "wan-2.5-preview-text-to-video",
+    costKey: "venice-wan-25-preview",
+  },
+  badge: "New",
+  tier: "STANDARD",
+  creditCost: 1800,
+  creditCostTable: { "5": 1800, "10": 3500 },
+  supportedModes: ["T2V"],
+  maxDuration: 10,
+  maxResolution: "720p",
+  supportsAudio: true,
+  contentMode: "NSFW",
+  description: "Latest Wan with audio support. Unrestricted T2V.",
+  durations: [5, 10],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const WAN25_PREVIEW_NSFW_I2V: ModelConfig = {
+  id: "wan25-preview-nsfw-i2v",
+  name: "Wan 2.5 Preview NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "wan-2.5-preview-image-to-video",
+    costKey: "venice-wan-25-preview",
+  },
+  badge: "New",
+  tier: "STANDARD",
+  creditCost: 1800,
+  creditCostTable: { "5": 1800, "10": 3500 },
+  supportedModes: ["I2V"],
+  maxDuration: 10,
+  maxResolution: "720p",
+  supportsAudio: true,
+  contentMode: "NSFW",
+  description: "Latest Wan with audio support. Unrestricted I2V.",
+  durations: [5, 10],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const WAN21_PRO_NSFW_I2V: ModelConfig = {
+  id: "wan21-pro-nsfw-i2v",
+  name: "Wan 2.1 Pro NSFW",
+  provider: "VENICE",
+  veniceConfig: {
+    model: "wan-2.1-pro-image-to-video",
+    costKey: "venice-wan-21-pro",
+  },
+  tier: "BUDGET",
+  creditCost: 1100,
+  creditCostTable: { "6": 1100 },
+  supportedModes: ["I2V"],
+  maxDuration: 6,
+  maxResolution: "720p",
+  supportsAudio: false,
+  contentMode: "NSFW",
+  description: "Reliable unrestricted image-to-video. 6 seconds.",
+  durations: [6],
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
 const WAN22_NSFW_T2V: ModelConfig = {
   id: "wan22-nsfw-t2v",
   name: "Wan 2.2 NSFW",
@@ -897,6 +968,9 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   [LUMA.id]: LUMA,
   [HAILUO.id]: HAILUO,
   // NSFW Video
+  [WAN25_PREVIEW_NSFW_T2V.id]: WAN25_PREVIEW_NSFW_T2V,
+  [WAN25_PREVIEW_NSFW_I2V.id]: WAN25_PREVIEW_NSFW_I2V,
+  [WAN21_PRO_NSFW_I2V.id]: WAN21_PRO_NSFW_I2V,
   [WAN22_NSFW_T2V.id]: WAN22_NSFW_T2V,
   [WAN26_NSFW_T2V.id]: WAN26_NSFW_T2V,
   [WAN26_NSFW_I2V.id]: WAN26_NSFW_I2V,

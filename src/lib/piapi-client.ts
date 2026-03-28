@@ -561,6 +561,8 @@ const COST_ESTIMATES: Record<string, {
   // Venice AI
   "venice-wan-26": { perSecond: 0.08 },
   "venice-wan-22": { perRequest: 0.20 },
+  "venice-wan-25-preview": { perSecond: 0.09 },
+  "venice-wan-21-pro": { perRequest: 0.25 },
 };
 
 /**
