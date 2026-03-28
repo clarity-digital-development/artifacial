@@ -32,12 +32,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // Validate required fields
-  if (!body.prompt || typeof body.prompt !== "string" || body.prompt.trim().length === 0) {
+  // Validate required fields — prompt is optional for motion_control models
+  const isMotionModel = body.modelId
+    ? getModelById(body.modelId)?.supportedModes.includes("MOTION_TRANSFER")
+    : false;
+
+  if (!isMotionModel && (!body.prompt || typeof body.prompt !== "string" || body.prompt.trim().length === 0)) {
     return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
   }
 
-  if (body.prompt.length > 2000) {
+  if ((body.prompt?.length ?? 0) > 2000) {
     return NextResponse.json({ error: "Prompt must be under 2000 characters" }, { status: 400 });
   }
 
@@ -83,7 +87,7 @@ export async function POST(req: NextRequest) {
   console.log(`[generate] model=${body.modelId}, dur=${durationSec}, res=${resolution}, ar=${body.aspectRatio}`);
   const result = await routeGeneration({
     userId: session.user.id,
-    prompt: body.prompt.trim(),
+    prompt: body.prompt?.trim() ?? "",
     modelId: body.modelId,
     imageUrl: body.imageUrl,
     endImageUrl: body.endImageUrl,
