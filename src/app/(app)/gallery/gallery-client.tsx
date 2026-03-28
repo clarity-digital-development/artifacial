@@ -149,11 +149,47 @@ function useForceFirstFrame(
 
 export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
+  // Close overlay on Escape
+  useEffect(() => {
+    if (!fullscreenUrl) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreenUrl(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreenUrl]);
 
   return (
     <div className="flex gap-6">
+      {/* Fullscreen overlay */}
+      {fullscreenUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95"
+          onClick={() => setFullscreenUrl(null)}
+        >
+          <video
+            src={fullscreenUrl}
+            autoPlay
+            loop
+            muted={false}
+            playsInline
+            controls
+            className="max-h-screen max-w-full"
+            style={{ objectFit: "contain" }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setFullscreenUrl(null)}
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Grid */}
       <div className="min-w-0 flex-1">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -163,6 +199,7 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
               item={item}
               isSelected={item.id === selectedId}
               onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
+              onFullscreen={(url) => setFullscreenUrl(url)}
             />
           ))}
         </div>
@@ -275,10 +312,12 @@ function GalleryCard({
   item,
   isSelected,
   onSelect,
+  onFullscreen,
 }: {
   item: GalleryItem;
   isSelected: boolean;
   onSelect: () => void;
+  onFullscreen: (url: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -308,18 +347,7 @@ function GalleryCard({
   const handleFullscreen = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const video = videoRef.current;
-    if (video) {
-      // iOS Safari requires webkitEnterFullscreen on the video element
-      const v = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
-      if (v.webkitEnterFullscreen) {
-        v.webkitEnterFullscreen();
-      } else if (v.requestFullscreen) {
-        v.requestFullscreen().catch(() => {});
-      }
-    } else if (isImage && item.videoUrl) {
-      window.open(item.videoUrl, "_blank");
-    }
+    if (item.videoUrl) onFullscreen(item.videoUrl);
   };
 
   const handleSave = async (e: React.MouseEvent) => {
