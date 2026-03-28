@@ -1,8 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+
+// ─── Lazy visibility hook (IntersectionObserver) ───
+
+function useLazyVisible(rootMargin = "200px"): [React.RefCallback<HTMLElement>, boolean] {
+  const [isVisible, setIsVisible] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const ref = useCallback((node: HTMLElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!node || isVisible) return;
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observerRef.current?.disconnect();
+          observerRef.current = null;
+        }
+      },
+      { rootMargin }
+    );
+    observerRef.current.observe(node);
+  }, [isVisible, rootMargin]);
+
+  return [ref, isVisible];
+}
 
 // ─── Force first frame on mobile (play→pause trick) ───
 
@@ -104,31 +132,45 @@ interface GenerationCard {
   completedAt: string;
 }
 
-// ─── Mobile Thumbnail (with broken-image fallback) ───
+// ─── Mobile Generation Cell — mirrors gallery card thumbnail logic ───
 
-function MobileThumbnail({ thumbnailUrl, modelId }: { thumbnailUrl: string | null; modelId: string }) {
-  const [failed, setFailed] = useState(false);
-  const modelName = MODEL_NAMES[modelId] ?? modelId;
+function MobileGenerationCell({ gen }: { gen: GenerationCard }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const [containerRef, isVisible] = useLazyVisible("100px");
+  const hasThumbnail = !!gen.thumbnailUrl && !thumbFailed;
 
-  if (thumbnailUrl && !failed) {
-    return (
-      <img
-        src={thumbnailUrl}
-        alt=""
-        className="h-full w-full object-cover"
-        onError={() => setFailed(true)}
-      />
-    );
-  }
+  // Force first frame when cell enters viewport and there's no working thumbnail
+  useForceFirstFrame(videoRef, isVisible && !hasThumbnail && !!gen.videoUrl);
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-[var(--bg-elevated)]">
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
-          <polygon points="5 3 19 12 5 21 5 3" />
-        </svg>
-      </div>
-      <span className="text-[9px] text-[var(--text-muted)]">{modelName}</span>
+    <div ref={containerRef} className="h-full w-full">
+      {hasThumbnail ? (
+        <img
+          src={gen.thumbnailUrl!}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setThumbFailed(true)}
+        />
+      ) : gen.videoUrl && isVisible ? (
+        <video
+          ref={videoRef}
+          src={gen.videoUrl}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-[var(--bg-elevated)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 text-white/60">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -199,15 +241,26 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
         </Link>
         {generations.slice(0, 3).map((g) => (
           <div key={g.id} className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-            {g.videoUrl ? (
-              <MobileThumbnail thumbnailUrl={g.thumbnailUrl ?? null} modelId={g.modelId} />
+            {g.status === "COMPLETED" ? (
+              <MobileGenerationCell gen={g} />
+            ) : g.status === "FAILED" || g.status === "BLOCKED" ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--error)]/10">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+              </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
-                {g.status === "COMPLETED" ? "No preview" : g.status}
+              <div className="flex h-full items-center justify-center">
+                <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="var(--border-default)" strokeWidth="2" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--accent-amber)" strokeWidth="2" strokeLinecap="round" />
+                </svg>
               </div>
             )}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-              <p className="truncate text-[10px] text-white/70">{g.modelId}</p>
+              <p className="truncate text-[10px] text-white/70">{MODEL_NAMES[g.modelId] ?? g.modelId}</p>
             </div>
           </div>
         ))}
