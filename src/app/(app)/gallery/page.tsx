@@ -54,6 +54,7 @@ export default async function GalleryPage() {
 
       const params = g.inputParams as Record<string, unknown> | null;
       const prompt = (params?.prompt as string) ?? null;
+      const aspectRatio = (params?.aspectRatio as string) ?? "16:9";
 
       let signedThumbnailUrl: string | null = null;
       try {
@@ -73,6 +74,7 @@ export default async function GalleryPage() {
         prompt,
         modelId: g.modelId ?? "unknown",
         workflowType: g.workflowType,
+        aspectRatio,
         resolution: g.resolution,
         durationSec: g.durationSec ?? 5,
         withAudio: g.withAudio,

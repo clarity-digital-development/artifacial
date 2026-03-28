@@ -60,6 +60,7 @@ interface GalleryItem {
   prompt: string | null;
   modelId: string;
   workflowType: string;
+  aspectRatio: string;
   resolution: string;
   durationSec: number;
   withAudio: boolean;
@@ -340,7 +341,12 @@ function GalleryCard({
             : "border-[var(--border-subtle)] hover:border-[var(--text-muted)]"
         }`}
       >
-        <div className={`relative ${isImage ? "aspect-square" : "aspect-video"} overflow-hidden bg-[var(--bg-elevated)]`}>
+        <div className={`relative overflow-hidden bg-[var(--bg-elevated)] ${
+          isImage ? "aspect-square" :
+          item.aspectRatio === "9:16" ? "aspect-[9/16]" :
+          item.aspectRatio === "1:1" ? "aspect-square" :
+          "aspect-video"
+        }`}>
           {!isVisible ? (
             <div className="h-full w-full bg-[var(--bg-elevated)]" />
           ) : item.videoUrl ? (
