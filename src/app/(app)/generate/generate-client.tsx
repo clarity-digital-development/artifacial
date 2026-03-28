@@ -326,13 +326,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // If in Motion mode but selected model is not Kling, fall back to T2V
-  useEffect(() => {
-    if (mode === "MOTION_TRANSFER" && !selectedModel?.id.startsWith("kling")) {
-      setMode("T2V");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedModelId]);
 
   // When model changes, clamp duration, aspect ratio, resolution
   useEffect(() => {
@@ -644,11 +637,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       {/* Mode Toggle */}
       <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
         {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
-          .filter((tab) => {
-            if (tab !== "MOTION_TRANSFER") return true;
-            // Show Motion tab only when a Kling model is selected
-            return selectedModel?.id.startsWith("kling");
-          })
           .map((tab) => (
           <button
             key={tab}
