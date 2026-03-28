@@ -345,6 +345,10 @@ function GalleryCard({
           isImage ? "aspect-square" :
           item.aspectRatio === "9:16" ? "aspect-[9/16]" :
           item.aspectRatio === "1:1" ? "aspect-square" :
+          item.aspectRatio === "4:3" ? "aspect-[4/3]" :
+          item.aspectRatio === "3:4" ? "aspect-[3/4]" :
+          item.aspectRatio === "3:2" ? "aspect-[3/2]" :
+          item.aspectRatio === "2:3" ? "aspect-[2/3]" :
           "aspect-video"
         }`}>
           {!isVisible ? (

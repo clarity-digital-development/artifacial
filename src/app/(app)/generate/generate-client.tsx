@@ -100,6 +100,7 @@ const MODELS: ClientModel[] = [
   // ── Motion Control ──
   { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850, "10": 1700 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Standard quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
   { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 1400, creditCostTable: { "5": 1400, "10": 2700 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. Pro quality.", durations: [5, 10], aspectRatios: [], resolutions: [], supportsEndFrame: false },
+  { id: "kling-30-motion-pro", name: "Kling 3.0 Motion", provider: "PIAPI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100, "10": 4100, "15": 6200 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. Up to 15 seconds.", durations: [5, 10, 15], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
   // ── NSFW Budget ──
   { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1250, creditCostTable: { "5": 1250 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   { id: "wan21-pro-nsfw-i2v", name: "Wan 2.1 Pro NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1100, creditCostTable: { "6": 1100 }, supportedModes: ["I2V"], maxDuration: 6, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Reliable unrestricted image-to-video. 6 seconds.", durations: [6], aspectRatios: ["16:9"], resolutions: [], supportsEndFrame: false },
@@ -109,6 +110,43 @@ const MODELS: ClientModel[] = [
   { id: "wan26-nsfw-t2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1700, creditCostTable: { "5": 1700, "10": 3300 }, supportedModes: ["T2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted text-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
   { id: "wan26-nsfw-i2v", name: "Wan 2.6 NSFW", provider: "VENICE", tier: "STANDARD", creditCost: 1700, creditCostTable: { "5": 1700, "10": 3300 }, supportedModes: ["I2V"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "NSFW", description: "Unrestricted image-to-video. Up to 10 seconds.", durations: [5, 10], aspectRatios: ["16:9", "9:16", "1:1"], resolutions: ["720p", "1080p"], supportsEndFrame: false, badge: "Beta" },
 ];
+
+// ─── Aspect ratio helpers ───
+
+const ASPECT_RATIO_VALUES: Record<string, number> = {
+  "16:9": 16 / 9,
+  "9:16": 9 / 16,
+  "1:1": 1,
+  "4:3": 4 / 3,
+  "3:4": 3 / 4,
+  "3:2": 3 / 2,
+  "2:3": 2 / 3,
+};
+
+/** Snap an image's actual pixel ratio to the closest supported aspect ratio string. */
+function snapToClosestAspectRatio(imageRatio: number, supported: string[]): string {
+  let closest = supported[0] ?? "16:9";
+  let minDiff = Infinity;
+  for (const r of supported) {
+    const val = ASPECT_RATIO_VALUES[r] ?? 16 / 9;
+    const diff = Math.abs(imageRatio - val);
+    if (diff < minDiff) { minDiff = diff; closest = r; }
+  }
+  return closest;
+}
+
+/** Tailwind aspect class for a given ratio string. */
+function getAspectClass(ar?: string): string {
+  switch (ar) {
+    case "9:16": return "aspect-[9/16]";
+    case "1:1": return "aspect-square";
+    case "4:3": return "aspect-[4/3]";
+    case "3:4": return "aspect-[3/4]";
+    case "3:2": return "aspect-[3/2]";
+    case "2:3": return "aspect-[2/3]";
+    default: return "aspect-video"; // 16:9
+  }
+}
 
 const TIER_LABELS: Record<ModelTier, string> = {
   BUDGET: "Budget",
@@ -142,6 +180,7 @@ type GenerationItem = {
   parentGenerationId?: string;
   postProcessType?: string;
   resolution?: string;
+  aspectRatio?: string;
 };
 
 type ModeTab = "T2V" | "I2V" | "MOTION_TRANSFER";
@@ -200,7 +239,9 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [resolution, setResolution] = useState("720p");
   const [withAudio, setWithAudio] = useState(false);
-  const [characterOrientation, setCharacterOrientation] = useState<"image" | "video">("image");
+  const [characterOrientation, setCharacterOrientation] = useState<"image" | "video">("video");
+  const [motionAdvancedOpen, setMotionAdvancedOpen] = useState(false);
+  const [detectedImageRatio, setDetectedImageRatio] = useState<string | null>(null);
 
   // Popup state for duration/aspect/quality pickers
   const [durationPopupOpen, setDurationPopupOpen] = useState(false);
@@ -333,16 +374,31 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     return () => document.removeEventListener("mousedown", handleClick);
   }, [modelDropdownOpen, durationPopupOpen, aspectPopupOpen, qualityPopupOpen]);
 
-  // Handle image file
+  // Handle image file — detect dimensions and auto-snap aspect ratio
   const handleImageFile = useCallback((file: File) => {
+    const url = URL.createObjectURL(file);
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  }, []);
+    setImagePreview(url);
+
+    // Detect intrinsic dimensions, snap ratio selector to closest supported value
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        const supported = availableAspectRatios.length > 0 ? availableAspectRatios : ["16:9", "9:16", "1:1"];
+        const snapped = snapToClosestAspectRatio(ratio, supported);
+        setAspectRatio(snapped);
+        setDetectedImageRatio(snapped);
+      }
+    };
+    img.src = url;
+  }, [availableAspectRatios]);
 
   const clearImage = useCallback(() => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
+    setDetectedImageRatio(null);
   }, [imagePreview]);
 
   // Handle end frame file
@@ -467,7 +523,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   const handleSubmit = async () => {
     if (isMobile) setSheetOpen(false);
-    if (submitting || !canAfford || !prompt.trim() || inFlightCount >= MAX_CONCURRENT) return;
+    if (submitting || !canAfford || (!isMotionMode && !prompt.trim()) || inFlightCount >= MAX_CONCURRENT) return;
 
     const itemId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -484,6 +540,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       creditCost,
       createdAt: Date.now(),
       elapsedSec: 0,
+      aspectRatio: showAspectRatio ? aspectRatio : undefined,
     };
 
     setGenerations((prev) => [newItem, ...prev]);
@@ -735,33 +792,33 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           </label>
         )}
 
-        {/* Prompt */}
-        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Prompt
-        </label>
-        <div className="relative mb-1">
-          <textarea
-            ref={(el) => {
-              if (!el) return;
-              el.style.height = "auto";
-              // Base height ~120px (5 rows), max ~160px (+1/3)
-              el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-            }}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={isMotionMode
-              ? "Describe the environment and context, not the motion (motion comes from the reference video)"
-              : "Describe your scene..."
-            }
-            rows={5}
-            maxLength={2000}
-            className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
-            style={{ minHeight: "120px", maxHeight: "160px", overflow: "auto" }}
-          />
-        </div>
-        <p className="mb-4 text-right text-[10px] tabular-nums text-[var(--text-muted)]">
-          {prompt.length}/2000
-        </p>
+        {/* Prompt — hidden in motion mode (prompt is in Advanced Settings there) */}
+        {!isMotionMode && (
+          <>
+            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Prompt
+            </label>
+            <div className="relative mb-1">
+              <textarea
+                ref={(el) => {
+                  if (!el) return;
+                  el.style.height = "auto";
+                  el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+                }}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe your scene..."
+                rows={5}
+                maxLength={2000}
+                className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
+                style={{ minHeight: "120px", maxHeight: "160px", overflow: "auto" }}
+              />
+            </div>
+            <p className="mb-4 text-right text-[10px] tabular-nums text-[var(--text-muted)]">
+              {prompt.length}/2000
+            </p>
+          </>
+        )}
 
         {/* Motion Transfer — side-by-side image + video */}
         {isMotionMode && needsImage && needsVideo && (
@@ -825,21 +882,71 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </div>
             </div>
 
-            {/* Character Orientation — inline below the grid */}
-            <div className="mt-3 flex gap-2">
-              {(["image", "video"] as const).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setCharacterOrientation(opt)}
-                  className={`flex-1 rounded-[var(--radius-sm)] border px-2 py-1.5 text-center text-xs font-medium transition-all duration-150 ${
-                    characterOrientation === opt
-                      ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
-                      : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
-                  }`}
+            {/* Advanced Settings */}
+            <div className="mt-3">
+              <button
+                onClick={() => setMotionAdvancedOpen((v) => !v)}
+                className="flex w-full items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              >
+                <span>Advanced Settings</span>
+                <svg
+                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  className={`transition-transform duration-200 ${motionAdvancedOpen ? "rotate-180" : ""}`}
                 >
-                  {opt === "image" ? "Portrait" : "Full Body"}
-                </button>
-              ))}
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {motionAdvancedOpen && (
+                <div className="mt-2 space-y-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
+                  {/* Scene Control Mode */}
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Scene Control Mode
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCharacterOrientation("video")}
+                        className={`flex-1 rounded-[var(--radius-sm)] border px-2 py-1.5 text-center text-xs font-medium transition-all duration-150 ${
+                          characterOrientation === "video"
+                            ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                            : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                        }`}
+                      >
+                        Video Background
+                      </button>
+                      <button
+                        onClick={() => setCharacterOrientation("image")}
+                        className={`flex-1 rounded-[var(--radius-sm)] border px-2 py-1.5 text-center text-xs font-medium transition-all duration-150 ${
+                          characterOrientation === "image"
+                            ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                            : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                        }`}
+                      >
+                        Image Background
+                      </button>
+                    </div>
+                    <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                      {characterOrientation === "video"
+                        ? "Background and scene come from the reference video (full body, up to 30s)"
+                        : "Background comes from the character image (portrait, up to 10s)"}
+                    </p>
+                  </div>
+                  {/* Optional Prompt */}
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Prompt <span className="normal-case font-normal text-[var(--text-muted)]/70">(optional)</span>
+                    </p>
+                    <textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="Describe the environment or mood (optional — motion comes from the reference video)"
+                      rows={3}
+                      maxLength={2000}
+                      className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1089,14 +1196,26 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               <button
                 type="button"
                 onClick={() => { setAspectPopupOpen(!aspectPopupOpen); setDurationPopupOpen(false); setQualityPopupOpen(false); }}
-                className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--text-muted)]"
+                className={`flex items-center gap-1.5 rounded-[var(--radius-sm)] border bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium transition-colors ${
+                  detectedImageRatio && detectedImageRatio !== aspectRatio
+                    ? "border-amber-500/60 text-amber-400 hover:border-amber-400"
+                    : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
+                }`}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text-muted)]"><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
                 {aspectRatio}
+                {detectedImageRatio && detectedImageRatio !== aspectRatio && (
+                  <span className="ml-0.5 text-[9px]">⚠</span>
+                )}
               </button>
               {aspectPopupOpen && (
                 <div className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[160px] rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-2 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl">
                   <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Aspect Ratio</p>
+                  {detectedImageRatio && (
+                    <p className="mb-1.5 px-1 text-[10px] text-amber-400/80">
+                      Image detected as {detectedImageRatio}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-1">
                     {availableAspectRatios.map((ar) => (
                       <button
@@ -1105,10 +1224,12 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                         className={`rounded-[var(--radius-sm)] border px-2.5 py-1 text-[11px] font-medium transition-all duration-150 ${
                           aspectRatio === ar
                             ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5 text-[var(--accent-amber)]"
+                            : ar === detectedImageRatio
+                            ? "border-amber-500/40 text-amber-400/80 hover:border-amber-400"
                             : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
-                        {ar}
+                        {ar}{ar === detectedImageRatio && aspectRatio !== ar ? " ✓" : ""}
                       </button>
                     ))}
                   </div>
@@ -1161,7 +1282,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           disabled={
             submitting ||
             !canAfford ||
-            !prompt.trim() ||
+            (!isMotionMode && !prompt.trim()) ||
             inFlightCount >= MAX_CONCURRENT ||
             (needsImage && imageSource === "upload" && !imageFile) ||
             (needsImage && imageSource === "character" && !selectedCharacterId) ||
@@ -1235,11 +1356,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                       <video src={gen.outputUrl} controls autoPlay muted playsInline className="w-full rounded-[var(--radius-lg)]" />
                     )
                   ) : gen.status === "failed" ? (
-                    <div className="flex aspect-video items-center justify-center rounded-[var(--radius-lg)] border border-[var(--error)]/20 bg-[var(--error)]/5">
+                    <div className={`flex ${getAspectClass(gen.aspectRatio)} items-center justify-center rounded-[var(--radius-lg)] border border-[var(--error)]/20 bg-[var(--error)]/5`}>
                       <p className="text-sm text-[var(--error)]">Generation Failed</p>
                     </div>
                   ) : (
-                    <div className="flex aspect-video items-center justify-center rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                    <div className={`flex ${getAspectClass(gen.aspectRatio)} items-center justify-center rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]`}>
                       <div className="text-center">
                         <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
                         <p className="text-sm text-[var(--text-muted)]">Generating...</p>

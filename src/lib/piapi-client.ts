@@ -225,6 +225,7 @@ export type VideoSubmitParams = {
   resolution?: string;
   withAudio?: boolean;
   negativePrompt?: string;
+  motionDirection?: "image" | "video";
 };
 
 /**
@@ -256,7 +257,20 @@ export function buildVideoInput(
     return input;
   }
 
-  // ─── Kling (2.6 and below) ───
+  // ─── Kling motion_control (2.6 / 3.0) ───
+  if (piApiModel === "kling" && taskType === "motion_control") {
+    // character image drives the subject; reference video drives the motion
+    if (params.imageUrl) input.image_url = params.imageUrl;
+    if (params.videoUrl) input.video_url = params.videoUrl;
+    // motion_direction: "image" = portrait/subject keeps original orientation (≤10s)
+    //                   "video" = full-body follows reference video orientation (≤30s)
+    input.motion_direction = params.motionDirection ?? "video";
+    // prompt is optional for motion_control
+    if (!params.prompt) delete input.prompt;
+    return input;
+  }
+
+  // ─── Kling (2.6 and below — video_generation) ───
   if (piApiModel === "kling") {
     input.duration = params.durationSec ?? 5;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;

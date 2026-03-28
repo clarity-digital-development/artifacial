@@ -113,6 +113,7 @@ async function submitToPiAPI(
     resolution: string;
     audioEnabled: boolean;
     modelId: string;
+    motionDirection?: "image" | "video";
   },
 ): Promise<{ taskId: string; piApiModel: string }> {
   const piApiModel = model.pipiConfig.model;
@@ -137,6 +138,7 @@ async function submitToPiAPI(
         aspectRatio: params.aspectRatio,
         resolution: params.resolution,
         withAudio: params.audioEnabled,
+        motionDirection: params.motionDirection,
       });
 
   if (model.pipiConfig.defaults) {
@@ -400,6 +402,7 @@ export async function routeGeneration(
       const result = await submitToPiAPI(model as { pipiConfig: NonNullable<typeof model.pipiConfig> }, mode, submissionPrompt, {
         imageUrl, endImageUrl, videoUrl, durationSec,
         aspectRatio, resolution, audioEnabled, modelId,
+        motionDirection: mode === "MOTION_TRANSFER" ? (characterOrientation as "image" | "video") : undefined,
       });
 
       await prisma.generation.update({

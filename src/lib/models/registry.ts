@@ -345,7 +345,7 @@ const KLING_26_MOTION_STD: ModelConfig = {
   provider: "PIAPI",
   pipiConfig: {
     model: "kling",
-    taskTypes: { MOTION_TRANSFER: "video_generation" },
+    taskTypes: { MOTION_TRANSFER: "motion_control" },
     defaults: { version: "2.6", mode: "std" },
     costKey: "kling-26-std",
   },
@@ -370,7 +370,7 @@ const KLING_26_MOTION_PRO: ModelConfig = {
   provider: "PIAPI",
   pipiConfig: {
     model: "kling",
-    taskTypes: { MOTION_TRANSFER: "video_generation" },
+    taskTypes: { MOTION_TRANSFER: "motion_control" },
     defaults: { version: "2.6", mode: "pro" },
     costKey: "kling-26-pro",
   },
@@ -384,6 +384,32 @@ const KLING_26_MOTION_PRO: ModelConfig = {
   contentMode: "SFW",
   description: "Copy motion from reference video. Pro quality.",
   durations: [5, 10],
+  aspectRatios: [],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
+const KLING_30_MOTION_PRO: ModelConfig = {
+  id: "kling-30-motion-pro",
+  name: "Kling 3.0 Motion",
+  provider: "PIAPI",
+  badge: "New",
+  pipiConfig: {
+    model: "kling",
+    taskTypes: { MOTION_TRANSFER: "motion_control" },
+    defaults: { version: "3.0", mode: "pro" },
+    costKey: "kling-30-pro",
+  },
+  tier: "ULTRA",
+  creditCost: 2100,
+  creditCostTable: { "5": 2100, "10": 4100, "15": 6200 },
+  supportedModes: ["MOTION_TRANSFER"],
+  maxDuration: 15,
+  maxResolution: "1080p",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Kling 3.0 motion control. Up to 15 seconds.",
+  durations: [5, 10, 15],
   aspectRatios: [],
   resolutions: [],
   supportsEndFrame: false,
@@ -964,6 +990,7 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   // Motion Control
   [KLING_26_MOTION_STD.id]: KLING_26_MOTION_STD,
   [KLING_26_MOTION_PRO.id]: KLING_26_MOTION_PRO,
+  [KLING_30_MOTION_PRO.id]: KLING_30_MOTION_PRO,
   // New SFW Video
   [LUMA.id]: LUMA,
   [HAILUO.id]: HAILUO,
