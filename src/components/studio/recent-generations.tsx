@@ -195,7 +195,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
           </div>
         </Link>
         {generations.slice(0, 3).map((g) => (
-          <Link key={g.id} href="/generate" className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+          <div key={g.id} className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             {g.videoUrl ? (
               <MobileThumbnail thumbnailUrl={g.thumbnailUrl ?? null} modelId={g.modelId} />
             ) : (
@@ -206,7 +206,7 @@ export function RecentGenerations({ generations }: { generations: GenerationCard
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
               <p className="truncate text-[10px] text-white/70">{g.modelId}</p>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -266,8 +266,7 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
   const isInFlight = gen.status === "QUEUED" || gen.status === "PROCESSING";
 
   return (
-    <Link
-      href={gen.status === "COMPLETED" ? "/gallery" : "/generate"}
+    <div
       className="shrink-0 snap-start"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -378,6 +377,6 @@ function GenerationCardItem({ gen }: { gen: GenerationCard }) {
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -147,27 +147,6 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
-  // Track the item being shown in the mobile sheet (persists during close animation)
-  const [mobileSheetItem, setMobileSheetItem] = useState<GalleryItem | null>(null);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-
-  // Open mobile sheet when an item is selected
-  useEffect(() => {
-    if (selectedItem) {
-      setMobileSheetItem(selectedItem);
-      // Trigger open on next frame so the transition plays
-      requestAnimationFrame(() => setMobileSheetOpen(true));
-    }
-  }, [selectedItem]);
-
-  const handleMobileClose = useCallback(() => {
-    setMobileSheetOpen(false);
-    // Wait for the exit animation before clearing state
-    setTimeout(() => {
-      setSelectedId(null);
-      setMobileSheetItem(null);
-    }, 300);
-  }, []);
 
   return (
     <div className="flex gap-6">
@@ -246,8 +225,6 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
         </div>
       )}
 
-      {/* Mobile Detail Sheet — always mounted for animation */}
-      <MobileDetailSheet item={mobileSheetItem} open={mobileSheetOpen} onClose={handleMobileClose} />
     </div>
   );
 }
@@ -315,8 +292,9 @@ function GalleryCard({
     const fileName = `artifacial-${item.id}.${ext}`;
 
     try {
-      // Fetch as blob to handle cross-origin R2 URLs
-      const res = await fetch(item.videoUrl);
+      // Proxy through our API to avoid cross-origin download issues
+      const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
+      const res = await fetch(proxyUrl);
       const blob = await res.blob();
 
       // Use Web Share API on mobile for native "Save to camera roll" sheet
@@ -326,7 +304,7 @@ function GalleryCard({
         return;
       }
 
-      // Fallback: blob download
+      // Desktop: blob download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -334,11 +312,8 @@ function GalleryCard({
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // Last resort: direct link
-      const a = document.createElement("a");
-      a.href = item.videoUrl;
-      a.download = fileName;
-      a.click();
+      // Fallback: open proxy URL directly (Content-Disposition will trigger download)
+      window.open(`/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`, "_blank");
     }
   };
 
@@ -364,7 +339,6 @@ function GalleryCard({
       >
         <div className={`relative ${isImage ? "aspect-square" : "aspect-video"} overflow-hidden bg-[var(--bg-elevated)]`}>
           {!isVisible ? (
-            /* Placeholder shown until card scrolls near viewport */
             <div className="h-full w-full bg-[var(--bg-elevated)]" />
           ) : item.videoUrl ? (
             isImage ? (
@@ -384,7 +358,6 @@ function GalleryCard({
                   preload="none"
                   className="h-full w-full object-cover"
                 />
-                {/* Thumbnail overlay — shown until video plays */}
                 {!isHovered && !isSelected && (
                   <img
                     src={item.thumbnailUrl!}
@@ -395,7 +368,6 @@ function GalleryCard({
                 )}
               </>
             ) : (
-              /* No thumbnail — video with preload for desktop, placeholder behind for mobile */
               <>
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--bg-elevated)]">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
@@ -422,7 +394,7 @@ function GalleryCard({
             </div>
           )}
 
-          {/* Hover overlay: viewfinder corners */}
+          {/* Hover overlay: viewfinder corners (desktop only) */}
           <div className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${isHovered && !isSelected ? "opacity-100" : "opacity-0"}`}>
             <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-[var(--accent-amber)]/50" />
             <span className="absolute right-3 top-3 h-3 w-3 border-r border-t border-[var(--accent-amber)]/50" />
@@ -430,10 +402,9 @@ function GalleryCard({
             <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[var(--accent-amber)]/50" />
           </div>
 
-          {/* Action buttons when selected */}
+          {/* Action buttons when selected (desktop) */}
           {isSelected && item.videoUrl && (
-            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2.5 pt-8">
-              {/* Save */}
+            <div className="absolute bottom-0 left-0 right-0 hidden items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2.5 pt-8 md:flex">
               <button
                 onClick={handleSave}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70"
@@ -445,7 +416,6 @@ function GalleryCard({
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               </button>
-              {/* Fullscreen */}
               <button
                 onClick={handleFullscreen}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/70"
@@ -486,116 +456,51 @@ function GalleryCard({
             })}
           </span>
         </div>
-      </div>
-    </div>
-  );
-}
 
-// ─── Mobile Detail Sheet ───
-
-function MobileDetailSheet({ item, open, onClose }: { item: GalleryItem | null; open: boolean; onClose: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const isImage = item?.workflowType === "TEXT_TO_IMAGE";
-
-  // Play/pause video based on open state
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || isImage) return;
-    if (open) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [open, item?.id, isImage]);
-
-  // Lock body scroll when open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
-    }
-  }, [open]);
-
-  const modelName = item ? (MODEL_NAMES[item.modelId] ?? item.modelId) : "";
-  const workflowLabel = item ? (WORKFLOW_LABELS[item.workflowType] ?? item.workflowType) : "";
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className={`fixed inset-0 z-50 bg-black/70 transition-opacity duration-300 lg:hidden ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      />
-
-      {/* Sheet */}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col rounded-t-2xl bg-[var(--bg-deep)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
-          open ? "translate-y-0" : "translate-y-full"
-        }`}
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        {/* Drag handle + close */}
-        <div className="flex items-center justify-between px-4 pb-2 pt-3">
-          <div className="h-1 w-10 rounded-full bg-white/20" />
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Scrollable content */}
-        {item && (
-          <div className="flex-1 overflow-y-auto px-4 pb-24">
-            {/* Large preview */}
+        {/* Mobile inline details — drops down when tapped */}
+        {isSelected && (
+          <div className="border-t border-[var(--border-subtle)] px-3 py-3 md:hidden">
+            {/* Action buttons */}
             {item.videoUrl && (
-              <div className={`overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-elevated)] ${isImage ? "" : "aspect-video"}`}>
-                {isImage ? (
-                  <img
-                    src={item.videoUrl}
-                    alt={item.prompt ?? "Generated image"}
-                    className="w-full object-contain"
-                  />
-                ) : (
-                  <video
-                    ref={videoRef}
-                    src={item.videoUrl}
-                    muted
-                    loop
-                    playsInline
-                    controls
-                    preload="auto"
-                    className="h-full w-full object-contain"
-                  />
+              <div className="mb-3 flex gap-2">
+                <button
+                  onClick={handleSave}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors active:bg-[var(--bg-elevated)]"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Save
+                </button>
+                {!isImage && (
+                  <button
+                    onClick={handleFullscreen}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition-colors active:bg-[var(--bg-elevated)]"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="15 3 21 3 21 9" />
+                      <polyline points="9 21 3 21 3 15" />
+                      <line x1="21" y1="3" x2="14" y2="10" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                    Fullscreen
+                  </button>
                 )}
               </div>
             )}
 
             {/* Prompt */}
             {item.prompt && (
-              <div className="mt-4">
-                <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Prompt
-                </label>
-                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  {item.prompt}
-                </p>
-              </div>
+              <p className="mb-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                {item.prompt}
+              </p>
             )}
 
             {/* Metadata */}
-            <div className="mt-4 space-y-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-              <MetaRow label="Model" value={modelName} />
-              <MetaRow label="Type" value={workflowLabel} />
-              <MetaRow label="Duration" value={`${item.durationSec}s`} />
+            <div className="space-y-1.5">
               <MetaRow label="Resolution" value={item.resolution} />
-              <MetaRow label="Audio" value={item.withAudio ? "Yes" : "No"} />
               <MetaRow label="Credits" value={`${item.creditsCost}`} />
               {item.generationTimeMs && (
                 <MetaRow label="Gen time" value={`${(item.generationTimeMs / 1000).toFixed(1)}s`} />
@@ -610,19 +515,13 @@ function MobileDetailSheet({ item, open, onClose }: { item: GalleryItem | null; 
                 })}
               />
             </div>
-
-            {/* Download */}
-            {item.videoUrl && (
-              <div className="mt-4">
-                <DownloadButton item={item} />
-              </div>
-            )}
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
+
 
 // ─── Download Button ───
 
@@ -635,7 +534,8 @@ function DownloadButton({ item }: { item: GalleryItem }) {
     const mimeType = isImage ? "image/webp" : "video/mp4";
     const fileName = `artifacial-${item.id}.${ext}`;
     try {
-      const res = await fetch(item.videoUrl);
+      const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
+      const res = await fetch(proxyUrl);
       const blob = await res.blob();
       if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: mimeType })] })) {
         await navigator.share({ files: [new File([blob], fileName, { type: mimeType })] });
@@ -648,10 +548,7 @@ function DownloadButton({ item }: { item: GalleryItem }) {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      const a = document.createElement("a");
-      a.href = item.videoUrl!;
-      a.download = fileName;
-      a.click();
+      window.open(`/api/download?url=${encodeURIComponent(item.videoUrl!)}&filename=${encodeURIComponent(fileName)}`, "_blank");
     }
   };
 
