@@ -190,17 +190,18 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
         </div>
       )}
 
-      {/* Grid */}
+      {/* Masonry grid */}
       <div className="min-w-0 flex-1">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
           {items.map((item) => (
-            <GalleryCard
-              key={item.id}
-              item={item}
-              isSelected={item.id === selectedId}
-              onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
-              onFullscreen={(url) => setFullscreenUrl(url)}
-            />
+            <div key={item.id} className="mb-3 break-inside-avoid">
+              <GalleryCard
+                item={item}
+                isSelected={item.id === selectedId}
+                onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
+                onFullscreen={(url) => setFullscreenUrl(url)}
+              />
+            </div>
           ))}
         </div>
       </div>
