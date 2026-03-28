@@ -233,6 +233,42 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
   );
 }
 
+// ─── Shared download helper ───
+
+async function downloadItem(videoUrl: string, id: string, isImage: boolean) {
+  const ext = isImage ? "webp" : "mp4";
+  const mimeType = isImage ? "image/webp" : "video/mp4";
+  const fileName = `artifacial-${id}.${ext}`;
+
+  try {
+    const proxyUrl = `/api/download?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const file = new File([blob], fileName, { type: mimeType });
+
+    // On iOS/Android: use Web Share API → triggers native "Save Video / Save Image" sheet
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return;
+    }
+
+    // Desktop: blob → hidden anchor click → browser save dialog
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    // Last resort: open original URL so user can long-press save on mobile
+    window.open(videoUrl, "_blank");
+  }
+}
+
 // ─── Gallery Card ───
 
 function GalleryCard({
@@ -290,28 +326,7 @@ function GalleryCard({
     e.stopPropagation();
     e.preventDefault();
     if (!item.videoUrl) return;
-
-    const ext = isImage ? "webp" : "mp4";
-    const mimeType = isImage ? "image/webp" : "video/mp4";
-    const fileName = `artifacial-${item.id}.${ext}`;
-
-    try {
-      const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      // Fallback: open the original URL directly (lets mobile long-press save)
-      window.open(item.videoUrl, "_blank");
-    }
+    await downloadItem(item.videoUrl, item.id, isImage);
   };
 
   const modelName = MODEL_NAMES[item.modelId] ?? item.modelId;
@@ -536,26 +551,7 @@ function DownloadButton({ item }: { item: GalleryItem }) {
 
   const handleDownload = async () => {
     if (!item.videoUrl) return;
-    const ext = isImage ? "webp" : "mp4";
-    const mimeType = isImage ? "image/webp" : "video/mp4";
-    const fileName = `artifacial-${item.id}.${ext}`;
-    try {
-      const proxyUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}&filename=${encodeURIComponent(fileName)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      // Fallback: open the original URL directly (lets mobile long-press save)
-      window.open(item.videoUrl!, "_blank");
-    }
+    await downloadItem(item.videoUrl, item.id, isImage);
   };
 
   return (
