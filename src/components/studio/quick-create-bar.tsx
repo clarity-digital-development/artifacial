@@ -31,11 +31,8 @@ export function QuickCreateBar() {
   }, [prompt]);
 
   const handleGenerate = () => {
-    if (!prompt.trim()) {
-      router.push("/generate");
-      return;
-    }
-    const params = new URLSearchParams({ prompt: prompt.trim() });
+    const params = new URLSearchParams({ modelId: "nano-banana-2", mode: "T2I" });
+    if (prompt.trim()) params.set("prompt", prompt.trim());
     router.push(`/generate?${params.toString()}`);
   };
 
@@ -77,7 +74,7 @@ export function QuickCreateBar() {
           onClick={handleGenerate}
           className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--accent-amber-dim)]"
         >
-          Generate Video
+          Generate Image
         </button>
       </div>
     </section>

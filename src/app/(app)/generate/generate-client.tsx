@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -205,6 +206,10 @@ interface GenerateClientProps {
 export function GenerateClient({ totalCredits, tier, characters = [], contentMode = "SFW" }: GenerateClientProps) {
   const isMobile = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const initModelId = searchParams.get("modelId");
+  const initMode = searchParams.get("mode") as ModeTab | null;
+  const initPrompt = searchParams.get("prompt") ?? "";
 
   // Lock the main scroll container so the fixed-height generate layout
   // doesn't leave a few stray pixels of scrollable space on mobile.
@@ -231,15 +236,17 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     return true;
   });
 
-  // Mode & model
-  const [mode, setMode] = useState<ModeTab>("T2V");
-  const [selectedModelId, setSelectedModelId] = useState<string>(isNsfw ? "wan26-nsfw-t2v" : "kling-30-pro");
+  // Mode & model — seeded from URL params (e.g. from quick-create-bar)
+  const [mode, setMode] = useState<ModeTab>(initMode ?? "T2V");
+  const [selectedModelId, setSelectedModelId] = useState<string>(
+    initModelId ?? (isNsfw ? "wan26-nsfw-t2v" : "kling-30-pro")
+  );
   const isImageMode = false; // T2I handled in characters tab, not studio
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Form state
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(initPrompt);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [endImageFile, setEndImageFile] = useState<File | null>(null);
