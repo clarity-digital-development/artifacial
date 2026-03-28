@@ -194,21 +194,23 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
           style={{ backdropFilter: "blur(12px)", backgroundColor: "rgba(0,0,0,0.55)" }}
           onClick={() => setFullscreenUrl(null)}
         >
-          <div
-            className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] shadow-[0_32px_80px_rgba(0,0,0,0.7)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <video
-              src={fullscreenUrl}
-              autoPlay
-              loop
-              playsInline
-              controls
-              style={{ display: "block", maxHeight: "85vh", maxWidth: "85vw" }}
-            />
+          <div className="relative">
+            <div
+              className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] shadow-[0_32px_80px_rgba(0,0,0,0.7)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <video
+                src={fullscreenUrl}
+                autoPlay
+                loop
+                playsInline
+                controls
+                style={{ display: "block", maxHeight: "85vh", maxWidth: "85vw" }}
+              />
+            </div>
             <button
               onClick={() => setFullscreenUrl(null)}
-              className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm hover:bg-black/80"
+              className="absolute -right-4 -top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] shadow-lg hover:bg-[var(--bg-surface)]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
