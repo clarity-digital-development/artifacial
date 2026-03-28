@@ -660,10 +660,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           {/* Trigger button — shows selected model */}
           <button
             onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-            className={`flex w-full items-center justify-between rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`flex w-full items-center justify-between border px-3 py-2.5 text-left transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               modelDropdownOpen
-                ? "border-[var(--accent-amber)] bg-[var(--accent-amber)]/5"
-                : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--text-muted)]"
+                ? "rounded-t-[var(--radius-md)] rounded-b-none border-[var(--accent-amber)] bg-[var(--accent-amber)]/5"
+                : "rounded-[var(--radius-md)] border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--text-muted)]"
             }`}
           >
             <div className="min-w-0 flex-1">
@@ -704,7 +704,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
           {/* Dropdown menu */}
           {modelDropdownOpen && (
-            <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 max-h-[320px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="absolute left-0 right-0 top-full z-50 max-h-[320px] overflow-y-auto rounded-b-[var(--radius-md)] border border-t-0 border-[var(--accent-amber)] bg-[var(--bg-surface)] py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               {modelGroups.map((group) => (
                 <div key={group.tier}>
                   <div className="sticky top-0 bg-[var(--bg-surface)] px-3 pb-1 pt-2">
