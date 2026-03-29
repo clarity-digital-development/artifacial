@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 
 type Character = {
   id: string;
@@ -174,7 +175,11 @@ export function EditClient({ characters }: { characters: Character[] }) {
   const [refPreview, setRefPreview] = useState<string | null>(null);
   const [refSignedUrl, setRefSignedUrl] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const selectedChar = characters[selectedCharIdx] ?? null;
   const selectedImageUrl = selectedChar?.signedUrls[0] ?? null;
@@ -417,9 +422,9 @@ export function EditClient({ characters }: { characters: Character[] }) {
           </div>
         )}
 
-        {/* Bottom bar: prompt + controls (hidden when result shown) */}
+        {/* Desktop bottom bar (hidden on mobile) */}
         {!isDone && (
-          <div className="flex items-end justify-center gap-3">
+          <div className="hidden items-end justify-center gap-3 md:flex">
             {/* Prompt area — fixed width, centered */}
             <div className="flex w-[520px] items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
               <ReferenceImagePicker
@@ -454,6 +459,97 @@ export function EditClient({ characters }: { characters: Character[] }) {
           </div>
         )}
       </div>
+
+      {/* ── Mobile: fixed bottom button ── */}
+      {!isDone && (
+        <div className="no-stagger fixed bottom-16 left-0 right-0 z-40 px-4 pb-[env(safe-area-inset-bottom)] md:hidden">
+          <button
+            onClick={() => setSheetOpen(true)}
+            disabled={isGenerating}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-[var(--accent-amber)] text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.2)] transition-all duration-200 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2v4m0 12v4m-7.07-3.93 2.83-2.83m8.48-8.48 2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83" />
+                </svg>
+                Generating…
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                Edit Image
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ── Mobile: edit sheet ── */}
+      {mounted && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setSheetOpen(false)}
+            className={`fixed inset-0 z-50 bg-black transition-opacity duration-300 md:hidden ${
+              sheetOpen ? "opacity-50 pointer-events-auto" : "opacity-0 pointer-events-none"
+            }`}
+          />
+          {/* Sheet */}
+          <div
+            className={`fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-transform duration-300 md:hidden ${
+              sheetOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
+            }`}
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pb-2 pt-3">
+              <div className="h-1 w-10 rounded-full bg-white/20" />
+            </div>
+
+            <div className="space-y-4 px-4 pb-24">
+              {/* Prompt */}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Prompt</label>
+                <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
+                  <ReferenceImagePicker
+                    preview={refPreview}
+                    onFile={handleRefFile}
+                    onClear={clearRef}
+                    disabled={isGenerating || refUploading}
+                  />
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={refUploading ? "Uploading reference…" : "Describe what to change…"}
+                    rows={4}
+                    disabled={isGenerating}
+                    className="min-h-0 flex-1 resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              {/* Aspect ratio */}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">Output Size</label>
+                <SizeDropdown value={imageSize} onChange={setImageSize} disabled={isGenerating} />
+              </div>
+
+              {/* Generate */}
+              <button
+                onClick={() => { handleGenerate(); setSheetOpen(false); }}
+                disabled={isGenerating || !selectedImageKey || !prompt.trim() || refUploading}
+                className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-50"
+              >
+                Generate · 150cr
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
