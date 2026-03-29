@@ -18,6 +18,7 @@ import {
   type ModelMode,
 } from "@/lib/models/registry";
 import { enrichNSFWPrompt, submitVeniceVideo } from "@/lib/venice";
+import { submitKieAiMotionControl } from "@/lib/kieai";
 import type {
   ContentMode,
   WorkflowType,
@@ -294,7 +295,7 @@ export async function routeGeneration(
     }
 
     // 6. Estimate API cost for margin tracking
-    const costKey = model.pipiConfig?.costKey ?? model.veniceConfig?.costKey ?? model.id;
+    const costKey = model.pipiConfig?.costKey ?? model.veniceConfig?.costKey ?? model.kieaiConfig?.costKey ?? model.id;
     const apiCost = estimateApiCost(costKey, { durationSec });
 
     // 7. Create Generation record
@@ -387,6 +388,47 @@ export async function routeGeneration(
               veniceQueueId: veniceResult.queueId,
               veniceModel: veniceResult.model,
               submissionPath: "venice",
+            },
+          },
+        });
+
+        return { success: true, generationId: generation.id };
+      }
+
+      // ─── KIE.AI — Kling 3.0 motion control ───
+      if (model.provider === "KIEAI" && model.kieaiConfig) {
+        const callbackUrl = `${process.env.APP_URL ?? "https://artifacial.app"}/api/webhooks/kieai`;
+
+        if (!imageUrl || !videoUrl) {
+          throw new Error("Kling motion control requires both a character image and a motion reference video");
+        }
+
+        const kieaiResult = await submitKieAiMotionControl({
+          imageUrl,
+          videoUrl,
+          prompt: submissionPrompt,
+          mode: model.kieaiConfig.mode,
+          characterOrientation: characterOrientation as "video" | "image",
+          backgroundSource: characterOrientation === "image" ? "input_image" : "input_video",
+          callbackUrl,
+        });
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "PROCESSING",
+            startedAt: new Date(),
+            promptId: kieaiResult.taskId,
+            inputParams: {
+              prompt,
+              imageUrl: imageUrl ?? null,
+              videoUrl: videoUrl ?? null,
+              aspectRatio,
+              resolution,
+              modelId,
+              withAudio: audioEnabled,
+              kieAiTaskId: kieaiResult.taskId,
+              submissionPath: "kieai",
             },
           },
         });

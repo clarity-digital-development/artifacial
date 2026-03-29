@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const count = [1, 2, 4].includes(countRaw) ? countRaw : 1;
   const photoFile = formData.get("photo") as File | null;
 
-  console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
+  console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, count=${count}, hasPhoto=${!!photoFile}`);
 
   // Look up model from registry (supports both PiAPI and Venice)
   const registryModel = getModelById(model);
@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  // Create character record
-  const character = await prisma.character.create({
+  // Create primary character record
+  const primaryCharacter = await prisma.character.create({
     data: {
       userId,
       name: name.trim(),
@@ -71,25 +71,48 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Upload source photo if provided
+  // Upload source photo if provided (using primary character's ID for the key)
+  let sourceImageKey: string | undefined;
   let referenceImageBuffer: Buffer | undefined;
   if (mode === "photo" && photoFile) {
     const bytes = new Uint8Array(await photoFile.arrayBuffer());
     const photoBuffer = Buffer.from(bytes);
-    const key = r2KeyForUpload(userId, character.id, "source.jpg");
+    const key = r2KeyForUpload(userId, primaryCharacter.id, "source.jpg");
     await uploadToR2(key, photoBuffer, photoFile.type);
     await prisma.character.update({
-      where: { id: character.id },
+      where: { id: primaryCharacter.id },
       data: { sourceImage: key },
     });
+    sourceImageKey = key;
     referenceImageBuffer = photoBuffer;
-    console.log(`[char-gen] Uploaded source photo: key=${key}, bufferSize=${referenceImageBuffer.length}`);
+    console.log(`[char-gen] Uploaded source photo: key=${key}, size=${photoBuffer.length}`);
   }
+
+  // For count > 1, create additional character records (each gets its own image)
+  const additionalCharacters =
+    count > 1
+      ? await Promise.all(
+          Array.from({ length: count - 1 }, () =>
+            prisma.character.create({
+              data: {
+                userId,
+                name: name.trim(),
+                description: description.trim() || null,
+                style,
+                referenceImages: [],
+                ...(sourceImageKey ? { sourceImage: sourceImageKey } : {}),
+              },
+            })
+          )
+        )
+      : [];
+
+  const allCharacters = [primaryCharacter, ...additionalCharacters];
 
   // Debit credits upfront
   await deductCredits(userId, cost, `Character generation: ${name.trim()}`, "character_debit");
 
-  // Build prompts
+  // Build prompt (same prompt for all images)
   const promptDescription = description.trim() || name.trim();
   const prompts = buildCharacterPrompts(style, promptDescription);
 
@@ -103,17 +126,17 @@ export async function POST(req: NextRequest) {
         );
       };
 
-      const referenceImageKeys: string[] = [];
+      // Track success per index for credit refunds
+      const successFlags: boolean[] = Array(count).fill(false);
 
-      // Generate N images concurrently (count from client, 1–4)
-      const results = await Promise.allSettled(
-        Array.from({ length: count }, async (_, index) => {
+      // Generate one image per character, concurrently
+      await Promise.all(
+        allCharacters.map(async (char, index) => {
           const prompt = prompts[0];
           try {
             let imageBuffer: Buffer;
 
             if (isVenice && registryModel?.veniceConfig) {
-              // Venice AI generation
               imageBuffer = await generateVeniceImage({
                 model: registryModel.veniceConfig.model,
                 prompt,
@@ -121,47 +144,45 @@ export async function POST(req: NextRequest) {
                 safeMode: false,
               });
             } else {
-              // PiAPI generation
-              imageBuffer = await generateImageWithPiApi(prompt, model as PiApiImageModelId, aspectRatio, referenceImageBuffer, quality);
+              imageBuffer = await generateImageWithPiApi(
+                prompt,
+                model as PiApiImageModelId,
+                aspectRatio,
+                referenceImageBuffer,
+                quality
+              );
             }
 
-            const key = r2KeyForCharacterImage(
-              userId,
-              character.id,
-              index === 0 ? "main" : `main_${index}`
-            );
+            const key = r2KeyForCharacterImage(userId, char.id, "main");
             await uploadToR2(key, imageBuffer, "image/webp");
+
+            await prisma.character.update({
+              where: { id: char.id },
+              data: { referenceImages: [key] },
+            });
+
             const signedUrl = await getSignedR2Url(key, 86400);
-            referenceImageKeys[index] = key;
-            send({ type: "image", index, url: signedUrl });
+            successFlags[index] = true;
+            send({ type: "image", index, url: signedUrl, characterId: char.id });
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
-            const errDetail = err instanceof Error && (err as unknown as Record<string, unknown>).body
-              ? JSON.stringify((err as unknown as Record<string, unknown>).body).slice(0, 500)
-              : "";
-            console.error(`[char-gen] Generation failed: index=${index}, model=${model}, error=${errMsg}`, errDetail ? `body=${errDetail}` : "");
-            send({
-              type: "error",
-              index,
-              message: errMsg,
-            });
+            const errDetail =
+              err instanceof Error && (err as unknown as Record<string, unknown>).body
+                ? JSON.stringify((err as unknown as Record<string, unknown>).body).slice(0, 500)
+                : "";
+            console.error(
+              `[char-gen] Generation failed: index=${index}, model=${model}, error=${errMsg}`,
+              errDetail ? `body=${errDetail}` : ""
+            );
+            // Delete the empty character record so it doesn't pollute the library
+            await prisma.character.delete({ where: { id: char.id } }).catch(() => {});
+            send({ type: "error", index, message: errMsg });
           }
         })
       );
 
-      // Update character with generated image keys
-      const successfulKeys = referenceImageKeys.filter(Boolean);
-      if (successfulKeys.length > 0) {
-        await prisma.character.update({
-          where: { id: character.id },
-          data: { referenceImages: successfulKeys },
-        });
-      }
-
-      // Refund credits for failed generations
-      const failedCount = results.filter(
-        (r) => r.status === "rejected"
-      ).length;
+      // Refund credits for any failed generations
+      const failedCount = successFlags.filter((f) => !f).length;
       if (failedCount > 0) {
         const refundAmount = failedCount * perImageCost;
         await refundCredits(
@@ -171,7 +192,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      send({ type: "complete", characterId: character.id });
+      const successfulIds = allCharacters
+        .filter((_, i) => successFlags[i])
+        .map((c) => c.id);
+
+      send({
+        type: "complete",
+        characterId: successfulIds[0] ?? primaryCharacter.id,
+        characterIds: successfulIds,
+      });
       controller.close();
     },
   });

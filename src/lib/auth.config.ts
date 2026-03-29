@@ -25,7 +25,11 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith("/characters") ||
         nextUrl.pathname.startsWith("/projects") ||
         nextUrl.pathname.startsWith("/gallery") ||
-        nextUrl.pathname.startsWith("/settings");
+        nextUrl.pathname.startsWith("/settings") ||
+        nextUrl.pathname.startsWith("/generate");
+
+      // Workshop is public for now (preview)
+      if (nextUrl.pathname.startsWith("/workshop")) return true;
 
       if (isAppRoute && !isAuth) {
         return false; // redirects to signIn page

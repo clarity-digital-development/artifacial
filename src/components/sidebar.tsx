@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { type ReactNode } from "react";
+import { type ReactNode, useState, useEffect, useRef } from "react";
 
 function IconStudio({ className }: { className?: string }) {
   return (
@@ -25,25 +25,18 @@ function IconCharacters({ className }: { className?: string }) {
   );
 }
 
-function IconProjects({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="2.18" />
-      <line x1="7" y1="2" x2="7" y2="22" />
-      <line x1="17" y1="2" x2="17" y2="22" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <line x1="2" y1="7" x2="7" y2="7" />
-      <line x1="2" y1="17" x2="7" y2="17" />
-      <line x1="17" y1="17" x2="22" y2="17" />
-      <line x1="17" y1="7" x2="22" y2="7" />
-    </svg>
-  );
-}
-
 function IconGenerate({ className }: { className?: string }) {
   return (
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
+function IconWorkshop({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
     </svg>
   );
 }
@@ -70,7 +63,6 @@ function IconSettings({ className }: { className?: string }) {
 const NAV_ITEMS: { href: string; label: string; icon: (props: { className?: string }) => ReactNode }[] = [
   { href: "/studio", label: "Studio", icon: IconStudio },
   { href: "/characters", label: "Characters", icon: IconCharacters },
-  { href: "/generate", label: "Create", icon: IconGenerate },
   { href: "/gallery", label: "Gallery", icon: IconGallery },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ];
@@ -81,7 +73,30 @@ interface SidebarProps {
 
 export function Sidebar({ contentMode }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isNsfw = contentMode === "NSFW";
+  const [createOpen, setCreateOpen] = useState(false);
+  const createRef = useRef<HTMLDivElement>(null);
+
+  const createIsActive =
+    pathname.startsWith("/generate") || pathname.startsWith("/workshop");
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!createOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (createRef.current && !createRef.current.contains(e.target as Node)) {
+        setCreateOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [createOpen]);
+
+  // Close on route change
+  useEffect(() => {
+    setCreateOpen(false);
+  }, [pathname]);
 
   return (
     <aside className="relative z-30 hidden md:flex h-full w-[72px] flex-col items-center border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] py-6">
@@ -91,7 +106,46 @@ export function Sidebar({ contentMode }: SidebarProps) {
       >
         <Image src="/logo.svg" alt="Artifacial" width={36} height={36} unoptimized />
       </Link>
+
       <nav className="flex flex-1 flex-col gap-2">
+        {/* Create button with dropdown */}
+        <div ref={createRef} className="relative">
+          <button
+            onClick={() => setCreateOpen((o) => !o)}
+            title="Create"
+            className={`relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              createIsActive
+                ? "bg-[var(--accent-amber-glow)] text-[var(--accent-amber)] shadow-[0_0_12px_rgba(232,166,52,0.1)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <IconGenerate />
+          </button>
+
+          {createOpen && (
+            <div className="absolute left-[calc(100%+10px)] top-0 z-50 min-w-[168px] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xl">
+              {/* Small arrow indicator */}
+              <div className="absolute -left-[5px] top-3 h-2.5 w-2.5 rotate-45 border-b border-l border-[var(--border-subtle)] bg-[var(--bg-surface)]" />
+              <button
+                onClick={() => { setCreateOpen(false); router.push("/generate"); }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              >
+                <IconGenerate className="shrink-0 opacity-70" />
+                <span className="font-medium">Generate</span>
+              </button>
+              <div className="mx-3 h-px bg-[var(--border-subtle)]" />
+              <button
+                onClick={() => { setCreateOpen(false); router.push("/workshop"); }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              >
+                <IconWorkshop className="shrink-0 opacity-70" />
+                <span className="font-medium">Workshop</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Regular nav items */}
         {NAV_ITEMS.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
@@ -114,6 +168,7 @@ export function Sidebar({ contentMode }: SidebarProps) {
           );
         })}
       </nav>
+
       <button
         onClick={() => signOut({ callbackUrl: "/sign-in" })}
         className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-secondary)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"

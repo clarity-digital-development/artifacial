@@ -6,6 +6,7 @@ import {
   estimateApiCost,
 } from "@/lib/piapi-client";
 import { retrieveVeniceVideo, enrichNSFWPrompt } from "@/lib/venice";
+import { getKieAiTaskStatus } from "@/lib/kieai";
 import { isValidModelId, getModelById, getPiApiTaskType } from "@/lib/models/registry";
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
@@ -208,11 +209,12 @@ export async function GET(
   const piApiTaskId = inputParams?.piApiTaskId as string | undefined;
   const veniceQueueId = inputParams?.veniceQueueId as string | undefined;
   const veniceModel = inputParams?.veniceModel as string | undefined;
+  const kieAiTaskId = inputParams?.kieAiTaskId as string | undefined;
 
   // Legacy fal.ai support: check for falRequestId for in-flight generations
   const falRequestId = inputParams?.falRequestId as string | undefined;
 
-  if (!piApiTaskId && !veniceQueueId && !falRequestId) {
+  if (!piApiTaskId && !veniceQueueId && !kieAiTaskId && !falRequestId) {
     return NextResponse.json({
       id: generation.id,
       status: generation.status,
@@ -359,6 +361,85 @@ export async function GET(
         progress: generation.progress,
         errorMessage: "Failed to check Venice generation status",
       });
+    }
+  }
+
+  // ─── KIE.AI polling (Kling 3.0 motion control) ───
+
+  if (kieAiTaskId) {
+    try {
+      const kieStatus = await getKieAiTaskStatus(kieAiTaskId);
+      const kieState = kieStatus.status;
+      console.log(`[status] gen=${generation.id} kieai_task=${kieAiTaskId} state=${kieState} progress=${kieStatus.progress ?? "?"}`);
+
+      if (kieState === "success") {
+        if (!kieStatus.videoUrl) {
+          await prisma.generation.update({
+            where: { id: generation.id },
+            data: { status: "FAILED", errorMessage: "KIE.AI succeeded but returned no video URL", completedAt: new Date() },
+          });
+          return NextResponse.json({ id: generation.id, status: "FAILED", progress: 0, errorMessage: "Generation completed but no output received." });
+        }
+
+        const completedAt = new Date();
+        const generationTimeMs = generation.startedAt ? completedAt.getTime() - generation.startedAt.getTime() : null;
+        const durationSec = generation.durationSec ?? 5;
+
+        let r2Key: string | null = null;
+        let thumbnailKey: string | null = null;
+        try {
+          const result = await persistMediaToR2(kieStatus.videoUrl, session.user.id, generation.id, "mp4");
+          r2Key = result.key;
+          thumbnailKey = await generateVideoThumbnail(result.buffer, generation.id);
+        } catch (r2Error) {
+          console.error("[status] Failed to persist KIE.AI output to R2:", r2Error);
+        }
+
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "COMPLETED",
+            progress: 100,
+            outputUrl: r2Key ?? kieStatus.videoUrl,
+            thumbnailUrl: thumbnailKey,
+            durationSec,
+            completedAt,
+            generationTimeMs,
+          },
+        });
+
+        const signedUrl = r2Key ? await getSignedR2Url(r2Key, 3600) : kieStatus.videoUrl;
+        let signedThumbnailUrl: string | null = thumbnailKey;
+        if (thumbnailKey && !thumbnailKey.startsWith("http")) {
+          try { signedThumbnailUrl = await getSignedR2Url(thumbnailKey, 3600); } catch { signedThumbnailUrl = null; }
+        }
+
+        return NextResponse.json({ id: generation.id, status: "COMPLETED", progress: 100, outputUrl: signedUrl, thumbnailUrl: signedThumbnailUrl, completedAt, generationTimeMs });
+      }
+
+      if (kieState === "fail") {
+        const errorMsg = kieStatus.errorMessage || "KIE.AI generation failed";
+        console.error(`[status] KIEAI FAILED gen=${generation.id} task=${kieAiTaskId} error="${errorMsg}"`);
+        await refundCredits(session.user.id, generation.creditsCost, `Refund: KIE.AI generation failed (${generation.modelId})`);
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: { status: "FAILED", errorMessage: errorMsg, completedAt: new Date() },
+        });
+        return NextResponse.json({ id: generation.id, status: "FAILED", progress: 0, errorMessage: "Generation failed. Credits have been refunded." });
+      }
+
+      // Still in progress (waiting / queuing / generating)
+      const kieProgress = kieStatus.progress ?? (kieState === "generating" ? 50 : 10);
+      const dbStatus = kieState === "generating" ? "PROCESSING" : "QUEUED";
+
+      if (generation.progress !== kieProgress) {
+        await prisma.generation.update({ where: { id: generation.id }, data: { progress: kieProgress, status: dbStatus } });
+      }
+
+      return NextResponse.json({ id: generation.id, status: dbStatus, progress: kieProgress, queuedAt: generation.queuedAt, startedAt: generation.startedAt });
+    } catch (error) {
+      console.error("[status] KIE.AI status poll error:", error);
+      return NextResponse.json({ id: generation.id, status: generation.status, progress: generation.progress, errorMessage: "Failed to check KIE.AI generation status" });
     }
   }
 

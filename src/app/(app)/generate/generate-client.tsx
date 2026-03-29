@@ -22,7 +22,7 @@ type CreditCostTable = Record<string, number>;
 type ClientModel = {
   id: string;
   name: string;
-  provider: "PIAPI" | "VENICE";
+  provider: "PIAPI" | "VENICE" | "KIEAI";
   tier: ModelTier;
   creditCost: number;
   creditCostTable?: CreditCostTable;
@@ -98,10 +98,9 @@ const MODELS: ClientModel[] = [
   { id: "sora-2-pro", name: "Sora 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "4_720p": 480, "8_720p": 960, "12_720p": 1440, "4_1080p": 720, "8_1080p": 1440, "12_1080p": 2160 }, supportedModes: ["T2V", "I2V"], maxDuration: 12, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "OpenAI's flagship. 1080p up to 12 seconds.", durations: [4, 8, 12], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "veo-31", name: "Veo 3.1", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "4_720p": 480, "6_720p": 720, "8_720p": 960, "4_1080p": 720, "6_1080p": 1080, "8_1080p": 1440 }, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Google's best. Cinematic quality with audio.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "seedance-2-pro", name: "Seedance 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 1100, creditCostTable: { "5": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance premium. Higher quality.", durations: [5], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
-  // ── Motion Control ──
-  { id: "kling-26-motion-std", name: "Kling 2.6 Motion (Standard)", provider: "PIAPI", tier: "STANDARD", creditCost: 850, creditCostTable: { "5": 850 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. 720p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  { id: "kling-26-motion-pro", name: "Kling 2.6 Motion (Pro)", provider: "PIAPI", tier: "ULTRA", creditCost: 1400, creditCostTable: { "5": 1400 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 10, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Copy motion from reference video. 1080p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false },
-  { id: "kling-30-motion-pro", name: "Kling 3.0 Motion", provider: "PIAPI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 1080p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
+  // ── Motion Control (Kling 3.0 only — KIE.AI, supports background_source) ──
+  { id: "kling-30-motion-std", name: "Kling 3.0 Motion", provider: "KIEAI", tier: "STANDARD", creditCost: 1050, creditCostTable: { "5": 1050 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 720p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
+  { id: "kling-30-motion-pro", name: "Kling 3.0 Motion Pro", provider: "KIEAI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 1080p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
   // ── NSFW Budget ──
   { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1250, creditCostTable: { "5": 1250 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   { id: "wan21-pro-nsfw-i2v", name: "Wan 2.1 Pro NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1100, creditCostTable: { "6": 1100 }, supportedModes: ["I2V"], maxDuration: 6, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Reliable unrestricted image-to-video. 6 seconds.", durations: [6], aspectRatios: ["16:9"], resolutions: [], supportsEndFrame: false },
@@ -225,6 +224,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const initModelId = searchParams.get("modelId");
   const initMode = searchParams.get("mode") as ModeTab | null;
   const initPrompt = searchParams.get("prompt") ?? "";
+  const initCharacterId = searchParams.get("characterId");
 
   // Lock the main scroll container so the fixed-height generate layout
   // doesn't leave a few stray pixels of scrollable space on mobile.
@@ -290,8 +290,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const qualityPopupRef = useRef<HTMLDivElement>(null);
 
   // Character picker for I2V
-  const [imageSource, setImageSource] = useState<"upload" | "character">("upload");
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<"upload" | "character">(initCharacterId ? "character" : "upload");
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(initCharacterId);
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? null;
 
   // Generation feed — persisted to sessionStorage so navigating away doesn't lose state
@@ -352,8 +352,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   // When mode changes, select the best default model for that mode
   useEffect(() => {
     const defaults: Record<string, Record<ModeTab, string>> = {
-      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", MOTION_TRANSFER: "kling-26-motion-std" },
-      NSFW: { T2V: "wan26-nsfw-t2v", I2V: "wan26-nsfw-i2v", MOTION_TRANSFER: "kling-26-motion-std" },
+      SFW: { T2V: "kling-30-pro", I2V: "kling-30-pro", MOTION_TRANSFER: "kling-30-motion-pro" },
+      NSFW: { T2V: "wan26-nsfw-t2v", I2V: "wan26-nsfw-i2v", MOTION_TRANSFER: "kling-30-motion-pro" },
     };
     const defaultId = defaults[userContentMode]?.[mode];
     const target = filteredModels.find((m) => m.id === defaultId) ?? filteredModels[0];
@@ -607,6 +607,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       if (imageUrl) body.imageUrl = imageUrl;
       if (endImageUrl) body.endImageUrl = endImageUrl;
       if (videoUrl) body.videoUrl = videoUrl;
+      if (imageSource === "character" && selectedCharacterId) body.characterId = selectedCharacterId;
       if (showAspectRatio) body.aspectRatio = aspectRatio;
       if (availableResolutions.length > 0) body.resolution = resolution;
       if (isMotionMode) body.characterOrientation = characterOrientation;
@@ -930,10 +931,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </button>
               {motionAdvancedOpen && (
                 <div className="mt-2 space-y-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
-                  {/* Scene Source */}
+                  {/* Background Source */}
                   <div>
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Scene Source
+                      Background
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -1316,7 +1317,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             !canAfford ||
             (!isMotionMode && !prompt.trim()) ||
             (needsImage && imageSource === "upload" && !imageFile) ||
-            (needsImage && imageSource === "character" && !selectedCharacterId) ||
+            (needsImage && imageSource === "character" && (!selectedCharacterId || !selectedCharacter?.referenceImageKey)) ||
             (needsVideo && !videoFile)
           }
         >

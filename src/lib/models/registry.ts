@@ -2,7 +2,7 @@
 // Single source of truth for all generation models.
 // SFW models route through PiAPI. NSFW models route through Venice AI.
 
-export type ModelProvider = "PIAPI" | "VENICE";
+export type ModelProvider = "PIAPI" | "VENICE" | "KIEAI";
 export type ModelTier = "BUDGET" | "STANDARD" | "ULTRA";
 export type ModelContentMode = "SFW" | "NSFW" | "BOTH";
 export type ModelMode = "T2V" | "I2V" | "T2I" | "MOTION_TRANSFER";
@@ -19,6 +19,12 @@ export interface VeniceConfig {
   costKey: string;                        // Key into cost estimation table
 }
 
+export interface KieAiConfig {
+  model: string;                          // KIE.AI model string (e.g., "kling-3.0/motion-control")
+  mode: "std" | "pro";                   // std = 720p, pro = 1080p
+  costKey: string;                        // Key into cost estimation table
+}
+
 /**
  * Credit cost lookup table. Keys are "${durationSec}_${resolution}" for video,
  * or just the flat cost number for images (stored in `creditCost`).
@@ -32,6 +38,7 @@ export interface ModelConfig {
   provider: ModelProvider;
   pipiConfig?: PiApiConfig;               // Required for PIAPI models
   veniceConfig?: VeniceConfig;            // Required for VENICE models
+  kieaiConfig?: KieAiConfig;             // Required for KIEAI models
   badge?: string;                         // Optional UI badge (e.g. "Beta")
   tier: ModelTier;
   creditCost: number;                     // Flat cost for images, or base/fallback for video
@@ -339,16 +346,40 @@ const SEEDANCE_2_PRO: ModelConfig = {
 // SFW MOTION CONTROL
 // ════════════════════════════════════════════════════════════════
 
+const KLING_30_MOTION_STD: ModelConfig = {
+  id: "kling-30-motion-std",
+  name: "Kling 3.0 Motion",
+  provider: "KIEAI",
+  badge: "New",
+  kieaiConfig: {
+    model: "kling-3.0/motion-control",
+    mode: "std",
+    costKey: "kling-30-motion-std",
+  },
+  tier: "STANDARD",
+  creditCost: 1050,
+  creditCostTable: { "5": 1050, "10": 2050, "15": 3100 },
+  supportedModes: ["MOTION_TRANSFER"],
+  maxDuration: 15,
+  maxResolution: "720p",
+  supportsAudio: false,
+  contentMode: "SFW",
+  description: "Kling 3.0 motion control. 720p output.",
+  durations: [],
+  aspectRatios: [],
+  resolutions: [],
+  supportsEndFrame: false,
+};
+
 const KLING_30_MOTION_PRO: ModelConfig = {
   id: "kling-30-motion-pro",
   name: "Kling 3.0 Motion",
-  provider: "PIAPI",
+  provider: "KIEAI",
   badge: "New",
-  pipiConfig: {
-    model: "kling",
-    taskTypes: { MOTION_TRANSFER: "motion_control" },
-    defaults: { version: "3.0", mode: "pro" },
-    costKey: "kling-30-pro",
+  kieaiConfig: {
+    model: "kling-3.0/motion-control",
+    mode: "pro",
+    costKey: "kling-30-motion-pro",
   },
   tier: "ULTRA",
   creditCost: 2100,
@@ -915,7 +946,8 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   [SORA_2_PRO.id]: SORA_2_PRO,
   [VEO_31.id]: VEO_31,
   [SEEDANCE_2_PRO.id]: SEEDANCE_2_PRO,
-  // Motion Control (Kling 3.0 only — 3.0 supports background_source for scene control)
+  // Motion Control (Kling 3.0 only — via KIE.AI for background_source + character_orientation support)
+  [KLING_30_MOTION_STD.id]: KLING_30_MOTION_STD,
   [KLING_30_MOTION_PRO.id]: KLING_30_MOTION_PRO,
   // New SFW Video
   [LUMA.id]: LUMA,

@@ -297,9 +297,8 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveName, setSaveName] = useState("");
-  const [selectedSaveImage, setSelectedSaveImage] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [generatedCharacterId, setGeneratedCharacterId] = useState<string | null>(null);
+  const [generatedCharacterIds, setGeneratedCharacterIds] = useState<(string | null)[]>([null]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -336,6 +335,12 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
       for (let i = 0; i < Math.min(prev.length, n); i++) next[i] = prev[i];
       return next;
     });
+    setGeneratedCharacterIds((prev) => {
+      if (prev.length === n) return prev;
+      const next: (string | null)[] = Array(n).fill(null);
+      for (let i = 0; i < Math.min(prev.length, n); i++) next[i] = prev[i];
+      return next;
+    });
   }, [count]);
 
   const handlePhotoSelect = useCallback((file: File) => {
@@ -365,7 +370,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
     setError(null);
     setGenerating(true);
-    setGeneratedCharacterId(null);
+    setGeneratedCharacterIds(Array(parseInt(count)).fill(null));
     const n = parseInt(count);
     setImages(Array(n).fill(null));
 
@@ -417,11 +422,18 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
               if (data.index < next.length) next[data.index] = data.url;
               return next;
             });
+            if (data.characterId) {
+              setGeneratedCharacterIds((prev) => {
+                const next = [...prev];
+                if (data.index < next.length) next[data.index] = data.characterId;
+                return next;
+              });
+            }
           } else if (data.type === "complete") {
-            if (data.characterId) setGeneratedCharacterId(data.characterId);
             setGenerating(false);
           } else if (data.type === "error") {
-            throw new Error(data.message);
+            // Non-fatal: one image failed, others may succeed
+            console.warn(`[char-gen] image ${data.index} failed: ${data.message}`);
           }
         }
       }
@@ -434,7 +446,6 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
   const handleOpenSave = () => {
     if (generatedImages.length === 0) return;
-    setSelectedSaveImage(0);
     setSaveName("");
     setShowSaveModal(true);
   };
@@ -443,22 +454,27 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
     if (!saveName.trim() || saving) return;
     setSaving(true);
     try {
-      if (generatedCharacterId) {
-        // Update the character that was already created during generation
-        // Map selectedSaveImage (index into generatedImages) back to original image index
-        const originalIndex = images.reduce<number[]>((acc, img, i) => {
-          if (img !== null) acc.push(i);
-          return acc;
-        }, [])[selectedSaveImage] ?? 0;
-        const res = await fetch(`/api/characters/${generatedCharacterId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: saveName.trim(), selectedImageIndex: originalIndex }),
-        });
-        if (!res.ok) throw new Error("Failed to save character");
-        router.push(`/characters/${generatedCharacterId}`);
+      const validIds = generatedCharacterIds.filter(Boolean) as string[];
+      if (validIds.length > 0) {
+        // Rename all generated characters; extras get a number suffix
+        await Promise.all(
+          validIds.map((id, i) =>
+            fetch(`/api/characters/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: i === 0 ? saveName.trim() : `${saveName.trim()} ${i + 1}`,
+              }),
+            })
+          )
+        );
+        if (validIds.length === 1) {
+          router.push(`/characters/${validIds[0]}`);
+        } else {
+          router.push("/characters");
+        }
       } else {
-        // Fallback: create new character if no generation was done
+        // Fallback: no generation was done (shouldn't normally happen)
         const referenceImages = images.filter(Boolean) as string[];
         const res = await fetch("/api/characters", {
           method: "POST",
@@ -831,29 +847,24 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
             </button>
 
             <h3 className="mb-1 text-center font-display text-base font-bold text-[var(--text-primary)]">
-              Save Character
+              {generatedImages.length > 1 ? `Save ${generatedImages.length} Characters` : "Save Character"}
             </h3>
             {generatedImages.length > 1 && (
-              <p className="mb-4 text-center text-[11px] text-[var(--text-muted)]">
-                Pick your favorite image
+              <p className="mb-3 text-center text-[11px] text-[var(--text-muted)]">
+                Each image saves as its own character
               </p>
             )}
 
-            <div className={`mb-4 flex justify-center ${generatedImages.length <= 1 ? "mt-3" : ""}`}>
+            <div className="mb-4 flex justify-center mt-3">
               {generatedImages.length > 1 ? (
                 <div className="flex gap-1.5">
                   {generatedImages.map((src, i) => (
-                    <button
+                    <div
                       key={i}
-                      onClick={() => setSelectedSaveImage(i)}
-                      className={`relative h-14 w-14 overflow-hidden rounded-lg border-2 transition-all duration-150 ${
-                        selectedSaveImage === i
-                          ? "border-[var(--accent-amber)] shadow-[0_0_10px_rgba(232,166,52,0.25)]"
-                          : "border-transparent opacity-50 hover:opacity-80"
-                      }`}
+                      className="relative h-14 w-14 overflow-hidden rounded-lg border border-[var(--border-subtle)]"
                     >
                       <img src={src} alt={`${i + 1}`} className="h-full w-full object-cover" />
-                    </button>
+                    </div>
                   ))}
                 </div>
               ) : generatedImages[0] ? (
@@ -862,14 +873,6 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
                 </div>
               ) : null}
             </div>
-
-            {generatedImages.length > 1 && generatedImages[selectedSaveImage] && (
-              <div className="mb-4 flex justify-center">
-                <div className="h-36 w-36 overflow-hidden rounded-xl border border-[var(--border-subtle)]">
-                  <img src={generatedImages[selectedSaveImage]} alt="Selected" className="h-full w-full object-cover" />
-                </div>
-              </div>
-            )}
 
             <input
               type="text"

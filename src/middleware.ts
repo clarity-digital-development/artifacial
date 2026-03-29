@@ -10,6 +10,8 @@ export const config = {
     "/projects/:path*",
     "/gallery/:path*",
     "/settings/:path*",
+    "/workshop/:path*",
+    "/workshop",
     "/sign-in",
     "/sign-up",
   ],

@@ -1,5 +1,5 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+// TODO: re-enable auth imports
+// import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAvailableCredits } from "@/lib/credits";
 import { Sidebar } from "@/components/sidebar";
@@ -11,8 +11,8 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/sign-in");
+  // TODO: re-enable auth — const session = await auth(); if (!session?.user?.id) redirect("/sign-in");
+  const session = null;
 
   let totalCredits = 100;
   let contentMode = "SFW";
@@ -42,7 +42,7 @@ export default async function AppLayout({
       <Sidebar contentMode={contentMode} />
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
-          user={session?.user ?? { name: "Preview", email: "preview@test.com" }}
+          user={session?.user ?? { name: "Preview", email: "preview@preview.com", image: null }}
           credits={totalCredits}
           contentMode={contentMode}
           subscriptionTier={subscriptionTier}

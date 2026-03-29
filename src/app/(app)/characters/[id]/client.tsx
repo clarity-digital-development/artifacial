@@ -5,8 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 
-const ANGLE_LABELS = ["Front", "¾ Left", "¾ Right", "Full Body"];
-
 interface CharacterData {
   id: string;
   name: string;
@@ -126,7 +124,7 @@ export function CharacterDetailClient({
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="secondary" size="sm" onClick={() => router.push("/projects")} className="w-full">Use in Project</Button>
+                <Button variant="secondary" size="sm" onClick={() => router.push(`/generate?characterId=${character.id}&mode=I2V`)} className="w-full">Use in Project</Button>
                 <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }} className="w-full">Rename</Button>
                 <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting} className="w-full">{deleting ? "Deleting…" : "Delete"}</Button>
               </div>
@@ -143,7 +141,7 @@ export function CharacterDetailClient({
           </div>
         </div>
 
-        {/* Additional angles */}
+        {/* Additional images */}
         {character.signedUrls.length > 1 && (
           <div className="mt-3 grid grid-cols-3 gap-2">
             {character.signedUrls.slice(1).map((url, i) => (
@@ -153,14 +151,9 @@ export function CharacterDetailClient({
               >
                 <img
                   src={url}
-                  alt={`${character.name} — ${ANGLE_LABELS[i + 1] ?? `Angle ${i + 2}`}`}
+                  alt={`${character.name} — ${i + 2}`}
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <span className="text-[10px] font-medium text-white">
-                    {ANGLE_LABELS[i + 1] ?? `Angle ${i + 2}`}
-                  </span>
-                </div>
               </div>
             ))}
           </div>
@@ -194,9 +187,6 @@ export function CharacterDetailClient({
                     <span className="text-sm text-[var(--text-muted)]">No image</span>
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                  <span className="text-xs font-medium text-white">Front</span>
-                </div>
               </div>
 
               {/* Info panel */}
@@ -235,7 +225,7 @@ export function CharacterDetailClient({
                     </>
                   ) : (
                     <>
-                      <Button variant="secondary" size="sm" onClick={() => router.push("/projects")}>Use in Project</Button>
+                      <Button variant="secondary" size="sm" onClick={() => router.push(`/generate?characterId=${character.id}&mode=I2V`)}>Use in Project</Button>
                       <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }}>Rename</Button>
                       <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
                     </>
@@ -245,7 +235,7 @@ export function CharacterDetailClient({
             </div>
           </div>
 
-          {/* Remaining angle images */}
+          {/* Additional images (legacy multi-image characters) */}
           {character.signedUrls.length > 1 && (
             <div className="grid grid-cols-3 gap-3">
               {character.signedUrls.slice(1).map((url, i) => (
@@ -261,14 +251,9 @@ export function CharacterDetailClient({
                   </div>
                   <img
                     src={url}
-                    alt={`${character.name} — ${ANGLE_LABELS[i + 1] ?? `Angle ${i + 2}`}`}
+                    alt={`${character.name} — ${i + 2}`}
                     className="h-full w-full object-cover"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                    <span className="text-xs font-medium text-white">
-                      {ANGLE_LABELS[i + 1] ?? `Angle ${i + 2}`}
-                    </span>
-                  </div>
                 </div>
               ))}
             </div>
