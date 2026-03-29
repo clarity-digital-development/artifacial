@@ -294,26 +294,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(initCharacterId);
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? null;
 
-  // Motion transfer gallery pickers
-  type GalleryVideo = { id: string; outputKey: string; signedThumbnail: string | null; prompt: string | null };
-  const [motionImageTab, setMotionImageTab] = useState<"gallery" | "device">(initCharacterId ? "gallery" : "device");
-  const [motionVideoTab, setMotionVideoTab] = useState<"gallery" | "device">("device");
-  const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>([]);
-  const [galleryVideosLoading, setGalleryVideosLoading] = useState(false);
-  const [selectedGalleryVideoKey, setSelectedGalleryVideoKey] = useState<string | null>(null);
-  const [selectedGalleryVideoThumb, setSelectedGalleryVideoThumb] = useState<string | null>(null);
-
-  // Fetch gallery videos when motion video gallery tab is active
-  useEffect(() => {
-    if (mode !== "MOTION_TRANSFER" || motionVideoTab !== "gallery") return;
-    if (galleryVideos.length > 0) return; // already loaded
-    setGalleryVideosLoading(true);
-    fetch("/api/gallery/picker")
-      .then((r) => r.json())
-      .then((d) => setGalleryVideos(d.items ?? []))
-      .catch(() => {})
-      .finally(() => setGalleryVideosLoading(false));
-  }, [mode, motionVideoTab, galleryVideos.length]);
 
   // Generation feed — persisted to sessionStorage so navigating away doesn't lose state
   const STORAGE_KEY = "artifacial_generations";
@@ -603,10 +583,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
     try {
       let imageUrl: string | undefined;
       if (isMotionMode) {
-        // Motion transfer: gallery character or uploaded image
-        if (motionImageTab === "gallery" && selectedCharacter?.referenceImageKey) {
-          imageUrl = `r2:${selectedCharacter.referenceImageKey}`;
-        } else if (motionImageTab === "device" && imageFile) {
+        // Motion transfer: uploaded image only
+        if (imageFile) {
           imageUrl = await uploadFileToR2(imageFile);
         }
       } else if (needsImage && imageSource === "character" && selectedCharacter?.referenceImageKey) {
@@ -617,15 +595,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       }
 
       let videoUrl: string | undefined;
-      if (needsVideo) {
-        if (motionVideoTab === "gallery" && selectedGalleryVideoKey) {
-          // R2 key → prefix with "r2:" so router signs it. Already-http URLs pass through.
-          videoUrl = selectedGalleryVideoKey.startsWith("http")
-            ? selectedGalleryVideoKey
-            : `r2:${selectedGalleryVideoKey}`;
-        } else if (videoFile) {
-          videoUrl = await uploadFileToR2(videoFile);
-        }
+      if (needsVideo && videoFile) {
+        videoUrl = await uploadFileToR2(videoFile);
       }
 
       let endImageUrl: string | undefined;
@@ -893,95 +864,26 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                 <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   Character Image
                 </label>
-                {/* Tab picker */}
-                <div className="mb-2 flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-0.5">
-                  <button
-                    onClick={() => { setMotionImageTab("gallery"); clearImage(); }}
-                    className={`flex-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-[9px] font-medium transition-all duration-150 ${
-                      motionImageTab === "gallery"
-                        ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    Artifacial
-                  </button>
-                  <button
-                    onClick={() => { setMotionImageTab("device"); setSelectedCharacterId(null); }}
-                    className={`flex-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-[9px] font-medium transition-all duration-150 ${
-                      motionImageTab === "device"
-                        ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    Device
-                  </button>
-                </div>
-
-                {/* Gallery — character list */}
-                {motionImageTab === "gallery" && (
-                  <div className="max-h-[180px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-                    {characters.length === 0 ? (
-                      <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">No characters yet</p>
-                    ) : (
-                      <div className="flex flex-col divide-y divide-[var(--border-subtle)]">
-                        {characters.map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => setSelectedCharacterId(c.id)}
-                            className={`flex items-center gap-2.5 px-2 py-1.5 text-left transition-all duration-150 ${
-                              selectedCharacterId === c.id
-                                ? "bg-[var(--accent-amber)]/10"
-                                : "hover:bg-[var(--bg-elevated)]"
-                            }`}
-                          >
-                            {/* Thumbnail */}
-                            <div className={`h-10 w-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 ${selectedCharacterId === c.id ? "border-[var(--accent-amber)]" : "border-transparent"}`}>
-                              {c.thumbnailUrl ? (
-                                <img src={c.thumbnailUrl} alt={c.name} className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elevated)] text-[9px] font-semibold text-[var(--text-muted)]">
-                                  {c.name.slice(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            {/* Name */}
-                            <span className={`truncate text-xs font-medium ${selectedCharacterId === c.id ? "text-[var(--accent-amber)]" : "text-[var(--text-primary)]"}`}>
-                              {c.name}
-                            </span>
-                            {/* Check */}
-                            {selectedCharacterId === c.id && (
-                              <svg className="ml-auto shrink-0 text-[var(--accent-amber)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Device — upload zone */}
-                {motionImageTab === "device" && (
-                  imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Source"
-                        className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] object-cover"
-                      />
-                      <button
-                        onClick={clearImage}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
-                      >
-                        X
-                      </button>
-                    </div>
-                  ) : (
-                    <UploadZone
-                      onFile={handleImageFile}
-                      accept="image/jpeg,image/png,image/webp"
-                      className="!p-3 !min-h-[80px]"
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Source"
+                      className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] object-cover"
                     />
-                  )
+                    <button
+                      onClick={clearImage}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
+                    >
+                      X
+                    </button>
+                  </div>
+                ) : (
+                  <UploadZone
+                    onFile={handleImageFile}
+                    accept="image/jpeg,image/png,image/webp"
+                    className="!p-3 !min-h-[80px]"
+                  />
                 )}
               </div>
 
@@ -990,100 +892,27 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                 <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   Reference Video
                 </label>
-                {/* Tab picker */}
-                <div className="mb-2 flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-0.5">
-                  <button
-                    onClick={() => { setMotionVideoTab("gallery"); clearVideo(); }}
-                    className={`flex-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-[9px] font-medium transition-all duration-150 ${
-                      motionVideoTab === "gallery"
-                        ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    Artifacial
-                  </button>
-                  <button
-                    onClick={() => { setMotionVideoTab("device"); setSelectedGalleryVideoKey(null); setSelectedGalleryVideoThumb(null); }}
-                    className={`flex-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-[9px] font-medium transition-all duration-150 ${
-                      motionVideoTab === "device"
-                        ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    Device
-                  </button>
-                </div>
-
-                {/* Gallery — video list */}
-                {motionVideoTab === "gallery" && (
-                  <div className="max-h-[180px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-                    {galleryVideosLoading ? (
-                      <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">Loading...</p>
-                    ) : galleryVideos.length === 0 ? (
-                      <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">No videos in gallery yet</p>
-                    ) : (
-                      <div className="flex flex-col divide-y divide-[var(--border-subtle)]">
-                        {galleryVideos.map((v) => (
-                          <button
-                            key={v.id}
-                            onClick={() => { setSelectedGalleryVideoKey(v.outputKey); setSelectedGalleryVideoThumb(v.signedThumbnail); }}
-                            className={`flex items-center gap-2.5 px-2 py-1.5 text-left transition-all duration-150 ${
-                              selectedGalleryVideoKey === v.outputKey
-                                ? "bg-[var(--accent-amber)]/10"
-                                : "hover:bg-[var(--bg-elevated)]"
-                            }`}
-                          >
-                            {/* Thumbnail */}
-                            <div className={`h-10 w-16 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 ${selectedGalleryVideoKey === v.outputKey ? "border-[var(--accent-amber)]" : "border-transparent"}`}>
-                              {v.signedThumbnail ? (
-                                <img src={v.signedThumbnail} alt="Video" className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elevated)]">
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--text-muted)]">
-                                    <polygon points="5 3 19 12 5 21 5 3" />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                            {/* Prompt / label */}
-                            <span className={`truncate text-xs font-medium ${selectedGalleryVideoKey === v.outputKey ? "text-[var(--accent-amber)]" : "text-[var(--text-primary)]"}`}>
-                              {v.prompt ?? "Generated video"}
-                            </span>
-                            {/* Check */}
-                            {selectedGalleryVideoKey === v.outputKey && (
-                              <svg className="ml-auto shrink-0 text-[var(--accent-amber)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Device — upload zone */}
-                {motionVideoTab === "device" && (
-                  videoPreview ? (
-                    <div className="relative">
-                      <video
-                        src={videoPreview}
-                        className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] object-cover"
-                        muted
-                        playsInline
-                      />
-                      <button
-                        onClick={clearVideo}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
-                      >
-                        X
-                      </button>
-                    </div>
-                  ) : (
-                    <UploadZone
-                      onFile={handleVideoFile}
-                      accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
-                      className="!p-3 !min-h-[80px]"
+                {videoPreview ? (
+                  <div className="relative">
+                    <video
+                      src={videoPreview}
+                      className="h-24 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] object-cover"
+                      muted
+                      playsInline
                     />
-                  )
+                    <button
+                      onClick={clearVideo}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--error)] text-white text-[10px]"
+                    >
+                      X
+                    </button>
+                  </div>
+                ) : (
+                  <UploadZone
+                    onFile={handleVideoFile}
+                    accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+                    className="!p-3 !min-h-[80px]"
+                  />
                 )}
               </div>
             </div>
@@ -1494,12 +1323,9 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             submitting ||
             !canAfford ||
             (!isMotionMode && !prompt.trim()) ||
-            // Motion transfer image: needs either a character with a reference key (gallery) or an uploaded file (device)
-            (isMotionMode && needsImage && motionImageTab === "gallery" && (!selectedCharacterId || !selectedCharacter?.referenceImageKey)) ||
-            (isMotionMode && needsImage && motionImageTab === "device" && !imageFile) ||
-            // Motion transfer video: needs either a gallery selection or uploaded file
-            (needsVideo && motionVideoTab === "gallery" && !selectedGalleryVideoKey) ||
-            (needsVideo && motionVideoTab === "device" && !videoFile) ||
+            // Motion transfer: needs uploaded image and video
+            (isMotionMode && needsImage && !imageFile) ||
+            (needsVideo && !videoFile) ||
             // I2V (non-motion) image requirements
             (!isMotionMode && needsImage && imageSource === "upload" && !imageFile) ||
             (!isMotionMode && needsImage && imageSource === "character" && (!selectedCharacterId || !selectedCharacter?.referenceImageKey))
