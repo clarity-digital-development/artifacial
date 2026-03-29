@@ -52,12 +52,12 @@ function SizeDropdown({
   }, [open]);
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
-        className="flex w-full items-center justify-between gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+        className="flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] px-3.5 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50"
       >
         <span>{selected?.label ?? value}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`text-[var(--text-muted)] transition-transform duration-150 ${open ? "rotate-180" : ""}`}>
@@ -424,37 +424,63 @@ export function EditClient({ characters }: { characters: Character[] }) {
 
         {/* Desktop bottom bar (hidden on mobile) */}
         {!isDone && (
-          <div className="hidden items-end justify-center gap-3 md:flex">
-            {/* Prompt area — fixed width, centered */}
-            <div className="flex w-[520px] items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
-              <ReferenceImagePicker
-                preview={refPreview}
-                onFile={handleRefFile}
-                onClear={clearRef}
-                disabled={isGenerating || refUploading}
-              />
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={refUploading ? "Uploading reference…" : "Describe what to change… e.g. make the background a forest"}
-                rows={4}
-                disabled={isGenerating}
-                className="min-h-0 flex-1 resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none disabled:opacity-50"
-              />
-            </div>
+          <div className="hidden justify-center md:flex">
+            <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+              {/* Controls row */}
+              <div className="mb-2.5 flex items-center gap-2">
+                <SizeDropdown value={imageSize} onChange={setImageSize} disabled={isGenerating} />
+              </div>
 
-            {/* Size + Generate — fixed width so both controls match */}
-            <div className="flex w-36 shrink-0 flex-col gap-2">
-              <SizeDropdown value={imageSize} onChange={setImageSize} disabled={isGenerating} />
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !selectedImageKey || !prompt.trim() || refUploading}
-                className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isGenerating
-                  ? genStatus === "submitting" ? "Submitting…" : "Generating…"
-                  : "Generate · 150cr"}
-              </button>
+              {/* Prompt row */}
+              <div className="relative">
+                {/* Reference image — absolute left */}
+                <div className="absolute left-2.5 top-2.5 z-10">
+                  <ReferenceImagePicker
+                    preview={refPreview}
+                    onFile={handleRefFile}
+                    onClear={clearRef}
+                    disabled={isGenerating || refUploading}
+                  />
+                </div>
+
+                {/* Textarea */}
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={refUploading ? "Uploading reference…" : "Describe what to change… e.g. make the background a forest"}
+                  rows={2}
+                  disabled={isGenerating}
+                  className={`w-full resize-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-input)] py-3 pr-44 text-sm leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)] disabled:opacity-50 ${refPreview ? "pl-14" : "pl-12"}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !isGenerating) {
+                      e.preventDefault();
+                      handleGenerate();
+                    }
+                  }}
+                />
+
+                {/* Generate button — absolute right */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !selectedImageKey || !prompt.trim() || refUploading}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 rounded-xl bg-[var(--accent-amber)] px-5 py-2.5 text-[13px] font-bold text-[var(--bg-deep)] transition-all duration-150 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--bg-deep)]/30 border-t-[var(--bg-deep)]" />
+                      <span>{genStatus === "submitting" ? "Submitting" : "Generating"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Generate</span>
+                      <span className="flex items-center gap-0.5 rounded-lg bg-[var(--bg-deep)]/15 px-1.5 py-0.5 text-[10px] font-bold">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                        150
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
