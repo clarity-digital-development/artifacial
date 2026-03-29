@@ -335,7 +335,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
   }
 
   return (
-    <div className="flex gap-3" style={{ height: "calc(100vh - 120px)" }}>
+    <div className="flex h-full gap-3 overflow-hidden">
       {/* Left: narrow scrollable thumbnail strip — no scrollbar */}
       <div className="scrollbar-hide flex w-14 shrink-0 flex-col gap-1.5 overflow-y-auto overflow-x-hidden">
         {characters.map((char, idx) => (

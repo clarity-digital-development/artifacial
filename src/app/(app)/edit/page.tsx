@@ -16,5 +16,5 @@ export default async function EditPage() {
     referenceImages: c.referenceImages,
   }));
 
-  return <EditClient characters={characterData} />;
+  return <div className="h-full"><EditClient characters={characterData} /></div>;
 }
