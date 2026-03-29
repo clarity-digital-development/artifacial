@@ -51,12 +51,12 @@ function SizeDropdown({
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full">
       <button
         type="button"
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
-        className="flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+        className="flex w-full items-center justify-between gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50"
       >
         <span>{selected?.label ?? value}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`text-[var(--text-muted)] transition-transform duration-150 ${open ? "rotate-180" : ""}`}>
@@ -419,9 +419,9 @@ export function EditClient({ characters }: { characters: Character[] }) {
 
         {/* Bottom bar: prompt + controls (hidden when result shown) */}
         {!isDone && (
-          <div className="flex items-end gap-2">
-            {/* Prompt area with reference image inside */}
-            <div className="flex flex-1 items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
+          <div className="flex items-end gap-3">
+            {/* Prompt area — capped width so it doesn't span the full canvas */}
+            <div className="flex max-w-2xl flex-1 items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
               <ReferenceImagePicker
                 preview={refPreview}
                 onFile={handleRefFile}
@@ -432,19 +432,19 @@ export function EditClient({ characters }: { characters: Character[] }) {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={refUploading ? "Uploading reference…" : "Describe what to change… e.g. make the background a forest"}
-                rows={2}
+                rows={4}
                 disabled={isGenerating}
                 className="min-h-0 flex-1 resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none disabled:opacity-50"
               />
             </div>
 
-            {/* Size + Generate */}
-            <div className="flex shrink-0 flex-col items-end gap-2">
+            {/* Size + Generate — fixed width so both controls match */}
+            <div className="flex w-36 shrink-0 flex-col gap-2">
               <SizeDropdown value={imageSize} onChange={setImageSize} disabled={isGenerating} />
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !selectedImageKey || !prompt.trim() || refUploading}
-                className="whitespace-nowrap rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGenerating
                   ? genStatus === "submitting" ? "Submitting…" : "Generating…"
