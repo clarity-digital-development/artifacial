@@ -902,7 +902,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                 ) : (
                   <UploadZone
                     onFile={handleVideoFile}
-                    accept="video/mp4,video/webm"
+                    accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
                     className="!p-3 !min-h-[96px]"
                   />
                 )}
@@ -1155,7 +1155,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             ) : (
               <UploadZone
                 onFile={handleVideoFile}
-                accept="video/mp4,video/webm"
+                accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
                 className="!p-4"
               />
             )}
