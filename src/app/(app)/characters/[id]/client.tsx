@@ -5,6 +5,36 @@ import { useState } from "react";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 
+async function downloadCharacterImage(signedUrl: string, characterId: string) {
+  const fileName = `artifacial-character-${characterId}.webp`;
+  try {
+    const proxyUrl = `/api/download?url=${encodeURIComponent(signedUrl)}&filename=${encodeURIComponent(fileName)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error();
+    const blob = await res.blob();
+    const file = new File([blob], fileName, { type: "image/webp" });
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); } catch (e) {
+        if ((e as Error)?.name !== "AbortError") window.open(signedUrl, "_blank");
+      }
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    window.open(signedUrl, "_blank");
+  }
+}
+
 interface CharacterData {
   id: string;
   name: string;
@@ -123,8 +153,9 @@ export function CharacterDetailClient({
                 <Button variant="primary" size="sm" onClick={handleRename} disabled={renameSaving} className="w-full">{renameSaving ? "Saving…" : "Save"}</Button>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button variant="secondary" size="sm" onClick={() => router.push(`/generate?characterId=${character.id}&mode=I2V`)} className="w-full">Use in Project</Button>
+                <Button variant="secondary" size="sm" onClick={() => character.signedUrls[0] && downloadCharacterImage(character.signedUrls[0], character.id)} className="w-full">Download</Button>
                 <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }} className="w-full">Rename</Button>
                 <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting} className="w-full">{deleting ? "Deleting…" : "Delete"}</Button>
               </div>
@@ -209,6 +240,7 @@ export function CharacterDetailClient({
                   ) : (
                     <>
                       <Button variant="secondary" size="sm" onClick={() => router.push(`/generate?characterId=${character.id}&mode=I2V`)}>Use in Project</Button>
+                      <Button variant="secondary" size="sm" onClick={() => character.signedUrls[0] && downloadCharacterImage(character.signedUrls[0], character.id)}>Download</Button>
                       <Button variant="secondary" size="sm" onClick={() => { setNewName(displayName); setRenaming(true); }}>Rename</Button>
                       <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
                     </>

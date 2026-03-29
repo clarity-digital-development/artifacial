@@ -5,6 +5,8 @@
  *
  * API docs: https://docs.kie.ai/market/kling/motion-control-v3
  */
+import sharp from "sharp";
+import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 
 const KIEAI_BASE_URL = "https://api.kie.ai";
 const KIEAI_UPLOAD_URL = "https://kieai.redpandaai.co";
@@ -32,6 +34,29 @@ async function kieAiFetch(url: string, options: RequestInit = {}) {
   }
 
   return data;
+}
+
+// ─── WebP → JPEG conversion ───
+
+/**
+ * KIE.AI only accepts JPEG/JPG/PNG images. Character images are stored as WebP
+ * (Gemini/PiAPI output). This converts WebP to JPEG via sharp and stores the
+ * result temporarily in R2, returning a fresh signed URL for the converted file.
+ */
+async function ensureJpeg(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("webp")) return imageUrl;
+
+  console.log("[kieai] Converting WebP→JPEG for KIE.AI compatibility...");
+  const buf = Buffer.from(await res.arrayBuffer());
+  const jpeg = await sharp(buf).jpeg({ quality: 90 }).toBuffer();
+
+  const key = `temp/kieai-convert/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+  await uploadToR2(key, jpeg, "image/jpeg");
+  const convertedUrl = await getSignedR2Url(key, 7200);
+  console.log(`[kieai] WebP→JPEG done, temp key: ${key}`);
+  return convertedUrl;
 }
 
 // ─── File Upload ───
@@ -77,10 +102,13 @@ export type KieAiMotionControlParams = {
 export async function submitKieAiMotionControl(
   params: KieAiMotionControlParams
 ): Promise<{ taskId: string }> {
+  // Convert WebP→JPEG if needed (KIE.AI only accepts JPEG/PNG)
+  const safeImageUrl = await ensureJpeg(params.imageUrl);
+
   // Upload both files to KIE.AI hosting concurrently (external URLs expire)
   console.log(`[kieai] Uploading image + video to KIE.AI hosting...`);
   const [kieAiImageUrl, kieAiVideoUrl] = await Promise.all([
-    uploadToKieAi(params.imageUrl),
+    uploadToKieAi(safeImageUrl),
     uploadToKieAi(params.videoUrl),
   ]);
 
