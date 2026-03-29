@@ -97,7 +97,9 @@ export async function classifyPrompt(
       };
     }
 
-    if (result.realPersonReference) {
+    // Real person deepfake prevention — only enforced in NSFW mode.
+    // SFW real-person references (stylistic/cinematic) are allowed.
+    if (result.realPersonReference && contentMode === "NSFW") {
       return {
         allowed: false,
         contentMode,
@@ -106,7 +108,7 @@ export async function classifyPrompt(
         sexualContent: result.sexualContent || false,
         violenceLevel: result.violenceLevel || "none",
         realPersonReference: true,
-        reason: "BLOCK: Real person likeness generation not permitted",
+        reason: "BLOCK: Real person likeness generation not permitted on NSFW models",
       };
     }
 
