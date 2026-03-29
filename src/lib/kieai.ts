@@ -64,7 +64,7 @@ export type KieAiMotionControlParams = {
   imageUrl: string;            // R2 signed URL for the character reference image
   videoUrl: string;            // R2 signed URL for the motion reference video
   prompt?: string;             // Optional scene/environment description
-  mode?: "720p" | "1080p";
+  mode?: "std" | "pro";        // std = 720p, pro = 1080p
   characterOrientation?: "video" | "image";   // Which input drives character body orientation
   backgroundSource?: "input_video" | "input_image"; // Which input provides the background
   callbackUrl: string;         // Webhook URL — KIE.AI requires this field
@@ -84,7 +84,7 @@ export async function submitKieAiMotionControl(
     uploadToKieAi(params.videoUrl),
   ]);
 
-  const mode = params.mode ?? "720p";
+  const mode = params.mode ?? "std";
   const orientation = params.characterOrientation ?? "video";
   const bgSource = params.backgroundSource ?? "input_video";
 

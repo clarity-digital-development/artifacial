@@ -21,7 +21,7 @@ export interface VeniceConfig {
 
 export interface KieAiConfig {
   model: string;                          // KIE.AI model string (e.g., "kling-3.0/motion-control")
-  mode: "720p" | "1080p";
+  mode: "std" | "pro";                   // std = 720p, pro = 1080p
   costKey: string;                        // Key into cost estimation table
 }
 
@@ -353,7 +353,7 @@ const KLING_30_MOTION_STD: ModelConfig = {
   badge: "New",
   kieaiConfig: {
     model: "kling-3.0/motion-control",
-    mode: "720p",
+    mode: "std",
     costKey: "kling-30-motion-std",
   },
   tier: "STANDARD",
@@ -378,7 +378,7 @@ const KLING_30_MOTION_PRO: ModelConfig = {
   badge: "New",
   kieaiConfig: {
     model: "kling-3.0/motion-control",
-    mode: "1080p",
+    mode: "pro",
     costKey: "kling-30-motion-pro",
   },
   tier: "ULTRA",
