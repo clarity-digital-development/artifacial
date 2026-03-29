@@ -89,22 +89,25 @@ export async function submitKieAiMotionControl(
   const orientation = params.characterOrientation ?? "video";
   const bgSource = params.backgroundSource ?? "input_video";
 
-  console.log(`[kieai] Submitting motion-control: mode=${mode}, orientation=${orientation}, bgSource=${bgSource}`);
+  const requestBody = {
+    model: "kling-3.0/motion-control",
+    callBackUrl: params.callbackUrl,
+    input: {
+      prompt: params.prompt ?? "",
+      input_urls: [kieAiImageUrl],
+      video_urls: [kieAiVideoUrl],
+      mode,
+      character_orientation: orientation,
+      background_source: bgSource,
+    },
+  };
+
+  // Log full request body so Railway logs show exactly what is sent to KIE.AI
+  console.log(`[kieai] FULL REQUEST BODY: ${JSON.stringify(requestBody)}`);
 
   const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
     method: "POST",
-    body: JSON.stringify({
-      model: "kling-3.0/motion-control",
-      callBackUrl: params.callbackUrl,
-      input: {
-        prompt: params.prompt ?? "",
-        input_urls: [kieAiImageUrl],
-        video_urls: [kieAiVideoUrl],
-        mode,
-        character_orientation: orientation,
-        background_source: bgSource,
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const taskId = data.data?.taskId as string | undefined;
