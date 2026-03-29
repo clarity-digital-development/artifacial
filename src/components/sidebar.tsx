@@ -60,9 +60,12 @@ function IconSettings({ className }: { className?: string }) {
   );
 }
 
-const NAV_ITEMS: { href: string; label: string; icon: (props: { className?: string }) => ReactNode }[] = [
+const NAV_BEFORE_CREATE = [
   { href: "/studio", label: "Studio", icon: IconStudio },
   { href: "/characters", label: "Characters", icon: IconCharacters },
+];
+
+const NAV_AFTER_CREATE = [
   { href: "/gallery", label: "Gallery", icon: IconGallery },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ];
@@ -108,7 +111,27 @@ export function Sidebar({ contentMode }: SidebarProps) {
       </Link>
 
       <nav className="flex flex-1 flex-col gap-2">
-        {/* Create button with dropdown */}
+        {/* Studio + Characters */}
+        {NAV_BEFORE_CREATE.map((item) => {
+          const isActive = pathname.startsWith(item.href);
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isActive
+                  ? "bg-[var(--accent-amber-glow)] text-[var(--accent-amber)] shadow-[0_0_12px_rgba(232,166,52,0.1)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              }`}
+              title={item.label}
+            >
+              <Icon />
+            </Link>
+          );
+        })}
+
+        {/* Create button with dropdown (Generate + Workshop) */}
         <div ref={createRef} className="relative">
           <button
             onClick={() => setCreateOpen((o) => !o)}
@@ -124,7 +147,6 @@ export function Sidebar({ contentMode }: SidebarProps) {
 
           {createOpen && (
             <div className="absolute left-[calc(100%+10px)] top-0 z-50 min-w-[168px] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xl">
-              {/* Small arrow indicator */}
               <div className="absolute -left-[5px] top-3 h-2.5 w-2.5 rotate-45 border-b border-l border-[var(--border-subtle)] bg-[var(--bg-surface)]" />
               <button
                 onClick={() => { setCreateOpen(false); router.push("/generate"); }}
@@ -145,8 +167,8 @@ export function Sidebar({ contentMode }: SidebarProps) {
           )}
         </div>
 
-        {/* Regular nav items */}
-        {NAV_ITEMS.map((item) => {
+        {/* Gallery + Settings */}
+        {NAV_AFTER_CREATE.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
