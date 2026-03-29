@@ -46,7 +46,7 @@ export async function uploadToKieAi(fileUrl: string): Promise<string> {
 
   const data = await kieAiFetch(`${KIEAI_UPLOAD_URL}/api/file-url-upload`, {
     method: "POST",
-    body: JSON.stringify({ fileUrl }),
+    body: JSON.stringify({ fileUrl, uploadPath: "artifacial" }),
   });
 
   const uploadedUrl = data.data?.fileUrl || data.data?.downloadUrl;
