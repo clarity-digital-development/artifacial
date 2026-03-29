@@ -45,6 +45,7 @@ enum WorkflowType {
   BACKGROUND_REMOVAL
   VIRTUAL_TRY_ON
   AI_HUG
+  IMAGE_EDIT
 }
 
 enum GenerationProvider {

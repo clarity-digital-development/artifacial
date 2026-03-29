@@ -390,7 +390,11 @@ export async function GET(
         try {
           const result = await persistMediaToR2(kieStatus.videoUrl, session.user.id, generation.id, "mp4");
           r2Key = result.key;
-          thumbnailKey = await generateVideoThumbnail(result.buffer, generation.id);
+          if (result.contentType.startsWith("image/")) {
+            thumbnailKey = await generateImageThumbnail(result.buffer, generation.id);
+          } else {
+            thumbnailKey = await generateVideoThumbnail(result.buffer, generation.id);
+          }
         } catch (r2Error) {
           console.error("[status] Failed to persist KIE.AI output to R2:", r2Error);
         }

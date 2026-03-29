@@ -56,6 +56,13 @@ const IconWorkshop = () => (
   </svg>
 );
 
+const IconEdit = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+);
+
 export function MobileNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -69,7 +76,9 @@ export function MobileNav() {
     pathname === "/generate" ||
     pathname.startsWith("/generate/") ||
     pathname === "/workshop" ||
-    pathname.startsWith("/workshop/");
+    pathname.startsWith("/workshop/") ||
+    pathname === "/edit" ||
+    pathname.startsWith("/edit/");
 
   return (
     <>
@@ -164,7 +173,7 @@ export function MobileNav() {
             <div className="mx-4 h-px bg-[var(--border-subtle)]" />
             <button
               onClick={() => { setCreateOpen(false); router.push("/workshop"); }}
-              className="flex w-full items-center gap-3.5 px-4 py-3.5 pb-4 text-left transition-colors hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)]"
+              className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)]"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]">
                 <IconWorkshop />
@@ -172,6 +181,19 @@ export function MobileNav() {
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">Workshop</p>
                 <p className="text-xs text-[var(--text-muted)]">Face swap, effects, music & more</p>
+              </div>
+            </button>
+            <div className="mx-4 h-px bg-[var(--border-subtle)]" />
+            <button
+              onClick={() => { setCreateOpen(false); router.push("/edit"); }}
+              className="flex w-full items-center gap-3.5 px-4 py-3.5 pb-4 text-left transition-colors hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)]"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]">
+                <IconEdit />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Edit Image</p>
+                <p className="text-xs text-[var(--text-muted)]">Edit & remix character images with AI</p>
               </div>
             </button>
           </div>

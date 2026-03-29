@@ -147,6 +147,56 @@ export async function submitKieAiMotionControl(
   return { taskId };
 }
 
+// ─── Nano Banana Edit ───
+
+export type KieAiNanaBananaEditParams = {
+  imageUrl: string;
+  prompt: string;
+  outputFormat?: "png" | "jpeg";
+  imageSize?: "1:1" | "9:16" | "16:9" | "3:4" | "4:3" | "3:2" | "2:3" | "5:4" | "4:5" | "21:9" | "auto";
+  callbackUrl: string;
+};
+
+/**
+ * Submit a Google Nano Banana Edit task to KIE.AI.
+ * Accepts jpeg, png, or webp — still converts WebP to JPEG defensively for
+ * consistency with other KIE.AI endpoints.
+ */
+export async function submitNanoBananaEdit(
+  params: KieAiNanaBananaEditParams
+): Promise<{ taskId: string }> {
+  const safeImageUrl = await ensureJpeg(params.imageUrl);
+
+  console.log(`[kieai] Uploading image for Nano Banana Edit...`);
+  const kieAiImageUrl = await uploadToKieAi(safeImageUrl);
+
+  const requestBody = {
+    model: "google/nano-banana-edit",
+    callBackUrl: params.callbackUrl,
+    input: {
+      prompt: params.prompt,
+      image_urls: [kieAiImageUrl],
+      output_format: params.outputFormat ?? "jpeg",
+      image_size: params.imageSize ?? "auto",
+    },
+  };
+
+  console.log(`[kieai] NANO BANANA EDIT REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI Nano Banana Edit returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Nano Banana Edit task submitted: taskId=${taskId}`);
+  return { taskId };
+}
+
 // ─── Task Status ───
 
 export type KieAiTaskStatus = "waiting" | "queuing" | "generating" | "success" | "fail";
