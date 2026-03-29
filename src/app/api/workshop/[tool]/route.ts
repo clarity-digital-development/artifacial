@@ -1,0 +1,377 @@
+import { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getToolBySlug } from "@/lib/workshop/tools";
+import { deductCredits, refundCredits } from "@/lib/credits";
+import { submitTask } from "@/lib/piapi-client";
+import { uploadToR2, getSignedR2Url } from "@/lib/r2";
+import { randomUUID } from "crypto";
+
+// ─── R2 upload helper ─────────────────────────────────────────────────────────
+
+async function uploadBase64ToR2(userId: string, dataUrl: string): Promise<string> {
+  const match = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
+  if (!match) throw new Error("Invalid base64 data URL");
+  const [, mimeType, base64] = match;
+  const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const key = `users/${userId}/workshop/${randomUUID()}.${ext}`;
+  const buffer = Buffer.from(base64, "base64");
+  await uploadToR2(key, buffer, mimeType);
+  return getSignedR2Url(key, 7200);
+}
+
+function isBase64(v: unknown): v is string {
+  return typeof v === "string" && v.startsWith("data:");
+}
+
+/** Upload a single image field if it's a base64 data URL; return signed URL or original string. */
+async function resolveImg(userId: string, v: unknown): Promise<string | undefined> {
+  if (!v) return undefined;
+  if (isBase64(v)) return uploadBase64ToR2(userId, v);
+  if (typeof v === "string") return v;
+  return undefined;
+}
+
+/** Upload all base64 images in an array. */
+async function resolveImgArray(userId: string, arr: unknown): Promise<string[]> {
+  if (!Array.isArray(arr)) return [];
+  const results = await Promise.all(arr.map((v) => resolveImg(userId, v)));
+  return results.filter(Boolean) as string[];
+}
+
+// ─── Credit computation ───────────────────────────────────────────────────────
+
+function computeCredits(slug: string, body: Record<string, unknown>): number {
+  switch (slug) {
+    case "photo-face-swap":   return 40;
+    case "multi-face-swap":   return 60;
+    case "video-face-swap":   return 2400;
+    case "virtual-try-on":    return 280 * (Number(body.batchSize) || 1);
+    case "ai-hug":            return 800;
+    case "lipsync":           return 400;
+    case "effects":           return body.professionalMode ? 1840 : 1040;
+    case "kling-sound":       return 280;
+    case "ai-video-edit": {
+      const is1080 = body.resolution === "1080p";
+      const is10s  = Number(body.duration) === 10;
+      if (is1080 && is10s) return 4160;
+      if (is1080)          return 2080;
+      if (is10s)           return 3120;
+      return 1560;
+    }
+    case "video-remove-bg":   return 240;
+    case "watermark-remover": return 200;
+    case "remove-bg":         return 10;
+    case "super-resolution":  return 50;
+    case "joycaption":        return 40;
+    case "trellis3d":         return 400;
+    case "music-gen":         return 200;
+    case "song-extend":       return 200;
+    case "add-audio":         return 75;
+    case "diffrhythm":        return 80;
+    default:                  return 100;
+  }
+}
+
+// ─── PiAPI task builder ───────────────────────────────────────────────────────
+
+async function buildTask(
+  slug: string,
+  body: Record<string, unknown>,
+  userId: string
+): Promise<{ model: string; taskType: string; input: Record<string, unknown> }> {
+
+  switch (slug) {
+
+    // ── Face & Identity ──────────────────────────────────────────────────────
+
+    case "photo-face-swap": {
+      const target = await resolveImg(userId, body.targetImage);
+      const swap   = await resolveImg(userId, body.swapImage);
+      if (!target || !swap) throw new Error("Missing required images");
+      return {
+        model: "Qubico/image-toolkit",
+        taskType: "face-swap",
+        input: { target_image: target, swap_image: swap },
+      };
+    }
+
+    case "multi-face-swap": {
+      const target = await resolveImg(userId, body.targetImage);
+      const swap   = await resolveImg(userId, body.swapImage);
+      if (!target || !swap) throw new Error("Missing required images");
+      const input: Record<string, unknown> = { target_image: target, swap_image: swap };
+      if (body.swapFacesIndex)   input.swap_faces_index   = body.swapFacesIndex;
+      if (body.targetFacesIndex) input.target_faces_index = body.targetFacesIndex;
+      return { model: "Qubico/image-toolkit", taskType: "face-swap", input };
+    }
+
+    case "video-face-swap": {
+      const swap = await resolveImg(userId, body.swapImage);
+      if (!body.targetVideoUrl || !swap) throw new Error("Missing video URL or face image");
+      const input: Record<string, unknown> = {
+        target_video: body.targetVideoUrl,
+        swap_image: swap,
+      };
+      if (body.swapFacesIndex)   input.swap_faces_index   = body.swapFacesIndex;
+      if (body.targetFacesIndex) input.target_faces_index = body.targetFacesIndex;
+      return { model: "Qubico/video-toolkit", taskType: "face-swap", input };
+    }
+
+    case "virtual-try-on": {
+      const modelImg = await resolveImg(userId, body.modelImage);
+      if (!modelImg) throw new Error("Missing model image");
+      const input: Record<string, unknown> = { model_input: modelImg };
+      if (body.mode === "full" && body.dressImage) {
+        input.dress_input = await resolveImg(userId, body.dressImage);
+      } else {
+        if (body.upperImage) input.upper_input = await resolveImg(userId, body.upperImage);
+        if (body.lowerImage) input.lower_input = await resolveImg(userId, body.lowerImage);
+      }
+      if (body.batchSize && Number(body.batchSize) > 1) {
+        input.batch_size = Number(body.batchSize);
+      }
+      return { model: "kling", taskType: "ai_try_on", input };
+    }
+
+    case "ai-hug": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      return {
+        model: "Qubico/hug-video",
+        taskType: "image_to_video",
+        input: { image_url: img },
+      };
+    }
+
+    // ── Video Tools ──────────────────────────────────────────────────────────
+
+    case "lipsync": {
+      if (!body.videoUrl) throw new Error("Missing video URL");
+      const input: Record<string, unknown> = { video_url: body.videoUrl };
+      if (body.mode === "tts") {
+        input.mode = "tts";
+        input.text = body.ttsText;
+        input.voice_type = body.ttsTimbre;
+        if (body.ttsSpeed) input.tts_speed = body.ttsSpeed;
+      } else {
+        input.mode = "dubbing";
+        input.audio_url = body.audioDubbingUrl;
+      }
+      return { model: "kling", taskType: "lip_sync", input };
+    }
+
+    case "effects": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      const input: Record<string, unknown> = {
+        image_url: img,
+        effect_scene: body.effect,
+      };
+      if (body.prompt)          input.prompt            = body.prompt;
+      if (body.professionalMode) input.professional_mode = true;
+      return { model: "kling", taskType: "effect", input };
+    }
+
+    case "kling-sound": {
+      if (body.mode === "video") {
+        if (!body.originTaskId) throw new Error("Missing origin task ID");
+        return {
+          model: "kling",
+          taskType: "video_sound_effect",
+          input: { origin_task_id: body.originTaskId },
+        };
+      }
+      // text mode
+      if (!body.prompt) throw new Error("Missing sound description");
+      return {
+        model: "kling",
+        taskType: "sound_generation",
+        input: {
+          prompt: body.prompt,
+          duration: Number(body.duration) || 10,
+        },
+      };
+    }
+
+    case "ai-video-edit": {
+      if (!body.prompt) throw new Error("Missing prompt");
+      const input: Record<string, unknown> = {
+        prompt: body.prompt,
+        duration: Number(body.duration) || 5,
+        aspect_ratio: body.aspectRatio || "16:9",
+      };
+      if (body.resolution) input.resolution = (body.resolution as string).toLowerCase();
+      if (Array.isArray(body.images) && body.images.length > 0) {
+        input.images = await resolveImgArray(userId, body.images);
+      }
+      if (body.videoUrl) {
+        input.video_url = body.videoUrl;
+        if (body.keepOriginalAudio) input.keep_original_audio = true;
+      }
+      return { model: "kling", taskType: "omni_video_generation", input };
+    }
+
+    case "video-remove-bg": {
+      if (!body.videoUrl) throw new Error("Missing video URL");
+      const input: Record<string, unknown> = { video_url: body.videoUrl };
+      if (body.invertOutput) input.invert_output = true;
+      return { model: "Qubico/video-toolkit", taskType: "video-background-remove", input };
+    }
+
+    case "watermark-remover": {
+      if (!body.videoUrl) throw new Error("Missing video URL");
+      const input: Record<string, unknown> = { video_url: body.videoUrl };
+      if (body.duration) input.duration = Number(body.duration);
+      return { model: "Qubico/video-toolkit", taskType: "watermark-removal", input };
+    }
+
+    // ── Image Utilities ──────────────────────────────────────────────────────
+
+    case "remove-bg": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      return {
+        model: "Qubico/image-toolkit",
+        taskType: "background-remove",
+        input: { image: img, rmbg_model: body.rmbgModel || "RMBG-2.0" },
+      };
+    }
+
+    case "super-resolution": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      const input: Record<string, unknown> = {
+        image: img,
+        scale_factor: Number(body.scale) || 2,
+      };
+      if (body.faceEnhance) input.face_enhance = true;
+      return { model: "Qubico/image-toolkit", taskType: "image-upscale", input };
+    }
+
+    case "joycaption": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      return {
+        model: "Qubico/joy-caption",
+        taskType: "img-caption",
+        input: {
+          image_url: img,
+          caption_type: body.promptStyle || "Descriptive",
+          length: body.captionLength || "any",
+        },
+      };
+    }
+
+    case "trellis3d": {
+      const img = await resolveImg(userId, body.image);
+      if (!img) throw new Error("Missing image");
+      const input: Record<string, unknown> = { image_url: img };
+      if (Number(body.seed) > 0) input.seed = Number(body.seed);
+      return { model: "Qubico/trellis", taskType: "image-to-3d", input };
+    }
+
+    // ── Audio & Music ────────────────────────────────────────────────────────
+
+    case "music-gen": {
+      if (!body.gptDescriptionPrompt && body.lyricsType !== "instrumental") {
+        throw new Error("Missing music description");
+      }
+      const input: Record<string, unknown> = {
+        gpt_description_prompt: body.gptDescriptionPrompt || "",
+        lyrics_type: body.lyricsType || "generate",
+      };
+      if (body.lyricsType === "user" && body.lyrics) input.lyrics = body.lyrics;
+      if (body.negativeTags) input.negative_tags = body.negativeTags;
+      return { model: "udio", taskType: "generate", input };
+    }
+
+    case "song-extend": {
+      if (!body.continueSongId) throw new Error("Missing song ID");
+      const input: Record<string, unknown> = {
+        continue_song_id: body.continueSongId,
+        continue_at: Number(body.continueAt) || 30,
+        prompt: body.prompt || "",
+        lyrics_type: body.lyricsType || "generate",
+      };
+      if (body.lyricsType === "user" && body.lyrics) input.lyrics = body.lyrics;
+      return { model: "udio", taskType: "extend", input };
+    }
+
+    case "add-audio": {
+      if (!body.videoUrl || !body.prompt) throw new Error("Missing video URL or audio description");
+      const input: Record<string, unknown> = {
+        video_url: body.videoUrl,
+        prompt: body.prompt,
+        steps: Number(body.steps) || 25,
+      };
+      if (body.negativePrompt) input.negative_prompt = body.negativePrompt;
+      return { model: "Qubico/mmaudio", taskType: "video-to-audio", input };
+    }
+
+    case "diffrhythm": {
+      if (!body.lyrics || !body.stylePrompt) throw new Error("Missing lyrics or style description");
+      const input: Record<string, unknown> = {
+        lyrics: body.lyrics,
+        style_prompt: body.stylePrompt,
+      };
+      if (body.styleAudioUrl) input.style_audio_url = body.styleAudioUrl;
+      return {
+        model: "diffrhythm",
+        taskType: String(body.taskType || "txt2audio-base"),
+        input,
+      };
+    }
+
+    default:
+      throw new Error(`Unknown tool: ${slug}`);
+  }
+}
+
+// ─── Route handler ────────────────────────────────────────────────────────────
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ tool: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  const { tool: slug } = await params;
+  const tool = getToolBySlug(slug);
+  if (!tool) {
+    return NextResponse.json({ error: "Unknown tool" }, { status: 404 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const credits = computeCredits(slug, body);
+
+  // Deduct credits before submission
+  const ok = await deductCredits(userId, credits, `Workshop: ${tool.name}`);
+  if (!ok) {
+    return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+  }
+
+  let taskId: string;
+  try {
+    const { model, taskType, input } = await buildTask(slug, body, userId);
+    const result = await submitTask(model, taskType, input);
+    taskId = result.taskId;
+  } catch (err) {
+    // Refund on failure
+    await refundCredits(userId, credits, `Workshop refund: ${tool.name}`);
+    const message = err instanceof Error ? err.message : "Submission failed";
+    console.error(`[workshop/${slug}] error:`, err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  return NextResponse.json({ taskId, credits });
+}
