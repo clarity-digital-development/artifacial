@@ -419,9 +419,9 @@ export function EditClient({ characters }: { characters: Character[] }) {
 
         {/* Bottom bar: prompt + controls (hidden when result shown) */}
         {!isDone && (
-          <div className="flex items-end gap-3">
-            {/* Prompt area — capped width so it doesn't span the full canvas */}
-            <div className="flex max-w-2xl flex-1 items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
+          <div className="flex items-end justify-center gap-3">
+            {/* Prompt area — fixed width, centered */}
+            <div className="flex w-[520px] items-end gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2.5 focus-within:border-[var(--accent-amber)]/40">
               <ReferenceImagePicker
                 preview={refPreview}
                 onFile={handleRefFile}
