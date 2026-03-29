@@ -408,7 +408,7 @@ export async function routeGeneration(
           videoUrl,
           prompt: submissionPrompt,
           mode: model.kieaiConfig.mode,
-          characterOrientation: characterOrientation as "video" | "image",
+          characterOrientation: "image",
           backgroundSource: characterOrientation === "image" ? "input_image" : "input_video",
           callbackUrl,
         });
