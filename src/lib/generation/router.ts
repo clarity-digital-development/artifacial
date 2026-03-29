@@ -168,7 +168,7 @@ export async function routeGeneration(
     resolution = "720p",
     aspectRatio = "16:9",
     withAudio = false,
-    characterOrientation = "image",
+    characterOrientation = "video",
     ipAddress,
   } = request;
 

@@ -265,8 +265,8 @@ export function buildVideoInput(
     // motion_direction: "image" = portrait/subject keeps original orientation (≤10s)
     //                   "video" = full-body follows reference video orientation (≤30s)
     input.motion_direction = params.motionDirection ?? "video";
-    // prompt is optional for motion_control
-    if (!params.prompt) delete input.prompt;
+    // motion_control does not support prompt — always remove it
+    delete input.prompt;
     return input;
   }
 
