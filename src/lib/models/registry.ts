@@ -339,56 +339,6 @@ const SEEDANCE_2_PRO: ModelConfig = {
 // SFW MOTION CONTROL
 // ════════════════════════════════════════════════════════════════
 
-const KLING_26_MOTION_STD: ModelConfig = {
-  id: "kling-26-motion-std",
-  name: "Kling 2.6 Motion (Standard)",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "kling",
-    taskTypes: { MOTION_TRANSFER: "motion_control" },
-    defaults: { version: "2.6", mode: "std" },
-    costKey: "kling-26-std",
-  },
-  tier: "STANDARD",
-  creditCost: 850,
-  creditCostTable: { "5": 850, "10": 1700 },
-  supportedModes: ["MOTION_TRANSFER"],
-  maxDuration: 10,
-  maxResolution: "720p",
-  supportsAudio: false,
-  contentMode: "SFW",
-  description: "Copy motion from reference video. 720p output.",
-  durations: [],
-  aspectRatios: [],
-  resolutions: [],
-  supportsEndFrame: false,
-};
-
-const KLING_26_MOTION_PRO: ModelConfig = {
-  id: "kling-26-motion-pro",
-  name: "Kling 2.6 Motion (Pro)",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "kling",
-    taskTypes: { MOTION_TRANSFER: "motion_control" },
-    defaults: { version: "2.6", mode: "pro" },
-    costKey: "kling-26-pro",
-  },
-  tier: "ULTRA",
-  creditCost: 1400,
-  creditCostTable: { "5": 1400, "10": 2700 },
-  supportedModes: ["MOTION_TRANSFER"],
-  maxDuration: 10,
-  maxResolution: "1080p",
-  supportsAudio: false,
-  contentMode: "SFW",
-  description: "Copy motion from reference video. 1080p output.",
-  durations: [],
-  aspectRatios: [],
-  resolutions: [],
-  supportsEndFrame: false,
-};
-
 const KLING_30_MOTION_PRO: ModelConfig = {
   id: "kling-30-motion-pro",
   name: "Kling 3.0 Motion",
@@ -987,9 +937,7 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   [SORA_2_PRO.id]: SORA_2_PRO,
   [VEO_31.id]: VEO_31,
   [SEEDANCE_2_PRO.id]: SEEDANCE_2_PRO,
-  // Motion Control
-  [KLING_26_MOTION_STD.id]: KLING_26_MOTION_STD,
-  [KLING_26_MOTION_PRO.id]: KLING_26_MOTION_PRO,
+  // Motion Control (Kling 3.0 only — 3.0 supports background_source for scene control)
   [KLING_30_MOTION_PRO.id]: KLING_30_MOTION_PRO,
   // New SFW Video
   [LUMA.id]: LUMA,
@@ -1116,7 +1064,7 @@ export function getDefaultModelId(mode: ModelMode, contentMode: "SFW" | "NSFW"):
     if (mode === "I2V") return "wan26-nsfw-i2v";
     if (mode === "T2I") return "z-image-turbo-nsfw";
   }
-  if (mode === "MOTION_TRANSFER") return "kling-26-motion-std";
+  if (mode === "MOTION_TRANSFER") return "kling-30-motion-pro";
   if (mode === "T2I") return "z-image-turbo";
   return "kling-30-pro";
 }
