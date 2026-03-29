@@ -658,7 +658,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           .map((tab) => (
           <button
             key={tab}
-            onClick={() => setMode(tab)}
+            onClick={() => { setMode(tab); if (tab === "MOTION_TRANSFER") setPrompt(""); }}
             className={`flex-1 rounded-[var(--radius-sm)] px-2 py-1.5 text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               mode === tab
                 ? "bg-[var(--accent-amber)] text-[#0A0A0B]"
