@@ -265,14 +265,18 @@ export function buildVideoInput(
 
   // ─── Kling motion_control (2.6 / 3.0) ───
   if (piApiModel === "kling" && taskType === "motion_control") {
-    // character image drives the subject; reference video drives the motion
     if (params.imageUrl) input.image_url = params.imageUrl;
     if (params.videoUrl) input.video_url = params.videoUrl;
-    // motion_direction: "image" = portrait/subject keeps original orientation (≤10s)
-    //                   "video" = full-body follows reference video orientation (≤30s)
+    // motion_direction controls character body orientation:
+    //   "video" = full-body follows reference video (≤30s)
+    //   "image" = portrait, character keeps original orientation (≤10s)
     input.motion_direction = params.motionDirection ?? "video";
-    // prompt describes the scene/environment (not the motion — that comes from video_url)
-    // include it when provided so users can control the output scene
+    // background_source is a Kling 3.0 field that controls which input provides
+    // the background/scene. On 2.6 it may be ignored but sending it is harmless.
+    //   "input_video" = background comes from the reference video
+    //   "input_image" = background comes from the character image
+    input.background_source = params.motionDirection === "image" ? "input_image" : "input_video";
+    // prompt describes the scene/environment; include it when provided
     if (!params.prompt) delete input.prompt;
     return input;
   }

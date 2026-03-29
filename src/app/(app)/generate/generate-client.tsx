@@ -911,7 +911,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
             {/* Motion info note */}
             <p className="mt-2 text-[10px] text-[var(--text-muted)]">
-              The reference video drives movement only — your character image sets the scene and background. Use the Scene Description below to change the environment.
+              Motion and background source are set by the reference video (Video) or your character image (Image). Use Scene Description to further describe the environment.
             </p>
 
             {/* Advanced Settings */}
@@ -930,10 +930,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </button>
               {motionAdvancedOpen && (
                 <div className="mt-2 space-y-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
-                  {/* Motion Mode */}
+                  {/* Scene Source */}
                   <div>
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Motion Mode
+                      Scene Source
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -944,7 +944,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                             : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
-                        Full-Body Motion
+                        Video
                       </button>
                       <button
                         onClick={() => setCharacterOrientation("image")}
@@ -954,13 +954,13 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                             : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
-                        Portrait Mode
+                        Image
                       </button>
                     </div>
                     <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                       {characterOrientation === "video"
-                        ? "Character performs complex full-body movements from the reference video (up to 30s)"
-                        : "Character keeps original portrait orientation with camera-style movement (up to 10s)"}
+                        ? "Background comes from the reference video — full-body motion (up to 30s)"
+                        : "Background comes from the character image — portrait mode (up to 10s)"}
                     </p>
                   </div>
                   {/* Scene Description */}
