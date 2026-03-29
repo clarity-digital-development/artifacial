@@ -81,7 +81,7 @@ export function CharacterDetailClient({
             {character.signedUrls[0] ? (
               <img
                 src={character.signedUrls[0]}
-                alt={`${character.name} — Front`}
+                alt={character.name}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -141,23 +141,6 @@ export function CharacterDetailClient({
           </div>
         </div>
 
-        {/* Additional images */}
-        {character.signedUrls.length > 1 && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {character.signedUrls.slice(1).map((url, i) => (
-              <div
-                key={i}
-                className="relative aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)]"
-              >
-                <img
-                  src={url}
-                  alt={`${character.name} — ${i + 2}`}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── Desktop layout ── */}
@@ -179,7 +162,7 @@ export function CharacterDetailClient({
                 {character.signedUrls[0] ? (
                   <img
                     src={character.signedUrls[0]}
-                    alt={`${character.name} — Front`}
+                    alt={character.name}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -235,29 +218,6 @@ export function CharacterDetailClient({
             </div>
           </div>
 
-          {/* Additional images (legacy multi-image characters) */}
-          {character.signedUrls.length > 1 && (
-            <div className="grid grid-cols-3 gap-3">
-              {character.signedUrls.slice(1).map((url, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)]"
-                >
-                  <div className="pointer-events-none absolute inset-0 z-10">
-                    <span className="absolute left-2 top-2 h-3 w-3 border-l border-t border-white/20" />
-                    <span className="absolute right-2 top-2 h-3 w-3 border-r border-t border-white/20" />
-                    <span className="absolute bottom-2 left-2 h-3 w-3 border-b border-l border-white/20" />
-                    <span className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-white/20" />
-                  </div>
-                  <img
-                    src={url}
-                    alt={`${character.name} — ${i + 2}`}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </>
