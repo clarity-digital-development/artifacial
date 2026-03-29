@@ -174,7 +174,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
   const [refPreview, setRefPreview] = useState<string | null>(null);
-  const [refSignedUrl, setRefSignedUrl] = useState<string | null>(null);
+  const [refR2Key, setRefR2Key] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -225,11 +225,11 @@ export function EditClient({ characters }: { characters: Character[] }) {
     setRefPreview(objectUrl);
     setRefUploading(true);
     try {
-      const { url } = await uploadFileToR2(file);
-      setRefSignedUrl(url);
+      const { key } = await uploadFileToR2(file);
+      setRefR2Key(key);
     } catch {
       setRefPreview(null);
-      setRefSignedUrl(null);
+      setRefR2Key(null);
     } finally {
       setRefUploading(false);
     }
@@ -238,7 +238,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
   function clearRef() {
     if (refPreview) URL.revokeObjectURL(refPreview);
     setRefPreview(null);
-    setRefSignedUrl(null);
+    setRefR2Key(null);
   }
 
   async function handleGenerate() {
@@ -257,7 +257,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
           prompt: prompt.trim(),
           imageSize,
           characterId: selectedChar?.id,
-          referenceImageUrl: refSignedUrl ?? undefined,
+          referenceImageR2Key: refR2Key ?? undefined,
         }),
       });
 

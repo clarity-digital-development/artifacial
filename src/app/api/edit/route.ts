@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     prompt?: string;
     imageSize?: string;
     characterId?: string;
-    referenceImageUrl?: string;
+    referenceImageR2Key?: string;
   };
   try {
     body = await req.json();
@@ -52,10 +52,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
   }
 
-  // Sign the R2 key — KIE.AI needs a public URL
+  // Sign R2 keys — KIE.AI needs public URLs (sign fresh here to avoid expiry)
   let signedImageUrl: string;
+  let signedReferenceUrl: string | undefined;
   try {
     signedImageUrl = await getSignedR2Url(body.imageR2Key, 7200);
+    if (body.referenceImageR2Key) {
+      signedReferenceUrl = await getSignedR2Url(body.referenceImageR2Key, 7200);
+    }
   } catch {
     await refundCredits(session.user.id, CREDIT_COST, "Refund: Failed to sign image URL");
     return NextResponse.json({ error: "Failed to sign image URL" }, { status: 500 });
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await submitNanoBananaEdit({
       imageUrl: signedImageUrl,
-      referenceImageUrl: body.referenceImageUrl,
+      referenceImageUrl: signedReferenceUrl,
       prompt,
       imageSize,
       outputFormat: "jpeg",
