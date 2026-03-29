@@ -151,6 +151,7 @@ export async function submitKieAiMotionControl(
 
 export type KieAiNanaBananaEditParams = {
   imageUrl: string;
+  referenceImageUrl?: string;   // Optional reference image to guide the edit
   prompt: string;
   outputFormat?: "png" | "jpeg";
   imageSize?: "1:1" | "9:16" | "16:9" | "3:4" | "4:3" | "3:2" | "2:3" | "5:4" | "4:5" | "21:9" | "auto";
@@ -168,14 +169,21 @@ export async function submitNanoBananaEdit(
   const safeImageUrl = await ensureJpeg(params.imageUrl);
 
   console.log(`[kieai] Uploading image for Nano Banana Edit...`);
-  const kieAiImageUrl = await uploadToKieAi(safeImageUrl);
+  const imageUrls: string[] = [await uploadToKieAi(safeImageUrl)];
+
+  if (params.referenceImageUrl) {
+    const safeRefUrl = await ensureJpeg(params.referenceImageUrl);
+    const kieAiRefUrl = await uploadToKieAi(safeRefUrl);
+    imageUrls.push(kieAiRefUrl);
+    console.log(`[kieai] Reference image uploaded: ${kieAiRefUrl.slice(0, 80)}...`);
+  }
 
   const requestBody = {
     model: "google/nano-banana-edit",
     callBackUrl: params.callbackUrl,
     input: {
       prompt: params.prompt,
-      image_urls: [kieAiImageUrl],
+      image_urls: imageUrls,
       output_format: params.outputFormat ?? "jpeg",
       image_size: params.imageSize ?? "auto",
     },

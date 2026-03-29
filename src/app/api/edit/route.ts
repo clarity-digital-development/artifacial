@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     prompt?: string;
     imageSize?: string;
     characterId?: string;
+    referenceImageUrl?: string;
   };
   try {
     body = await req.json();
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await submitNanoBananaEdit({
       imageUrl: signedImageUrl,
+      referenceImageUrl: body.referenceImageUrl,
       prompt,
       imageSize,
       outputFormat: "jpeg",
