@@ -419,14 +419,6 @@ export function buildImageInput(
     return input;
   }
 
-  // Qwen Image
-  if (piApiModel === "qwen-image") {
-    if (params.width) input.width = Math.min(params.width, 1024);
-    if (params.height) input.height = Math.min(params.height, 1024);
-    if (params.seed !== undefined) input.seed = params.seed;
-    return input;
-  }
-
   // Seedream
   if (piApiModel === "seedream") {
     // Uses aspect_ratio instead of width/height
@@ -576,7 +568,6 @@ const COST_ESTIMATES: Record<string, {
   "z-image": { perImage: 0.004 },
   "flux-schnell": { perImage: 0.01 },
   "flux-dev": { perImage: 0.02 },
-  "qwen-image": { perImage: 0.015 },
   "seedream": { perImage: 0.028 },
   // Post-processing
   "face-swap-image": { perImage: 0.01 },

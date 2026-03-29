@@ -561,28 +561,6 @@ const FLUX_SCHNELL: ModelConfig = {
   supportsEndFrame: false,
 };
 
-const QWEN_IMAGE: ModelConfig = {
-  id: "qwen-image",
-  name: "Qwen Image",
-  provider: "PIAPI",
-  pipiConfig: {
-    model: "qwen-image",
-    taskTypes: { T2I: "txt2img" },
-    costKey: "qwen-image",
-  },
-  tier: "STANDARD",
-  creditCost: 90,
-  supportedModes: ["T2I"],
-  maxDuration: 0,
-  maxResolution: "1024px",
-  supportsAudio: false,
-  contentMode: "SFW",
-  description: "Alibaba's latest image model.",
-  durations: [],
-  aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
-  resolutions: [],
-  supportsEndFrame: false,
-};
 
 const SEEDREAM_5: ModelConfig = {
   id: "seedream-5",
@@ -955,7 +933,6 @@ export const MODEL_REGISTRY: Record<string, ModelConfig> = {
   [Z_IMAGE_TURBO.id]: Z_IMAGE_TURBO,
   [FLUX_SCHNELL.id]: FLUX_SCHNELL,
   [FLUX_DEV.id]: FLUX_DEV,
-  [QWEN_IMAGE.id]: QWEN_IMAGE,
   [SEEDREAM_5.id]: SEEDREAM_5,
   [NANO_BANANA.id]: NANO_BANANA,
   [NANO_BANANA_2.id]: NANO_BANANA_2,

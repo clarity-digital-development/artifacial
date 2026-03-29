@@ -40,14 +40,6 @@ export const PIAPI_IMAGE_MODELS = [
     creditCost: 90,
   },
   {
-    id: "qwen-image",
-    name: "Qwen Image",
-    piApiModel: "qwen-image",
-    taskType: "txt2img",
-    costPerImage: 0.015,
-    creditCost: 90,
-  },
-  {
     id: "seedream-5",
     name: "Seedream 5 Lite",
     piApiModel: "seedream",

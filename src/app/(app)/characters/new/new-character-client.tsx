@@ -20,7 +20,6 @@ const SFW_MODEL_OPTIONS: ModelOption[] = [
   { value: "flux-schnell", label: "Flux Schnell", cost: 10, tier: "budget", maxQuality: "1k" },
   { value: "z-image-turbo", label: "Z-Image Turbo", cost: 40, tier: "budget", maxQuality: "2k" },
   { value: "flux-dev", label: "Flux Dev", cost: 90, tier: "standard", maxQuality: "2k" },
-  { value: "qwen-image", label: "Qwen Image", cost: 90, tier: "standard", maxQuality: "1k" },       // hard-capped 1024px
   { value: "seedream-5", label: "Seedream 5 Lite", cost: 90, tier: "standard", maxQuality: "1k" },   // aspect_ratio only
   { value: "gemini-2.5-flash-image", label: "Nano Banana", cost: 150, tier: "ultra", maxQuality: "1k" },
   { value: "gemini-3.1-flash-image-preview", label: "Nano Banana 2", cost: 150, tier: "ultra", maxQuality: "1k" },
@@ -378,6 +377,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
       formData.append("model", model);
       formData.append("quality", quality);
       formData.append("aspectRatio", aspectRatio);
+      formData.append("count", count);
       if (description.trim()) formData.append("description", description.trim());
       if (photo) formData.append("photo", photo);
 
@@ -537,7 +537,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         {/* Count */}
         <div className="flex items-center justify-between px-4 py-3">
           <span className="text-[13px] font-medium text-[var(--text-secondary)]">Images</span>
-          <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
+          <PillGroup options={COUNT_OPTIONS.map(o => ({ ...o, disabled: generating }))} value={count} onChange={setCount} />
         </div>
       </div>
 
@@ -687,7 +687,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
               <div className="h-4 w-px bg-[var(--border-default)]" />
               <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
               <div className="h-4 w-px bg-[var(--border-default)]" />
-              <PillGroup options={COUNT_OPTIONS} value={count} onChange={setCount} />
+              <PillGroup options={COUNT_OPTIONS.map(o => ({ ...o, disabled: generating }))} value={count} onChange={setCount} />
             </div>
 
             {/* Prompt row */}

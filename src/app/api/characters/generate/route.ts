@@ -9,8 +9,6 @@ import { uploadToR2, r2KeyForCharacterImage, r2KeyForUpload, getSignedR2Url } fr
 
 import { getAvailableCredits, deductCredits, refundCredits } from "@/lib/credits";
 
-const ANGLE_NAMES = ["main"];
-
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -27,6 +25,8 @@ export async function POST(req: NextRequest) {
   const model = (formData.get("model") as string) ?? "";
   const aspectRatio = (formData.get("aspectRatio") as string) ?? "1:1";
   const quality = ((formData.get("quality") as string) ?? "1k") as "1k" | "2k";
+  const countRaw = parseInt((formData.get("count") as string) ?? "1");
+  const count = [1, 2, 4].includes(countRaw) ? countRaw : 1;
   const photoFile = formData.get("photo") as File | null;
 
   console.log(`[char-gen] POST: user=${userId}, model=${model}, mode=${mode}, style=${style}, aspectRatio=${aspectRatio}, hasPhoto=${!!photoFile}, photoSize=${photoFile?.size ?? 0}`);
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   const isVenice = registryModel?.provider === "VENICE";
   const perImageCost = registryModel?.creditCost ?? piApiModel!.creditCost;
-  const cost = perImageCost; // Single image generation
+  const cost = perImageCost * count;
 
   // Check credits
   const { total } = await getAvailableCredits(userId);
@@ -105,9 +105,10 @@ export async function POST(req: NextRequest) {
 
       const referenceImageKeys: string[] = [];
 
-      // Generate all angles concurrently
+      // Generate N images concurrently (count from client, 1–4)
       const results = await Promise.allSettled(
-        prompts.map(async (prompt, index) => {
+        Array.from({ length: count }, async (_, index) => {
+          const prompt = prompts[0];
           try {
             let imageBuffer: Buffer;
 
@@ -127,7 +128,7 @@ export async function POST(req: NextRequest) {
             const key = r2KeyForCharacterImage(
               userId,
               character.id,
-              ANGLE_NAMES[index]
+              index === 0 ? "main" : `main_${index}`
             );
             await uploadToR2(key, imageBuffer, "image/webp");
             const signedUrl = await getSignedR2Url(key, 86400);
