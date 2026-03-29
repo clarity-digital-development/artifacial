@@ -157,7 +157,22 @@ const TIER_LABELS: Record<ModelTier, string> = {
 
 const TIER_ORDER: Record<ModelTier, number> = { BUDGET: 0, STANDARD: 1, ULTRA: 2 };
 
-const MAX_CONCURRENT = 3;
+const TIER_CONCURRENT_LIMITS: Record<string, number> = {
+  FREE:    1,
+  STARTER: 3,
+  CREATOR: 5,
+  PRO:     8,
+  STUDIO:  8,
+};
+
+type NextTierInfo = { name: string; limit: number; price: string };
+const NEXT_TIER: Record<string, NextTierInfo | null> = {
+  FREE:    { name: "Starter", limit: 3,  price: "$15/mo" },
+  STARTER: { name: "Creator", limit: 5,  price: "$50/mo" },
+  CREATOR: { name: "Pro",     limit: 8,  price: "$100/mo" },
+  PRO:     null,
+  STUDIO:  null,
+};
 
 // ─── Generation Item Type ───
 
@@ -260,6 +275,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [characterOrientation, setCharacterOrientation] = useState<"image" | "video">("video");
   const [motionAdvancedOpen, setMotionAdvancedOpen] = useState(false);
   const [detectedImageRatio, setDetectedImageRatio] = useState<string | null>(null);
+
+  // Queue limit (tier-based)
+  const maxConcurrent = TIER_CONCURRENT_LIMITS[tier] ?? 3;
+  const nextTierInfo = NEXT_TIER[tier] ?? null;
+  const [showQueueUpsell, setShowQueueUpsell] = useState(false);
 
   // Popup state for duration/aspect/quality pickers
   const [durationPopupOpen, setDurationPopupOpen] = useState(false);
@@ -534,7 +554,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   const handleSubmit = async () => {
     if (isMobile) setSheetOpen(false);
-    if (submitting || !canAfford || (!isMotionMode && !prompt.trim()) || inFlightCount >= MAX_CONCURRENT) return;
+    if (submitting || !canAfford || (!isMotionMode && !prompt.trim())) return;
+    if (inFlightCount >= maxConcurrent) { setShowQueueUpsell(true); return; }
 
     const itemId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -1294,7 +1315,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             submitting ||
             !canAfford ||
             (!isMotionMode && !prompt.trim()) ||
-            inFlightCount >= MAX_CONCURRENT ||
             (needsImage && imageSource === "upload" && !imageFile) ||
             (needsImage && imageSource === "character" && !selectedCharacterId) ||
             (needsVideo && !videoFile)
@@ -1307,18 +1327,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </svg>
               Submitting...
             </span>
-          ) : inFlightCount >= MAX_CONCURRENT ? (
-            `${MAX_CONCURRENT} in progress — wait`
           ) : (
             `Generate — ${creditCost.toLocaleString()} cr`
           )}
         </Button>
-
-        {inFlightCount >= MAX_CONCURRENT && (
-          <p className="mt-2 text-center text-[10px] text-[var(--text-muted)]">
-            {MAX_CONCURRENT} generations in progress — wait for one to complete
-          </p>
-        )}
     </>
   );
 
@@ -1695,6 +1707,76 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           {settingsContent}
         </SettingsSheet>
       </>
+    )}
+
+    {/* Queue limit upsell modal */}
+    {showQueueUpsell && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowQueueUpsell(false)}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          className="relative w-full max-w-sm overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close */}
+          <button
+            onClick={() => setShowQueueUpsell(false)}
+            className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+
+          {/* Icon */}
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="m10 8 5 3-5 3z"/><line x1="2" y1="21" x2="22" y2="21"/><line x1="7" y1="17" x2="7" y2="21"/><line x1="17" y1="17" x2="17" y2="21"/>
+            </svg>
+          </div>
+
+          <h2 className="mb-1 font-display text-lg font-bold text-[var(--text-primary)]">
+            Queue full
+          </h2>
+          <p className="mb-5 text-sm text-[var(--text-muted)]">
+            {nextTierInfo
+              ? `Your ${tier.charAt(0) + tier.slice(1).toLowerCase()} plan supports up to ${maxConcurrent} generation${maxConcurrent === 1 ? "" : "s"} at a time. Upgrade to run ${nextTierInfo.limit} at once.`
+              : `You have ${maxConcurrent} generations in progress. Wait for one to finish before starting another.`
+            }
+          </p>
+
+          {nextTierInfo ? (
+            <>
+              {/* Next tier card */}
+              <div className="mb-4 rounded-[var(--radius-lg)] border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{nextTierInfo.name}</p>
+                    <p className="text-xs text-[var(--text-muted)]">Up to {nextTierInfo.limit} concurrent generations</p>
+                  </div>
+                  <span className="text-lg font-bold text-[var(--accent-amber)]">{nextTierInfo.price}</span>
+                </div>
+              </div>
+              <a
+                href="/settings?tab=billing"
+                className="block w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-center text-sm font-semibold text-[#0A0A0B] shadow-[0_0_20px_rgba(232,166,52,0.2)] transition-opacity hover:opacity-90"
+              >
+                Upgrade to {nextTierInfo.name}
+              </a>
+              <button
+                onClick={() => setShowQueueUpsell(false)}
+                className="mt-2 w-full py-2 text-center text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+              >
+                Wait for a slot to open
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowQueueUpsell(false)}
+              className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+            >
+              OK, I'll wait
+            </button>
+          )}
+        </div>
+      </div>
     )}
     </>
   );
