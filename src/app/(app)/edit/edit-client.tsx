@@ -15,20 +15,19 @@ type GenStatus = "idle" | "submitting" | "processing" | "done" | "error";
 
 const IMAGE_SIZES = [
   { label: "Auto", value: "auto" },
-  { label: "1:1", value: "1:1" },
-  { label: "9:16", value: "9:16" },
-  { label: "16:9", value: "16:9" },
-  { label: "3:4", value: "3:4" },
-  { label: "4:3", value: "4:3" },
+  { label: "1:1 Square", value: "1:1" },
+  { label: "9:16 Portrait", value: "9:16" },
+  { label: "16:9 Landscape", value: "16:9" },
+  { label: "3:4 Portrait", value: "3:4" },
+  { label: "4:3 Landscape", value: "4:3" },
+  { label: "2:3", value: "2:3" },
+  { label: "3:2", value: "3:2" },
+  { label: "4:5", value: "4:5" },
+  { label: "5:4", value: "5:4" },
+  { label: "21:9 Ultrawide", value: "21:9" },
 ];
 
-export function EditClient({
-  characters,
-  creditBalance,
-}: {
-  characters: Character[];
-  creditBalance: number;
-}) {
+export function EditClient({ characters }: { characters: Character[] }) {
   const router = useRouter();
   const [selectedCharIdx, setSelectedCharIdx] = useState(0);
   const [prompt, setPrompt] = useState("");
@@ -173,127 +172,61 @@ export function EditClient({
   }
 
   return (
-    <div className="flex min-h-0 flex-col gap-4 md:flex-row md:gap-5">
-      {/* Left: Character strip (desktop only) */}
-      <aside className="hidden w-[188px] shrink-0 flex-col gap-2 md:flex">
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Characters
-        </p>
-        <div className="flex flex-col gap-2 overflow-y-auto">
-          {characters.map((char, idx) => (
-            <button
-              key={char.id}
-              onClick={() => handleSelectChar(idx)}
-              className={`group relative overflow-hidden rounded-[var(--radius-md)] border text-left transition-all duration-200 ${
-                idx === selectedCharIdx
-                  ? "border-[var(--accent-amber)] shadow-[0_0_12px_rgba(232,166,52,0.12)]"
-                  : "border-[var(--border-subtle)] hover:border-[var(--border-default)]"
-              }`}
-            >
-              <div className="aspect-[3/4] overflow-hidden bg-[var(--bg-input)]">
-                {char.signedUrls[0] ? (
-                  <img
-                    src={char.signedUrls[0]}
-                    alt={char.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <span className="font-display text-2xl text-[var(--text-muted)]">
-                      {char.name[0]}
-                    </span>
-                  </div>
-                )}
+    <div className="flex gap-3" style={{ height: "calc(100vh - 120px)" }}>
+      {/* Left: narrow scrollable thumbnail strip */}
+      <div className="flex w-14 shrink-0 flex-col gap-1.5 overflow-y-auto">
+        {characters.map((char, idx) => (
+          <button
+            key={char.id}
+            onClick={() => handleSelectChar(idx)}
+            title={char.name}
+            className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 transition-all duration-150 ${
+              idx === selectedCharIdx
+                ? "border-[var(--accent-amber)] shadow-[0_0_8px_rgba(232,166,52,0.3)]"
+                : "border-transparent opacity-60 hover:opacity-100"
+            }`}
+          >
+            {char.signedUrls[0] ? (
+              <img
+                src={char.signedUrls[0]}
+                alt={char.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[var(--bg-input)]">
+                <span className="text-xs font-bold text-[var(--text-muted)]">{char.name[0]}</span>
               </div>
-              <div className="p-2">
-                <p className="truncate text-[11px] font-medium text-[var(--text-primary)]">
-                  {char.name}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </aside>
+            )}
+          </button>
+        ))}
+      </div>
 
-      {/* Center + Right wrapper */}
-      <div className="flex min-w-0 flex-1 flex-col gap-4 md:flex-row md:gap-5">
-        {/* Mobile: horizontal character selector */}
-        <div className="flex gap-2 overflow-x-auto pb-1 md:hidden">
-          {characters.map((char, idx) => (
-            <button
-              key={char.id}
-              onClick={() => handleSelectChar(idx)}
-              className={`relative h-[72px] w-[54px] shrink-0 overflow-hidden rounded-[var(--radius-sm)] border transition-all ${
-                idx === selectedCharIdx
-                  ? "border-[var(--accent-amber)]"
-                  : "border-[var(--border-subtle)]"
-              }`}
-            >
-              {char.signedUrls[0] ? (
-                <img
-                  src={char.signedUrls[0]}
-                  alt={char.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center bg-[var(--bg-input)]">
-                  <span className="text-sm font-bold text-[var(--text-muted)]">
-                    {char.name[0]}
-                  </span>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Canvas area */}
-        <div className="relative min-h-[300px] flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-input)] md:min-h-[500px]">
+      {/* Main column: canvas + bottom bar */}
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {/* Canvas */}
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-input)]">
           {isGenerating ? (
-            <div className="flex h-full flex-col items-center justify-center gap-4">
+            <div className="flex h-full flex-col items-center justify-center gap-3">
               {selectedImageUrl && (
                 <img
                   src={selectedImageUrl}
                   alt="Processing"
-                  className="absolute inset-0 h-full w-full object-contain opacity-30"
+                  className="absolute inset-0 h-full w-full object-contain opacity-25"
                 />
               )}
               <div className="relative flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
                 <p className="text-sm text-[var(--text-secondary)]">
-                  {genStatus === "submitting" ? "Submitting..." : "Editing image..."}
+                  {genStatus === "submitting" ? "Submitting…" : "Editing image…"}
                 </p>
               </div>
             </div>
           ) : isDone && resultUrl ? (
-            <div className="flex h-full flex-col">
-              <div className="relative min-h-0 flex-1 overflow-hidden">
-                <img
-                  src={resultUrl}
-                  alt="Edit result"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              {/* Comparison strip */}
-              <div className="flex items-center gap-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2.5">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="h-14 w-10 overflow-hidden rounded border border-[var(--border-subtle)] bg-[var(--bg-input)]">
-                    {selectedImageUrl && (
-                      <img src={selectedImageUrl} alt="Original" className="h-full w-full object-cover" />
-                    )}
-                  </div>
-                  <span className="text-[9px] text-[var(--text-muted)]">Original</span>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-[var(--text-muted)]">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="h-14 w-10 overflow-hidden rounded border border-[var(--accent-amber)]/40 bg-[var(--bg-input)]">
-                    <img src={resultUrl} alt="Result" className="h-full w-full object-cover" />
-                  </div>
-                  <span className="text-[9px] text-[var(--accent-amber)]">Result</span>
-                </div>
-              </div>
-            </div>
+            <img
+              src={resultUrl}
+              alt="Edit result"
+              className="h-full w-full object-contain"
+            />
           ) : (
             <div className="relative flex h-full items-center justify-center">
               {selectedImageUrl ? (
@@ -314,90 +247,86 @@ export function EditClient({
           )}
         </div>
 
-        {/* Right: Controls */}
-        <aside className="flex w-full shrink-0 flex-col gap-4 md:w-[272px]">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
-              Prompt
-            </label>
+        {/* Comparison strip (shown after generation) */}
+        {isDone && resultUrl && (
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-12 w-9 overflow-hidden rounded border border-[var(--border-subtle)] bg-[var(--bg-input)]">
+                {selectedImageUrl && (
+                  <img src={selectedImageUrl} alt="Original" className="h-full w-full object-cover" />
+                )}
+              </div>
+              <span className="text-[9px] text-[var(--text-muted)]">Original</span>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-[var(--text-muted)]">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-12 w-9 overflow-hidden rounded border border-[var(--accent-amber)]/50 bg-[var(--bg-input)]">
+                <img src={resultUrl} alt="Result" className="h-full w-full object-cover" />
+              </div>
+              <span className="text-[9px] text-[var(--accent-amber)]">Result</span>
+            </div>
+
+            {/* Save as character — inline after result */}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleReset}
+                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              >
+                Edit again
+              </button>
+              <input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="Character name…"
+                className="w-36 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-amber)]/50 focus:outline-none"
+              />
+              <button
+                onClick={handleSaveAsCharacter}
+                disabled={!saveName.trim() || saving}
+                className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-deep)] transition-colors disabled:opacity-50 hover:bg-[var(--accent-amber-dim)]"
+              >
+                {saving ? "Saving…" : "Save as Character"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom bar: prompt + size + generate */}
+        {!isDone && (
+          <div className="flex items-end gap-2">
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what to change... e.g. make the background a forest"
-              rows={4}
+              placeholder="Describe what to change… e.g. make the background a forest"
+              rows={2}
               disabled={isGenerating}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3.5 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-amber)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]/20 disabled:opacity-50"
+              className="flex-1 resize-none rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3.5 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-amber)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]/20 disabled:opacity-50"
             />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
-              Output Size
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {IMAGE_SIZES.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => setImageSize(s.value)}
-                  disabled={isGenerating}
-                  className={`rounded px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    imageSize === s.value
-                      ? "bg-[var(--accent-amber)] text-[var(--bg-deep)]"
-                      : "border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-xs text-[var(--text-muted)]">
-            <span className="text-[var(--accent-amber)]">150 credits</span> · Balance:{" "}
-            {creditBalance.toLocaleString()}
-          </p>
-
-          {isDone ? (
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleReset}
-                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+            <div className="flex shrink-0 flex-col gap-2">
+              <select
+                value={imageSize}
+                onChange={(e) => setImageSize(e.target.value)}
+                disabled={isGenerating}
+                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-secondary)] focus:border-[var(--accent-amber)]/50 focus:outline-none disabled:opacity-50"
               >
-                Edit Again
+                {IMAGE_SIZES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || !selectedImageKey || !prompt.trim()}
+                className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.12)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGenerating
+                  ? genStatus === "submitting" ? "Submitting…" : "Generating…"
+                  : "Generate · 150cr"}
               </button>
-              <div className="border-t border-[var(--border-subtle)] pt-3">
-                <p className="mb-2 text-xs font-medium text-[var(--text-secondary)]">
-                  Save as Character
-                </p>
-                <input
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  placeholder="Character name..."
-                  className="mb-2 w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-amber)]/50 focus:outline-none"
-                />
-                <button
-                  onClick={handleSaveAsCharacter}
-                  disabled={!saveName.trim() || saving}
-                  className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-deep)] transition-colors disabled:opacity-50 hover:bg-[var(--accent-amber-dim)]"
-                >
-                  {saving ? "Saving..." : "Save as Character"}
-                </button>
-              </div>
             </div>
-          ) : (
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !selectedImageKey || !prompt.trim()}
-              className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 hover:bg-[var(--accent-amber-dim)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {genStatus === "submitting"
-                ? "Submitting..."
-                : genStatus === "processing"
-                ? "Editing..."
-                : "Edit Image"}
-            </button>
-          )}
-        </aside>
+          </div>
+        )}
       </div>
     </div>
   );
