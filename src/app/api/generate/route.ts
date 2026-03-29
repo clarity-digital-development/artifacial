@@ -56,10 +56,13 @@ export async function POST(req: NextRequest) {
   // Validate duration against model's max (skip for image models where maxDuration=0)
   const model = body.modelId ? getModelById(body.modelId) : null;
   const isImageModel = model?.supportedModes.includes("T2I");
+  // Motion control: duration is set by reference video length (3-30s), not a user input.
+  // Use 5 internally so credit cost table lookup works (table key "5" = fixed flat rate).
   const durationSec = isImageModel ? 1 : (body.durationSec ?? 5);
   const maxDuration = model?.maxDuration ?? 30;
 
-  if (!isImageModel && (durationSec < 1 || durationSec > maxDuration)) {
+  // Skip duration validation for motion models — duration comes from the reference video
+  if (!isImageModel && !isMotionModel && (durationSec < 1 || durationSec > maxDuration)) {
     return NextResponse.json(
       { error: `Duration must be between 1 and ${maxDuration} seconds for this model` },
       { status: 400 }

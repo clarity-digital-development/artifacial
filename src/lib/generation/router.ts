@@ -288,7 +288,7 @@ export async function routeGeneration(
     const deducted = await deductCredits(
       userId,
       creditsCost,
-      `${workflowType} generation (${model.name}, ${durationSec}s, ${resolution}${audioEnabled ? ", audio" : ""})`
+      `${workflowType} generation (${model.name}, ${mode === "MOTION_TRANSFER" ? "motion-control" : `${durationSec}s`}, ${resolution}${audioEnabled ? ", audio" : ""})`
     );
 
     if (!deducted) {
@@ -431,6 +431,9 @@ export async function routeGeneration(
             status: "PROCESSING",
             startedAt: new Date(),
             promptId: kieaiResult.taskId,
+            // durationSec is null — actual duration comes from the reference video (3-30s)
+            // and will be set when the generation completes
+            durationSec: null,
             inputParams: {
               prompt,
               imageUrl: imageUrl ?? null,
