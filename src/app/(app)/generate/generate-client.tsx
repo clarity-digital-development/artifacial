@@ -917,33 +917,41 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   </button>
                 </div>
 
-                {/* Gallery — character grid */}
+                {/* Gallery — character list */}
                 {motionImageTab === "gallery" && (
-                  <div className="max-h-[160px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                  <div className="max-h-[180px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
                     {characters.length === 0 ? (
                       <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">No characters yet</p>
                     ) : (
-                      <div className="grid grid-cols-2 gap-1 p-1">
+                      <div className="flex flex-col divide-y divide-[var(--border-subtle)]">
                         {characters.map((c) => (
                           <button
                             key={c.id}
                             onClick={() => setSelectedCharacterId(c.id)}
-                            className={`relative rounded-[var(--radius-sm)] border-2 overflow-hidden transition-all duration-150 ${
+                            className={`flex items-center gap-2.5 px-2 py-1.5 text-left transition-all duration-150 ${
                               selectedCharacterId === c.id
-                                ? "border-[var(--accent-amber)]"
-                                : "border-transparent hover:border-[var(--border-default)]"
+                                ? "bg-[var(--accent-amber)]/10"
+                                : "hover:bg-[var(--bg-elevated)]"
                             }`}
                           >
-                            {c.thumbnailUrl ? (
-                              <img src={c.thumbnailUrl} alt={c.name} className="aspect-square w-full object-cover" />
-                            ) : (
-                              <div className="flex aspect-square w-full items-center justify-center bg-[var(--bg-elevated)] text-[8px] text-[var(--text-muted)]">
-                                {c.name.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
-                              <p className="truncate text-[8px] text-white">{c.name}</p>
+                            {/* Thumbnail */}
+                            <div className={`h-10 w-10 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 ${selectedCharacterId === c.id ? "border-[var(--accent-amber)]" : "border-transparent"}`}>
+                              {c.thumbnailUrl ? (
+                                <img src={c.thumbnailUrl} alt={c.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elevated)] text-[9px] font-semibold text-[var(--text-muted)]">
+                                  {c.name.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
                             </div>
+                            {/* Name */}
+                            <span className={`truncate text-xs font-medium ${selectedCharacterId === c.id ? "text-[var(--accent-amber)]" : "text-[var(--text-primary)]"}`}>
+                              {c.name}
+                            </span>
+                            {/* Check */}
+                            {selectedCharacterId === c.id && (
+                              <svg className="ml-auto shrink-0 text-[var(--accent-amber)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -1006,38 +1014,44 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                   </button>
                 </div>
 
-                {/* Gallery — video grid */}
+                {/* Gallery — video list */}
                 {motionVideoTab === "gallery" && (
-                  <div className="max-h-[160px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                  <div className="max-h-[180px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
                     {galleryVideosLoading ? (
                       <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">Loading...</p>
                     ) : galleryVideos.length === 0 ? (
                       <p className="p-3 text-center text-[10px] text-[var(--text-muted)]">No videos in gallery yet</p>
                     ) : (
-                      <div className="grid grid-cols-2 gap-1 p-1">
+                      <div className="flex flex-col divide-y divide-[var(--border-subtle)]">
                         {galleryVideos.map((v) => (
                           <button
                             key={v.id}
                             onClick={() => { setSelectedGalleryVideoKey(v.outputKey); setSelectedGalleryVideoThumb(v.signedThumbnail); }}
-                            className={`relative rounded-[var(--radius-sm)] border-2 overflow-hidden transition-all duration-150 ${
+                            className={`flex items-center gap-2.5 px-2 py-1.5 text-left transition-all duration-150 ${
                               selectedGalleryVideoKey === v.outputKey
-                                ? "border-[var(--accent-amber)]"
-                                : "border-transparent hover:border-[var(--border-default)]"
+                                ? "bg-[var(--accent-amber)]/10"
+                                : "hover:bg-[var(--bg-elevated)]"
                             }`}
                           >
-                            {v.signedThumbnail ? (
-                              <img src={v.signedThumbnail} alt="Video" className="aspect-video w-full object-cover" />
-                            ) : (
-                              <div className="flex aspect-video w-full items-center justify-center bg-[var(--bg-elevated)]">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--text-muted)]">
-                                  <polygon points="5 3 19 12 5 21 5 3" />
-                                </svg>
-                              </div>
-                            )}
-                            {v.prompt && (
-                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
-                                <p className="truncate text-[8px] text-white">{v.prompt}</p>
-                              </div>
+                            {/* Thumbnail */}
+                            <div className={`h-10 w-16 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 ${selectedGalleryVideoKey === v.outputKey ? "border-[var(--accent-amber)]" : "border-transparent"}`}>
+                              {v.signedThumbnail ? (
+                                <img src={v.signedThumbnail} alt="Video" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elevated)]">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--text-muted)]">
+                                    <polygon points="5 3 19 12 5 21 5 3" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            {/* Prompt / label */}
+                            <span className={`truncate text-xs font-medium ${selectedGalleryVideoKey === v.outputKey ? "text-[var(--accent-amber)]" : "text-[var(--text-primary)]"}`}>
+                              {v.prompt ?? "Generated video"}
+                            </span>
+                            {/* Check */}
+                            {selectedGalleryVideoKey === v.outputKey && (
+                              <svg className="ml-auto shrink-0 text-[var(--accent-amber)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                             )}
                           </button>
                         ))}
