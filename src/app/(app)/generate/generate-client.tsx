@@ -911,7 +911,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
             {/* Motion info note */}
             <p className="mt-2 text-[10px] text-[var(--text-muted)]">
-              Output duration and aspect ratio follow your reference video. Quality is set by the model above (Standard = 720p, Pro / Kling 3.0 = 1080p).
+              The reference video drives movement only — your character image sets the scene and background. Use the Scene Description below to change the environment.
             </p>
 
             {/* Advanced Settings */}
@@ -930,10 +930,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
               </button>
               {motionAdvancedOpen && (
                 <div className="mt-2 space-y-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
-                  {/* Scene Control Mode */}
+                  {/* Motion Mode */}
                   <div>
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Scene Control Mode
+                      Motion Mode
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -944,7 +944,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                             : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
-                        Video Background
+                        Full-Body Motion
                       </button>
                       <button
                         onClick={() => setCharacterOrientation("image")}
@@ -954,24 +954,24 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
                             : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                         }`}
                       >
-                        Image Background
+                        Portrait Mode
                       </button>
                     </div>
                     <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                       {characterOrientation === "video"
-                        ? "Background and scene come from the reference video (full body, up to 30s)"
-                        : "Background comes from the character image (portrait, up to 10s)"}
+                        ? "Character performs complex full-body movements from the reference video (up to 30s)"
+                        : "Character keeps original portrait orientation with camera-style movement (up to 10s)"}
                     </p>
                   </div>
-                  {/* Optional Prompt */}
+                  {/* Scene Description */}
                   <div>
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Prompt <span className="normal-case font-normal text-[var(--text-muted)]/70">(optional)</span>
+                      Scene Description <span className="normal-case font-normal text-[var(--text-muted)]/70">(optional)</span>
                     </p>
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Describe the environment or mood (optional — motion comes from the reference video)"
+                      placeholder="Describe the environment — e.g. 'dancing in a neon-lit nightclub' (the reference video drives the motion, not the scene)"
                       rows={3}
                       maxLength={2000}
                       className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)] focus:ring-offset-1 focus:ring-offset-[var(--bg-deep)] hover:border-[var(--text-muted)]"
