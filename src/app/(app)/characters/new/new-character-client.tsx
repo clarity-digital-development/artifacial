@@ -281,7 +281,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const initialPrompt = searchParams.get("prompt") ?? "";
   const isNsfw = contentMode === "NSFW";
   const MODEL_OPTIONS = isNsfw ? NSFW_MODEL_OPTIONS : SFW_MODEL_OPTIONS;
-  const defaultModel = "z-image-turbo";
+  const defaultModel = "gemini-3.1-flash-image-preview";
 
   const [description, setDescription] = useState(initialPrompt);
   const [style, setStyle] = useState("photorealistic");
