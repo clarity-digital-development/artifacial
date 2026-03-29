@@ -172,7 +172,13 @@ export async function getTaskStatus(taskId: string): Promise<PiAPITaskResult> {
     durationSec: task.output?.duration ?? undefined,
     errorMessage:
       mappedStatus === "failed"
-        ? task.error?.message || task.error || task.message || "Generation failed"
+        ? task.error?.message ||
+          task.error?.raw_message ||
+          (typeof task.error === "string" ? task.error : undefined) ||
+          task.message ||
+          task.task_result?.reason ||
+          task.task_result?.message ||
+          "Generation failed"
         : undefined,
     raw: task,
   };

@@ -10,6 +10,7 @@ const ALLOWED_TYPES = [
   "image/webp",
   "video/mp4",
   "video/webm",
+  "video/quicktime", // .mov
 ];
 
 /**
