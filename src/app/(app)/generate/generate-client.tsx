@@ -1819,6 +1819,33 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
               {/* Actions */}
               <div className="space-y-2 pt-2">
+                {/* Cancel — for stuck/in-progress generations */}
+                {(selectedGeneration.status === "queued" || selectedGeneration.status === "processing" || selectedGeneration.status === "submitting") && selectedGeneration.generationId && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    fullWidth
+                    onClick={async () => {
+                      const res = await fetch(`/api/generate/${selectedGeneration.generationId}`, { method: "DELETE" });
+                      if (res.ok) {
+                        stopPollingFor(selectedGeneration.id);
+                        setGenerations((prev) =>
+                          prev.map((g) =>
+                            g.id === selectedGeneration.id
+                              ? { ...g, status: "failed" as const, errorMessage: "Cancelled by user" }
+                              : g
+                          )
+                        );
+                      }
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    Cancel Generation
+                  </Button>
+                )}
+
                 {selectedGeneration.status === "completed" && selectedGeneration.outputUrl && (
                   <Button
                     variant="secondary"

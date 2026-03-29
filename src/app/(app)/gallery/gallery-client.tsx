@@ -168,12 +168,23 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const columnCount = useColumnCount();
-  const selectedItem = items.find((i) => i.id === selectedId) ?? null;
+
+  const visibleItems = items.filter((i) => !deletedIds.has(i.id));
+  const selectedItem = visibleItems.find((i) => i.id === selectedId) ?? null;
+
+  const handleDelete = async (id: string) => {
+    const res = await fetch(`/api/generate/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setDeletedIds((prev) => new Set([...prev, id]));
+      if (selectedId === id) setSelectedId(null);
+    }
+  };
 
   // Distribute items round-robin across columns to preserve L→R order
   const columns: GalleryItem[][] = Array.from({ length: columnCount }, () => []);
-  items.forEach((item, i) => columns[i % columnCount].push(item));
+  visibleItems.forEach((item, i) => columns[i % columnCount].push(item));
 
   useEffect(() => { setPortalReady(true); }, []);
 
@@ -233,6 +244,7 @@ export function GalleryClient({ items }: { items: GalleryItem[] }) {
                   isSelected={item.id === selectedId}
                   onSelect={() => setSelectedId(item.id === selectedId ? null : item.id)}
                   onFullscreen={(url) => setFullscreenUrl(url)}
+                  onDelete={() => handleDelete(item.id)}
                 />
               ))}
             </div>
@@ -356,11 +368,13 @@ function GalleryCard({
   isSelected,
   onSelect,
   onFullscreen,
+  onDelete,
 }: {
   item: GalleryItem;
   isSelected: boolean;
   onSelect: () => void;
   onFullscreen: (url: string) => void;
+  onDelete: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -494,6 +508,22 @@ function GalleryCard({
             <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[var(--accent-amber)]/50" />
           </div>
 
+          {/* Delete button — top-right when selected */}
+          {isSelected && (
+            <button
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDelete(); }}
+              className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/80 backdrop-blur-sm transition-colors hover:bg-red-600/80 hover:text-white"
+              title="Delete"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              </svg>
+            </button>
+          )}
+
           {/* Action buttons when selected (desktop) */}
           {isSelected && item.videoUrl && (
             <div className="absolute bottom-0 left-0 right-0 hidden items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2.5 pt-8 md:flex">
@@ -565,6 +595,18 @@ function GalleryCard({
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                   Save
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  className="flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-red-500/30 px-3 py-2 text-xs font-medium text-red-400 transition-colors active:bg-red-500/10"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                  Delete
                 </button>
                 {!isImage && (
                   <button
