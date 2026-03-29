@@ -169,6 +169,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
   const [genStatus, setGenStatus] = useState<GenStatus>("idle");
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultR2Key, setResultR2Key] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -177,13 +178,21 @@ export function EditClient({ characters }: { characters: Character[] }) {
   const [refUploading, setRefUploading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // For "edit again" — override the source image with a previous result
+  const [overrideImageUrl, setOverrideImageUrl] = useState<string | null>(null);
+  const [overrideImageKey, setOverrideImageKey] = useState<string | null>(null);
+  // Toggle canvas between original and result for comparison
+  const [canvasView, setCanvasView] = useState<"original" | "result">("result");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
   const selectedChar = characters[selectedCharIdx] ?? null;
-  const selectedImageUrl = selectedChar?.signedUrls[0] ?? null;
-  const selectedImageKey = selectedChar?.referenceImages[0] ?? null;
+  const baseImageUrl = overrideImageUrl ?? selectedChar?.signedUrls[0] ?? null;
+  const baseImageKey = overrideImageKey ?? selectedChar?.referenceImages[0] ?? null;
+  // Alias for clarity — these are what actually get submitted
+  const selectedImageUrl = baseImageUrl;
+  const selectedImageKey = baseImageKey;
 
   useEffect(() => {
     if (!generationId || genStatus !== "processing") return;
@@ -191,10 +200,12 @@ export function EditClient({ characters }: { characters: Character[] }) {
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/generate/${generationId}/status`);
-        const data = await res.json() as { status?: string; outputUrl?: string; errorMessage?: string };
+        const data = await res.json() as { status?: string; outputUrl?: string; outputR2Key?: string; errorMessage?: string };
         if (data.status === "COMPLETED") {
           clearInterval(pollRef.current!);
           setResultUrl(data.outputUrl ?? null);
+          setResultR2Key(data.outputR2Key ?? null);
+          setCanvasView("result");
           setGenStatus("done");
         } else if (data.status === "FAILED" || data.status === "BLOCKED") {
           clearInterval(pollRef.current!);
@@ -277,20 +288,29 @@ export function EditClient({ characters }: { characters: Character[] }) {
   function handleSelectChar(idx: number) {
     if (idx === selectedCharIdx) return;
     setSelectedCharIdx(idx);
+    setOverrideImageUrl(null);
+    setOverrideImageKey(null);
     setGenStatus("idle");
     setGenerationId(null);
     setResultUrl(null);
+    setResultR2Key(null);
     setErrorMsg(null);
     setSaveName("");
+    setCanvasView("result");
     if (pollRef.current) clearInterval(pollRef.current);
   }
 
-  function handleReset() {
+  // "Edit again" — use result as new source image so edits build on the result
+  function handleEditAgain(newImageUrl: string, newImageKey: string) {
+    setOverrideImageUrl(newImageUrl);
+    setOverrideImageKey(newImageKey);
     setGenStatus("idle");
     setGenerationId(null);
     setResultUrl(null);
+    setResultR2Key(null);
     setErrorMsg(null);
     setSaveName("");
+    setCanvasView("result");
     if (pollRef.current) clearInterval(pollRef.current);
   }
 
@@ -364,7 +384,11 @@ export function EditClient({ characters }: { characters: Character[] }) {
               </div>
             </div>
           ) : isDone && resultUrl ? (
-            <img src={resultUrl} alt="Edit result" className="h-full w-full object-contain" />
+            <img
+              src={canvasView === "original" ? (selectedImageUrl ?? resultUrl) : resultUrl}
+              alt={canvasView === "original" ? "Original" : "Edit result"}
+              className="h-full w-full object-contain"
+            />
           ) : (
             <div className="relative flex h-full items-center justify-center">
               {selectedImageUrl
@@ -383,25 +407,37 @@ export function EditClient({ characters }: { characters: Character[] }) {
         {/* Comparison strip (after generation) */}
         {isDone && resultUrl && (
           <div className="flex items-center gap-3">
-            <div className="flex flex-col items-center gap-1">
-              <div className="h-12 w-9 overflow-hidden rounded border border-[var(--border-subtle)] bg-[var(--bg-input)]">
+            {/* Original thumbnail — click to preview in canvas */}
+            <button
+              onClick={() => setCanvasView("original")}
+              className={`flex flex-col items-center gap-1 transition-opacity ${canvasView === "original" ? "opacity-100" : "opacity-50 hover:opacity-80"}`}
+            >
+              <div className={`h-12 w-9 overflow-hidden rounded border-2 bg-[var(--bg-input)] transition-colors ${canvasView === "original" ? "border-[var(--text-secondary)]" : "border-transparent"}`}>
                 {selectedImageUrl && <img src={selectedImageUrl} alt="Original" className="h-full w-full object-cover" />}
               </div>
               <span className="text-[9px] text-[var(--text-muted)]">Original</span>
-            </div>
+            </button>
+
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-[var(--text-muted)]">
               <polyline points="9 18 15 12 9 6" />
             </svg>
-            <div className="flex flex-col items-center gap-1">
-              <div className="h-12 w-9 overflow-hidden rounded border border-[var(--accent-amber)]/50 bg-[var(--bg-input)]">
+
+            {/* Result thumbnail — click to preview in canvas */}
+            <button
+              onClick={() => setCanvasView("result")}
+              className={`flex flex-col items-center gap-1 transition-opacity ${canvasView === "result" ? "opacity-100" : "opacity-50 hover:opacity-80"}`}
+            >
+              <div className={`h-12 w-9 overflow-hidden rounded border-2 bg-[var(--bg-input)] transition-colors ${canvasView === "result" ? "border-[var(--accent-amber)]" : "border-transparent"}`}>
                 <img src={resultUrl} alt="Result" className="h-full w-full object-cover" />
               </div>
-              <span className="text-[9px] text-[var(--accent-amber)]">Result</span>
-            </div>
+              <span className={`text-[9px] ${canvasView === "result" ? "text-[var(--accent-amber)]" : "text-[var(--text-muted)]"}`}>Result</span>
+            </button>
+
             <div className="ml-auto flex items-center gap-2">
               <button
-                onClick={handleReset}
-                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                onClick={() => resultR2Key && resultUrl ? handleEditAgain(resultUrl, resultR2Key) : null}
+                disabled={!resultR2Key}
+                className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] disabled:opacity-40"
               >
                 Edit again
               </button>

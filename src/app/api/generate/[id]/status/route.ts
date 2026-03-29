@@ -171,6 +171,7 @@ export async function GET(
 
   // If already completed or failed, return cached status with signed R2 URL
   if (generation.status === "COMPLETED" || generation.status === "FAILED" || generation.status === "BLOCKED") {
+    const rawOutputKey = generation.outputUrl;
     let outputUrl = generation.outputUrl;
 
     // Generate a fresh signed URL if we have an R2 key stored
@@ -193,6 +194,7 @@ export async function GET(
       status: generation.status,
       progress: generation.status === "COMPLETED" ? 100 : generation.progress,
       outputUrl,
+      outputR2Key: rawOutputKey && !rawOutputKey.startsWith("http") ? rawOutputKey : null,
       thumbnailUrl,
       errorMessage: generation.errorMessage,
       queuedAt: generation.queuedAt,
@@ -418,7 +420,7 @@ export async function GET(
           try { signedThumbnailUrl = await getSignedR2Url(thumbnailKey, 3600); } catch { signedThumbnailUrl = null; }
         }
 
-        return NextResponse.json({ id: generation.id, status: "COMPLETED", progress: 100, outputUrl: signedUrl, thumbnailUrl: signedThumbnailUrl, completedAt, generationTimeMs });
+        return NextResponse.json({ id: generation.id, status: "COMPLETED", progress: 100, outputUrl: signedUrl, outputR2Key: r2Key, thumbnailUrl: signedThumbnailUrl, completedAt, generationTimeMs });
       }
 
       if (kieState === "fail") {
