@@ -85,7 +85,8 @@ export async function submitKieAiMotionControl(
   ]);
 
   const mode = params.mode ?? "720p";
-  const orientation = params.characterOrientation ?? "image";
+  // KIE.AI recommended default: "video" (character follows video motion, video background)
+  const orientation = params.characterOrientation ?? "video";
   const bgSource = params.backgroundSource ?? "input_video";
 
   console.log(`[kieai] Submitting motion-control: mode=${mode}, orientation=${orientation}, bgSource=${bgSource}`);
@@ -135,7 +136,12 @@ export async function getKieAiTaskStatus(taskId: string): Promise<KieAiTaskResul
   );
 
   const task = data.data as Record<string, unknown>;
-  const state = task?.state as KieAiTaskStatus;
+
+  // Log raw task data on first call to capture actual field names from KIE.AI
+  console.log(`[kieai] recordInfo raw task fields for ${taskId}: ${JSON.stringify(task).slice(0, 500)}`);
+
+  // KIE.AI may use "state" or "status" for the task state field — handle both
+  const state = (task?.state ?? task?.status ?? task?.taskStatus) as KieAiTaskStatus;
 
   let videoUrl: string | undefined;
   if (state === "success" && task.resultJson) {
@@ -147,7 +153,13 @@ export async function getKieAiTaskStatus(taskId: string): Promise<KieAiTaskResul
     }
   }
 
-  const errorMessage = (task?.failMsg as string) || undefined;
+  // Also try direct resultUrls field in case resultJson isn't used
+  if (!videoUrl && state === "success") {
+    const direct = task?.resultUrls as string[] | undefined;
+    if (Array.isArray(direct) && direct.length > 0) videoUrl = direct[0];
+  }
+
+  const errorMessage = (task?.failMsg ?? task?.errorMsg ?? task?.error) as string | undefined;
 
   return {
     status: state,

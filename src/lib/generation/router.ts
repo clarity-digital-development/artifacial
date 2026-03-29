@@ -161,7 +161,7 @@ export async function routeGeneration(
     modelId: requestedModel,
     imageUrl: rawImageUrl,
     endImageUrl: rawEndImageUrl,
-    videoUrl,
+    videoUrl: rawVideoUrl,
     characterId,
     projectId,
     sceneId,
@@ -174,9 +174,10 @@ export async function routeGeneration(
   } = request;
 
   try {
-    // Resolve R2 key references to signed URLs (from character picker)
+    // Resolve R2 key references to signed URLs (from character/gallery picker)
     let imageUrl = rawImageUrl;
     let endImageUrl = rawEndImageUrl;
+    let videoUrl = rawVideoUrl;
     if (imageUrl?.startsWith("r2:")) {
       const { getSignedR2Url } = await import("@/lib/r2");
       imageUrl = await getSignedR2Url(imageUrl.slice(3), 3600);
@@ -184,6 +185,10 @@ export async function routeGeneration(
     if (endImageUrl?.startsWith("r2:")) {
       const { getSignedR2Url } = await import("@/lib/r2");
       endImageUrl = await getSignedR2Url(endImageUrl.slice(3), 3600);
+    }
+    if (videoUrl?.startsWith("r2:")) {
+      const { getSignedR2Url } = await import("@/lib/r2");
+      videoUrl = await getSignedR2Url(videoUrl.slice(3), 3600);
     }
 
     // 1. Resolve content mode (checks user prefs, age, character eligibility)
@@ -403,13 +408,20 @@ export async function routeGeneration(
           throw new Error("Kling motion control requires both a character image and a motion reference video");
         }
 
+        // characterOrientation from client: "video" = use video for motion + background (recommended)
+        //                                 "image" = use image for orientation + background
+        const kieAiCharOrientation = characterOrientation === "image" ? "image" : "video";
+        const kieAiBgSource = characterOrientation === "image" ? "input_image" : "input_video";
+
+        console.log(`[router] KIE.AI params: character_orientation=${kieAiCharOrientation} background_source=${kieAiBgSource} (user toggle: ${characterOrientation})`);
+
         const kieaiResult = await submitKieAiMotionControl({
           imageUrl,
           videoUrl,
           prompt: submissionPrompt,
           mode: model.kieaiConfig.mode,
-          characterOrientation: "image",
-          backgroundSource: characterOrientation === "image" ? "input_image" : "input_video",
+          characterOrientation: kieAiCharOrientation,
+          backgroundSource: kieAiBgSource,
           callbackUrl,
         });
 
