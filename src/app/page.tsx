@@ -306,6 +306,7 @@ export default function LandingPage() {
             <Link href="/terms" className="transition-colors hover:text-[var(--text-secondary)]">Terms</Link>
             <Link href="/privacy" className="transition-colors hover:text-[var(--text-secondary)]">Privacy</Link>
             <Link href="/acceptable-use" className="transition-colors hover:text-[var(--text-secondary)]">Acceptable Use</Link>
+            <Link href="/support" className="transition-colors hover:text-[var(--text-secondary)]">Support</Link>
           </div>
           <p className="text-xs text-[var(--text-muted)]">&copy; 2026 Artifacial. All rights reserved.</p>
         </div>
