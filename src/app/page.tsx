@@ -303,8 +303,9 @@ export default function LandingPage() {
           </Link>
           <div className="flex flex-wrap justify-center gap-4 text-xs text-[var(--text-muted)]">
             <Link href="/pricing" className="transition-colors hover:text-[var(--text-secondary)]">Pricing</Link>
-            <a href="#" className="transition-colors hover:text-[var(--text-secondary)]">Terms</a>
-            <a href="#" className="transition-colors hover:text-[var(--text-secondary)]">Privacy</a>
+            <Link href="/terms" className="transition-colors hover:text-[var(--text-secondary)]">Terms</Link>
+            <Link href="/privacy" className="transition-colors hover:text-[var(--text-secondary)]">Privacy</Link>
+            <Link href="/acceptable-use" className="transition-colors hover:text-[var(--text-secondary)]">Acceptable Use</Link>
           </div>
           <p className="text-xs text-[var(--text-muted)]">&copy; 2026 Artifacial. All rights reserved.</p>
         </div>
