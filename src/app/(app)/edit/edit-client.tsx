@@ -163,7 +163,15 @@ async function uploadFileToR2(file: File): Promise<{ key: string; url: string }>
 
 export function EditClient({ characters }: { characters: Character[] }) {
   const router = useRouter();
+  const [imageSource, setImageSource] = useState<"character" | "upload">("character");
   const [selectedCharIdx, setSelectedCharIdx] = useState(0);
+  // Uploaded photo (device upload via "+" button)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
+  const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
   const [prompt, setPrompt] = useState("");
   const [imageSize, setImageSize] = useState("auto");
   const [genStatus, setGenStatus] = useState<GenStatus>("idle");
@@ -188,11 +196,57 @@ export function EditClient({ characters }: { characters: Character[] }) {
   useEffect(() => { setMounted(true); }, []);
 
   const selectedChar = characters[selectedCharIdx] ?? null;
-  const baseImageUrl = overrideImageUrl ?? selectedChar?.signedUrls[0] ?? null;
-  const baseImageKey = overrideImageKey ?? selectedChar?.referenceImages[0] ?? null;
+  const baseImageUrl = overrideImageUrl ?? (imageSource === "upload" ? uploadedImageUrl : selectedChar?.signedUrls[0] ?? null);
+  const baseImageKey = overrideImageKey ?? (imageSource === "upload" ? uploadedImageKey : selectedChar?.referenceImages[0] ?? null);
   // Alias for clarity — these are what actually get submitted
   const selectedImageUrl = baseImageUrl;
   const selectedImageKey = baseImageKey;
+
+  const handleUploadPhoto = useCallback(async (file: File) => {
+    const preview = URL.createObjectURL(file);
+    setUploadedPreview(preview);
+    setUploadLoading(true);
+    setUploadedImageUrl(null);
+    setUploadedImageKey(null);
+    try {
+      const { key, url } = await uploadFileToR2(file);
+      setUploadedImageKey(key);
+      setUploadedImageUrl(url);
+    } catch {
+      setUploadedPreview(null);
+    } finally {
+      setUploadLoading(false);
+    }
+  }, []);
+
+  function handleSwitchToUpload() {
+    setImageSource("upload");
+    setOverrideImageUrl(null);
+    setOverrideImageKey(null);
+    setGenStatus("idle");
+    setGenerationId(null);
+    setResultUrl(null);
+    setResultR2Key(null);
+    setErrorMsg(null);
+    setSaveName("");
+    setCanvasView("result");
+    if (pollRef.current) clearInterval(pollRef.current);
+  }
+
+  function handleSwitchToCharacter(idx: number) {
+    setImageSource("character");
+    setSelectedCharIdx(idx);
+    setOverrideImageUrl(null);
+    setOverrideImageKey(null);
+    setGenStatus("idle");
+    setGenerationId(null);
+    setResultUrl(null);
+    setResultR2Key(null);
+    setErrorMsg(null);
+    setSaveName("");
+    setCanvasView("result");
+    if (pollRef.current) clearInterval(pollRef.current);
+  }
 
   useEffect(() => {
     if (!generationId || genStatus !== "processing") return;
@@ -256,7 +310,7 @@ export function EditClient({ characters }: { characters: Character[] }) {
           imageR2Key: selectedImageKey,
           prompt: prompt.trim(),
           imageSize,
-          characterId: selectedChar?.id,
+          characterId: imageSource === "character" ? selectedChar?.id : undefined,
           referenceImageR2Key: refR2Key ?? undefined,
         }),
       });
@@ -286,18 +340,8 @@ export function EditClient({ characters }: { characters: Character[] }) {
   }
 
   function handleSelectChar(idx: number) {
-    if (idx === selectedCharIdx) return;
-    setSelectedCharIdx(idx);
-    setOverrideImageUrl(null);
-    setOverrideImageKey(null);
-    setGenStatus("idle");
-    setGenerationId(null);
-    setResultUrl(null);
-    setResultR2Key(null);
-    setErrorMsg(null);
-    setSaveName("");
-    setCanvasView("result");
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (imageSource === "character" && idx === selectedCharIdx) return;
+    handleSwitchToCharacter(idx);
   }
 
   // "Edit again" — use result as new source image so edits build on the result
@@ -338,13 +382,33 @@ export function EditClient({ characters }: { characters: Character[] }) {
     <div className="flex h-full gap-3 overflow-hidden">
       {/* Left: narrow scrollable thumbnail strip — no scrollbar */}
       <div className="scrollbar-hide flex w-14 shrink-0 flex-col gap-1.5 overflow-y-auto overflow-x-hidden">
+        {/* Upload photo button */}
+        <button
+          onClick={handleSwitchToUpload}
+          title="Upload your own photo"
+          className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border-2 transition-all duration-150 ${
+            imageSource === "upload"
+              ? "border-[var(--accent-amber)] bg-[var(--accent-amber-glow)] shadow-[0_0_8px_rgba(232,166,52,0.3)]"
+              : "border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] opacity-70 hover:opacity-100 hover:border-[var(--accent-amber)]/50"
+          }`}
+        >
+          {imageSource === "upload" && uploadedPreview ? (
+            <img src={uploadedPreview} alt="Uploaded" className="h-full w-full object-cover" />
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={imageSource === "upload" ? "text-[var(--accent-amber)]" : "text-[var(--text-muted)]"}>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          )}
+        </button>
+
         {characters.map((char, idx) => (
           <button
             key={char.id}
             onClick={() => handleSelectChar(idx)}
             title={char.name}
             className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border-2 transition-all duration-150 ${
-              idx === selectedCharIdx
+              imageSource === "character" && idx === selectedCharIdx
                 ? "border-[var(--accent-amber)] shadow-[0_0_8px_rgba(232,166,52,0.3)]"
                 : "border-transparent opacity-50 hover:opacity-90"
             }`}
@@ -391,10 +455,52 @@ export function EditClient({ characters }: { characters: Character[] }) {
             />
           ) : (
             <div className="relative flex h-full items-center justify-center">
-              {selectedImageUrl
-                ? <img src={selectedImageUrl} alt={selectedChar?.name} className="h-full w-full object-contain" />
-                : <p className="text-sm text-[var(--text-muted)]">Select a character</p>
-              }
+              {selectedImageUrl ? (
+                <img src={selectedImageUrl} alt={imageSource === "upload" ? "Uploaded photo" : selectedChar?.name} className="h-full w-full object-contain" />
+              ) : imageSource === "upload" ? (
+                /* Upload prompt */
+                <div className="flex flex-col items-center gap-4">
+                  {uploadLoading ? (
+                    <>
+                      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
+                      <p className="text-sm text-[var(--text-secondary)]">Uploading…</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-[var(--accent-amber)]/40 bg-[var(--accent-amber-glow)]">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent-amber)]">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-[var(--text-secondary)]">Upload media</p>
+                        <p className="mt-0.5 text-xs text-[var(--text-muted)]">JPG, PNG or WebP</p>
+                      </div>
+                      <button
+                        onClick={() => uploadInputRef.current?.click()}
+                        className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-5 py-2.5 text-sm font-semibold text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
+                      >
+                        Choose photo
+                      </button>
+                      <input
+                        ref={uploadInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadPhoto(f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--text-muted)]">Select a character</p>
+              )}
               {genStatus === "error" && errorMsg && (
                 <div className="absolute bottom-4 left-4 right-4 rounded-[var(--radius-md)] border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
                   {errorMsg}
