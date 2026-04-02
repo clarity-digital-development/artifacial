@@ -395,7 +395,7 @@ export async function POST(
           referenceImageUrl: charUrl,
           // Auto-prompt — user doesn't need to write this
           prompt: "Replace the person in this photo with the person from the reference image. Preserve the original scene, background, environment, lighting, and pose exactly. Only the person's identity and appearance should change.",
-          strength: 0.55,
+          strength: 0.5,
           style: "REALISTIC",
           renderingSpeed: "QUALITY",
           imageSize: body.imageSize as string | undefined,
