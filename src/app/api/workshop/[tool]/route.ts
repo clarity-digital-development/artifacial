@@ -6,7 +6,6 @@ import { submitTask } from "@/lib/piapi-client";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 import { randomUUID } from "crypto";
 import {
-  submitIdeogramCharacter,
   submitIdeogramCharacterRemix,
   submitRecraftCrispUpscale,
   submitGrokVideoUpscale,
@@ -374,8 +373,48 @@ export async function POST(
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
   }
 
-  // ── KIE.AI tools (ideogram, recraft, grok) ──
-  const kieAiTools = ["ideogram-character", "ideogram-character-remix", "recraft-crisp-upscale", "grok-video-upscale"];
+  // ── Character Swap — Nano Banana 2 via PiAPI ──
+  if (slug === "ideogram-character") {
+    const [targetUrl, charUrl] = await Promise.all([
+      resolveImg(userId, body.targetImage),
+      resolveImg(userId, body.characterImage),
+    ]);
+    if (!targetUrl || !charUrl) {
+      await refundCredits(userId, credits, `Refund: ${slug} missing images`);
+      return NextResponse.json({ error: "Missing target or character image" }, { status: 400 });
+    }
+
+    const aspectRatioMap: Record<string, string> = {
+      portrait_4_3:   "3:4",
+      portrait_16_9:  "9:16",
+      square_hd:      "1:1",
+      landscape_4_3:  "4:3",
+      landscape_16_9: "16:9",
+    };
+    const aspectRatio = aspectRatioMap[body.imageSize as string] ?? "1:1";
+
+    let taskId: string;
+    try {
+      const result = await submitTask("gemini", "nano-banana-2", {
+        prompt: "The first image is the target scene. The second image is the character reference. Place the person from the second image into the scene shown in the first image. Preserve the original background, environment, lighting, shadows, and spatial perspective exactly as they appear in the first image. Only swap the person's identity and appearance.",
+        image_urls: [targetUrl, charUrl],
+        aspect_ratio: aspectRatio,
+        resolution: "1K",
+        output_format: "png",
+      });
+      taskId = result.taskId;
+    } catch (err) {
+      await refundCredits(userId, credits, `Refund: ${slug} submission failed`);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[workshop/${slug}] Nano Banana submission failed:`, msg);
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+
+    return NextResponse.json({ taskId, credits });
+  }
+
+  // ── KIE.AI tools (ideogram-remix, recraft, grok) ──
+  const kieAiTools = ["ideogram-character-remix", "recraft-crisp-upscale", "grok-video-upscale"];
   if (kieAiTools.includes(slug)) {
     const callbackUrl = `${process.env.APP_URL ?? "https://artifacial.app"}/api/webhooks/kieai`;
     let kieTaskId: string;
@@ -383,28 +422,7 @@ export async function POST(
 
     try {
       console.log(`[workshop/${slug}] starting KIE.AI submission, body keys:`, Object.keys(body));
-      if (slug === "ideogram-character") {
-        // Character swap: target photo is the scene, character photo is the reference to insert
-        const [targetUrl, charUrl] = await Promise.all([
-          resolveImg(userId, body.targetImage),
-          resolveImg(userId, body.characterImage),
-        ]);
-        if (!targetUrl || !charUrl) throw new Error("Missing target or character image");
-        const result = await submitIdeogramCharacterRemix({
-          imageUrl: targetUrl,
-          referenceImageUrl: charUrl,
-          // Auto-prompt — user doesn't need to write this
-          prompt: "Replace the person in this photo with the person from the reference image. Preserve the original scene, background, environment, lighting, and pose exactly. Only the person's identity and appearance should change.",
-          strength: 0.5,
-          style: "REALISTIC",
-          renderingSpeed: "QUALITY",
-          imageSize: body.imageSize as string | undefined,
-          numImages: 1,
-          expandPrompt: false,
-          callbackUrl,
-        });
-        kieTaskId = result.taskId;
-      } else if (slug === "ideogram-character-remix") {
+      if (slug === "ideogram-character-remix") {
         const [srcUrl, refUrl] = await Promise.all([
           resolveImg(userId, body.sourceImage),
           resolveImg(userId, body.referenceImage),
