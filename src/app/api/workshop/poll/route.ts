@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getTaskStatus } from "@/lib/piapi-client";
+import { getKieAiTaskStatus } from "@/lib/kieai";
 
 /**
  * GET /api/workshop/poll?taskId=xxx
@@ -22,6 +23,36 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // ── KIE.AI task routing (prefix: "kieai:image:" or "kieai:video:") ──
+    if (taskId.startsWith("kieai:image:") || taskId.startsWith("kieai:video:")) {
+      const isImage = taskId.startsWith("kieai:image:");
+      const realTaskId = taskId.replace(/^kieai:(image|video):/, "");
+
+      const kieResult = await getKieAiTaskStatus(realTaskId);
+
+      // Map KIE.AI status → normalized status
+      let kieStatus: "pending" | "processing" | "completed" | "failed";
+      if (kieResult.status === "success") kieStatus = "completed";
+      else if (kieResult.status === "fail") kieStatus = "failed";
+      else if (kieResult.status === "generating") kieStatus = "processing";
+      else kieStatus = "pending";
+
+      const resultUrls = kieResult.resultUrls ?? (kieResult.videoUrl ? [kieResult.videoUrl] : []);
+
+      return NextResponse.json({
+        status: kieStatus,
+        errorMessage: kieStatus === "failed" ? (kieResult.errorMessage ?? "Generation failed") : null,
+        videoUrl: !isImage && resultUrls.length > 0 ? resultUrls[0] : null,
+        imageUrl: isImage && resultUrls.length > 0 ? resultUrls[0] : null,
+        imageUrls: isImage && resultUrls.length > 0 ? resultUrls : null,
+        audioUrl: null,
+        audioUrls: null,
+        text: null,
+        modelUrl: null,
+        songId: null,
+      });
+    }
+
     const result = await getTaskStatus(taskId);
     const raw = (result.raw ?? {}) as Record<string, unknown>;
     const output = (

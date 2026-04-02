@@ -6,9 +6,9 @@ import type { WorkshopTool, OutputType } from "@/lib/workshop/tools";
 
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">{children}</p>
+    <p className={`text-xs font-medium text-[var(--text-secondary)] ${className ?? "mb-1.5"}`}>{children}</p>
   );
 }
 
@@ -23,23 +23,26 @@ function TextInput({
   placeholder,
   type = "text",
   hint,
+  disabled,
 }: {
-  label: string;
+  label?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
   hint?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)]"
+        disabled={disabled}
+        className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)] disabled:opacity-50"
       />
       {hint && <FieldHint>{hint}</FieldHint>}
     </div>
@@ -53,23 +56,26 @@ function TextArea({
   placeholder,
   rows = 4,
   hint,
+  disabled,
 }: {
-  label: string;
+  label?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   rows?: number;
   hint?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)]"
+        disabled={disabled}
+        className="w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)] disabled:opacity-50"
       />
       {hint && <FieldHint>{hint}</FieldHint>}
     </div>
@@ -82,12 +88,14 @@ function SelectInput({
   onChange,
   options,
   hint,
+  disabled,
 }: {
-  label: string;
+  label?: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   hint?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -104,12 +112,13 @@ function SelectInput({
 
   return (
     <div>
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <div ref={ref} className="relative">
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
-          className={`flex h-10 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border px-3 text-left text-sm transition-colors ${
+          disabled={disabled}
+          onClick={() => !disabled && setOpen((o) => !o)}
+          className={`flex h-10 w-full items-center justify-between gap-2 rounded-[var(--radius-md)] border px-3 text-left text-sm transition-colors disabled:opacity-50 ${
             open
               ? "border-[var(--accent-amber)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
               : "border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-subtle)]"
@@ -513,6 +522,224 @@ function NumberInput({
         className="h-10 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent-amber)]"
       />
       {hint && <FieldHint>{hint}</FieldHint>}
+    </div>
+  );
+}
+
+// ─── ImageInput (Device + Gallery tabs) ──────────────────────────────────────
+
+type LibraryImage = { id: string; url: string; name?: string | null; thumbnailUrl?: string | null };
+
+function ImageInput({
+  value,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  disabled?: boolean;
+  label?: string;
+}) {
+  const [tab, setTab] = useState<"device" | "gallery">("device");
+  const [images, setImages] = useState<LibraryImage[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<LibraryImage[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryFetched, setGalleryFetched] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (tab !== "gallery" || galleryFetched) return;
+    setGalleryLoading(true);
+    fetch("/api/workshop/media")
+      .then((r) => r.json())
+      .then((data) => {
+        setImages(data.images ?? []);
+        setGeneratedImages(data.generatedImages ?? []);
+        setGalleryFetched(true);
+      })
+      .catch(() => {})
+      .finally(() => setGalleryLoading(false));
+  }, [tab, galleryFetched]);
+
+  const onFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => onChange(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const allGalleryItems = [...images, ...generatedImages];
+
+  return (
+    <div>
+      {label && <Label>{label}</Label>}
+      {/* Tab bar */}
+      <div className="mb-2 flex gap-0.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-0.5">
+        {(["device", "gallery"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => !disabled && setTab(t)}
+            className={`flex-1 rounded-[calc(var(--radius-md)-2px)] py-1.5 text-xs font-medium transition-colors ${
+              tab === t
+                ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            }`}
+          >
+            {t === "device" ? "Device" : "Gallery"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "device" && (
+        <div>
+          <div
+            onClick={() => !disabled && fileRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (disabled) return;
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type.startsWith("image/")) onFile(file);
+            }}
+            className={`relative flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-dashed transition-colors ${
+              disabled ? "cursor-not-allowed opacity-50" : ""
+            } ${
+              value
+                ? "border-[var(--accent-amber)]/50"
+                : "border-[var(--border-default)] hover:border-[var(--accent-amber)]/40"
+            } bg-[var(--bg-elevated)]`}
+          >
+            {value ? (
+              <img src={value} alt="" className="h-full w-full object-cover rounded-[var(--radius-md)]" />
+            ) : (
+              <div className="text-center">
+                <svg className="mx-auto mb-1.5 text-[var(--text-muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <p className="text-xs text-[var(--text-muted)]">Click or drag to upload</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">JPEG · PNG · WebP · Max 10 MB</p>
+              </div>
+            )}
+            {value && !disabled && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onChange(null); }}
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white text-sm leading-none hover:bg-black"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            disabled={disabled}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
+      {tab === "gallery" && (
+        <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-2">
+          {galleryLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <svg className="animate-spin text-[var(--text-muted)]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            </div>
+          ) : allGalleryItems.length === 0 ? (
+            <div className="flex h-32 flex-col items-center justify-center gap-1 text-center">
+              <p className="text-xs text-[var(--text-muted)]">No images yet</p>
+              <p className="text-[10px] text-[var(--text-muted)]">Create characters or generate images to use them here</p>
+            </div>
+          ) : (
+            <div className="max-h-56 overflow-y-auto space-y-2">
+              {images.length > 0 && (
+                <div>
+                  <p className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Characters</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {images.map((img) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => { onChange(img.url); setTab("device"); }}
+                        className={`relative aspect-square overflow-hidden rounded-[var(--radius-sm)] border-2 transition-all disabled:opacity-50 ${
+                          value === img.url
+                            ? "border-[var(--accent-amber)]"
+                            : "border-transparent hover:border-[var(--border-subtle)]"
+                        }`}
+                      >
+                        <img src={img.thumbnailUrl ?? img.url} alt={img.name ?? ""} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {generatedImages.length > 0 && (
+                <div>
+                  <p className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Generated</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {generatedImages.map((img) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => { onChange(img.url); setTab("device"); }}
+                        className={`relative aspect-square overflow-hidden rounded-[var(--radius-sm)] border-2 transition-all disabled:opacity-50 ${
+                          value === img.url
+                            ? "border-[var(--accent-amber)]"
+                            : "border-transparent hover:border-[var(--border-subtle)]"
+                        }`}
+                      >
+                        <img src={img.thumbnailUrl ?? img.url} alt={img.name ?? ""} className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── InfoTooltip ──────────────────────────────────────────────────────────────
+
+function InfoTooltip({ content }: { content: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border-default)] text-[10px] font-bold text-[var(--text-muted)] transition-colors hover:border-[var(--accent-amber)]/50 hover:text-[var(--accent-amber)]"
+      >
+        i
+      </button>
+      {open && (
+        <div className="absolute left-6 top-0 z-50 w-64 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-3 text-xs leading-relaxed text-[var(--text-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+          {content}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="absolute right-2 top-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1023,6 +1250,431 @@ function DiffRhythmForm({
   );
 }
 
+// ─── New tool forms ───────────────────────────────────────────────────────────
+
+function IdeogramCharacterForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [style, setStyle] = useState("AUTO");
+  const [renderingSpeed, setRenderingSpeed] = useState("BALANCED");
+  const [imageSize, setImageSize] = useState("portrait_4_3");
+  const [numImages, setNumImages] = useState(1);
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const canSubmit = !!referenceImage && prompt.trim().length > 0;
+  const totalCredits = 120 * numImages;
+  const isDisabled = loading;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Character Photo</Label>
+          <InfoTooltip content="Upload a clear, front-facing photo of the person you want to place in a new scene. The model preserves their face, hair, and overall appearance. Works best with well-lit portraits." />
+        </div>
+        <ImageInput value={referenceImage} onChange={setReferenceImage} disabled={isDisabled} />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Scene Description</Label>
+          <InfoTooltip content="Describe the environment, setting, lighting, and mood you want the person to appear in. Be specific for best results — e.g. 'standing on a foggy London bridge at sunset, cinematic lighting'." />
+        </div>
+        <TextArea
+          value={prompt}
+          onChange={setPrompt}
+          placeholder="e.g. standing on a rooftop in Tokyo at night, neon lights, cinematic"
+          rows={3}
+          disabled={isDisabled}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="mb-1.5">Style</Label>
+          <SelectInput
+            value={style}
+            onChange={setStyle}
+            options={[
+              { value: "AUTO", label: "Auto" },
+              { value: "REALISTIC", label: "Realistic" },
+              { value: "FICTION", label: "Fiction" },
+            ]}
+            disabled={isDisabled}
+          />
+        </div>
+        <div>
+          <Label className="mb-1.5">Number of Images</Label>
+          <SelectInput
+            value={String(numImages)}
+            onChange={(v) => setNumImages(Number(v))}
+            options={[
+              { value: "1", label: "1 image" },
+              { value: "2", label: "2 images" },
+              { value: "3", label: "3 images" },
+              { value: "4", label: "4 images" },
+            ]}
+            disabled={isDisabled}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label className="mb-1.5">Output Size</Label>
+        <SelectInput
+          value={imageSize}
+          onChange={setImageSize}
+          options={[
+            { value: "square_hd", label: "Square HD (1:1)" },
+            { value: "portrait_4_3", label: "Portrait 4:3" },
+            { value: "portrait_16_9", label: "Portrait 9:16" },
+            { value: "landscape_4_3", label: "Landscape 4:3" },
+            { value: "landscape_16_9", label: "Landscape 16:9" },
+            { value: "square", label: "Square" },
+          ]}
+          disabled={isDisabled}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6"/></svg>
+        Advanced options
+      </button>
+
+      {showAdvanced && (
+        <div className="space-y-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-4">
+          <div>
+            <Label className="mb-1.5">Rendering Quality</Label>
+            <SelectInput
+              value={renderingSpeed}
+              onChange={setRenderingSpeed}
+              options={[
+                { value: "TURBO", label: "Turbo (fastest)" },
+                { value: "BALANCED", label: "Balanced" },
+                { value: "QUALITY", label: "Quality (best)" },
+              ]}
+              disabled={isDisabled}
+            />
+          </div>
+          <div>
+            <Label className="mb-1.5">Negative Prompt</Label>
+            <TextInput
+              value={negativePrompt}
+              onChange={setNegativePrompt}
+              placeholder="What to avoid — e.g. blurry, low quality"
+              disabled={isDisabled}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-[var(--text-muted)]">
+        Cost: <span className="font-semibold text-[var(--accent-amber)]">{totalCredits} credits</span>
+        {numImages > 1 && ` (${numImages} × 120 cr)`}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => onSubmit({
+          referenceImage,
+          prompt: prompt.trim(),
+          style,
+          renderingSpeed,
+          imageSize,
+          numImages,
+          negativePrompt: negativePrompt.trim() || undefined,
+        })}
+        disabled={isDisabled || !canSubmit}
+        className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Generate · {totalCredits} cr
+      </button>
+    </div>
+  );
+}
+
+function IdeogramCharacterRemixForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [strength, setStrength] = useState(0.5);
+  const [style, setStyle] = useState("AUTO");
+  const [renderingSpeed, setRenderingSpeed] = useState("BALANCED");
+  const [imageSize, setImageSize] = useState("portrait_4_3");
+  const [numImages, setNumImages] = useState(1);
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const canSubmit = !!sourceImage && !!referenceImage && prompt.trim().length > 0;
+  const totalCredits = 120 * numImages;
+  const isDisabled = loading;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Source Image</Label>
+          <InfoTooltip content="The photo you want to remix. This is the base image — its background, scene, or environment will be transformed based on your prompt." />
+        </div>
+        <ImageInput value={sourceImage} onChange={setSourceImage} disabled={isDisabled} />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Character Reference</Label>
+          <InfoTooltip content="A photo of the person whose appearance should be preserved in the remix. Use a clear, front-facing portrait for best results." />
+        </div>
+        <ImageInput value={referenceImage} onChange={setReferenceImage} disabled={isDisabled} />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>New Scene Description</Label>
+          <InfoTooltip content="Describe what you want the new scene or background to look like. The subject from the character reference will be placed in this new environment." />
+        </div>
+        <TextArea
+          value={prompt}
+          onChange={setPrompt}
+          placeholder="e.g. change the background to a luxury penthouse, golden hour lighting"
+          rows={3}
+          disabled={isDisabled}
+        />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Change Intensity</Label>
+          <InfoTooltip content="How aggressively to transform the image. Lower values make subtle changes (background swap only), higher values more dramatically reshape the scene." />
+        </div>
+        <SelectInput
+          value={String(strength)}
+          onChange={(v) => setStrength(Number(v))}
+          options={[
+            { value: "0.1", label: "0.1 — Very subtle" },
+            { value: "0.2", label: "0.2 — Subtle" },
+            { value: "0.3", label: "0.3 — Light" },
+            { value: "0.4", label: "0.4 — Moderate" },
+            { value: "0.5", label: "0.5 — Medium" },
+            { value: "0.6", label: "0.6 — Strong" },
+            { value: "0.7", label: "0.7 — Very strong" },
+            { value: "0.8", label: "0.8 — Dramatic" },
+            { value: "0.9", label: "0.9 — Extreme" },
+            { value: "1.0", label: "1.0 — Complete" },
+          ]}
+          disabled={isDisabled}
+        />
+        <FieldHint>Lower = keep more of the original; higher = allow more change</FieldHint>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="mb-1.5">Style</Label>
+          <SelectInput
+            value={style}
+            onChange={setStyle}
+            options={[
+              { value: "AUTO", label: "Auto" },
+              { value: "REALISTIC", label: "Realistic" },
+              { value: "FICTION", label: "Fiction" },
+            ]}
+            disabled={isDisabled}
+          />
+        </div>
+        <div>
+          <Label className="mb-1.5">Number of Images</Label>
+          <SelectInput
+            value={String(numImages)}
+            onChange={(v) => setNumImages(Number(v))}
+            options={[
+              { value: "1", label: "1 image" },
+              { value: "2", label: "2 images" },
+              { value: "3", label: "3 images" },
+              { value: "4", label: "4 images" },
+            ]}
+            disabled={isDisabled}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label className="mb-1.5">Output Size</Label>
+        <SelectInput
+          value={imageSize}
+          onChange={setImageSize}
+          options={[
+            { value: "square_hd", label: "Square HD (1:1)" },
+            { value: "portrait_4_3", label: "Portrait 4:3" },
+            { value: "portrait_16_9", label: "Portrait 9:16" },
+            { value: "landscape_4_3", label: "Landscape 4:3" },
+            { value: "landscape_16_9", label: "Landscape 16:9" },
+          ]}
+          disabled={isDisabled}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6"/></svg>
+        Advanced options
+      </button>
+
+      {showAdvanced && (
+        <div className="space-y-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-4">
+          <div>
+            <Label className="mb-1.5">Rendering Quality</Label>
+            <SelectInput
+              value={renderingSpeed}
+              onChange={setRenderingSpeed}
+              options={[
+                { value: "TURBO", label: "Turbo (fastest)" },
+                { value: "BALANCED", label: "Balanced" },
+                { value: "QUALITY", label: "Quality (best)" },
+              ]}
+              disabled={isDisabled}
+            />
+          </div>
+          <div>
+            <Label className="mb-1.5">Negative Prompt</Label>
+            <TextInput
+              value={negativePrompt}
+              onChange={setNegativePrompt}
+              placeholder="What to avoid in the output"
+              disabled={isDisabled}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-[var(--text-muted)]">
+        Cost: <span className="font-semibold text-[var(--accent-amber)]">{totalCredits} credits</span>
+        {numImages > 1 && ` (${numImages} × 120 cr)`}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => onSubmit({
+          sourceImage,
+          referenceImage,
+          prompt: prompt.trim(),
+          strength,
+          style,
+          renderingSpeed,
+          imageSize,
+          numImages,
+          negativePrompt: negativePrompt.trim() || undefined,
+        })}
+        disabled={isDisabled || !canSubmit}
+        className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Remix Scene · {totalCredits} cr
+      </button>
+    </div>
+  );
+}
+
+function RecraftCrispUpscaleForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [image, setImage] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>Image to Upscale</Label>
+          <InfoTooltip content="Upload any image to enhance its resolution and sharpness. Recraft's crisp upscaling adds fine detail while maintaining natural quality. Best for portraits, characters, and detailed scenes." />
+        </div>
+        <ImageInput value={image} onChange={setImage} disabled={loading} />
+      </div>
+
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-4">
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+          Crisp Upscale enhances your image to a higher resolution with sharpened details. No additional settings are required — the model automatically determines the optimal output quality.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSubmit({ image })}
+        disabled={loading || !image}
+        className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Upscale Image · 60 cr
+      </button>
+    </div>
+  );
+}
+
+function GrokVideoUpscaleForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [sourceTaskId, setSourceTaskId] = useState("");
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-[var(--radius-md)] border border-[var(--accent-amber)]/20 bg-[var(--accent-amber-glow)] p-4">
+        <div className="flex items-start gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0 text-[var(--accent-amber)]"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+            This tool only works with videos generated via <strong className="text-[var(--text-primary)]">Grok Imagine</strong> on KIE.AI. Enter the original KIE.AI task ID from a completed video generation.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center gap-2">
+          <Label>KIE.AI Task ID</Label>
+          <InfoTooltip content="Enter the task ID from a previously completed Grok Imagine video generation on KIE.AI. This is the ID returned when the video was originally generated — it looks like 'task_grok_12345678'. Currently only Grok Imagine videos are supported." />
+        </div>
+        <TextInput
+          value={sourceTaskId}
+          onChange={setSourceTaskId}
+          placeholder="e.g. task_grok_12345678abcdef"
+          disabled={loading}
+        />
+        <FieldHint>The task ID from the original KIE.AI video generation</FieldHint>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSubmit({ sourceTaskId: sourceTaskId.trim() })}
+        disabled={loading || !sourceTaskId.trim()}
+        className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Upscale Video · 600 cr
+      </button>
+    </div>
+  );
+}
+
 // ─── Submit button ────────────────────────────────────────────────────────────
 
 function SubmitButton({
@@ -1087,8 +1739,12 @@ function ToolForm({
     case "trellis3d":          return <Trellis3DForm {...props} />;
     case "music-gen":          return <MusicGenForm {...props} />;
     case "add-audio":          return <AddAudioForm {...props} />;
-    case "diffrhythm":         return <DiffRhythmForm {...props} />;
-    default:                   return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
+    case "diffrhythm":              return <DiffRhythmForm {...props} />;
+    case "ideogram-character":      return <IdeogramCharacterForm {...props} />;
+    case "ideogram-character-remix": return <IdeogramCharacterRemixForm {...props} />;
+    case "recraft-crisp-upscale":   return <RecraftCrispUpscaleForm {...props} />;
+    case "grok-video-upscale":      return <GrokVideoUpscaleForm {...props} />;
+    default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }
 

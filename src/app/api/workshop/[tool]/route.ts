@@ -5,6 +5,12 @@ import { deductCredits, refundCredits } from "@/lib/credits";
 import { submitTask } from "@/lib/piapi-client";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 import { randomUUID } from "crypto";
+import {
+  submitIdeogramCharacter,
+  submitIdeogramCharacterRemix,
+  submitRecraftCrispUpscale,
+  submitGrokVideoUpscale,
+} from "@/lib/kieai";
 
 // ─── R2 upload helper ─────────────────────────────────────────────────────────
 
@@ -68,6 +74,14 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "song-extend":       return 200;
     case "add-audio":         return 75;
     case "diffrhythm":        return 80;
+    case "ideogram-character":
+      return 120 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
+    case "ideogram-character-remix":
+      return 120 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
+    case "recraft-crisp-upscale":
+      return 60;
+    case "grok-video-upscale":
+      return 600;
     default:                  return 100;
   }
 }
@@ -358,6 +372,74 @@ export async function POST(
   const ok = await deductCredits(userId, credits, `Workshop: ${tool.name}`);
   if (!ok) {
     return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+  }
+
+  // ── KIE.AI tools (ideogram, recraft, grok) ──
+  const kieAiTools = ["ideogram-character", "ideogram-character-remix", "recraft-crisp-upscale", "grok-video-upscale"];
+  if (kieAiTools.includes(slug)) {
+    const callbackUrl = `${process.env.APP_URL ?? "https://artifacial.app"}/api/webhooks/kieai`;
+    let kieTaskId: string;
+    const isImageOutput = slug !== "grok-video-upscale";
+
+    try {
+      if (slug === "ideogram-character") {
+        const imageUrl = await resolveImg(userId, body.referenceImage);
+        if (!imageUrl) throw new Error("Missing reference image");
+        const result = await submitIdeogramCharacter({
+          referenceImageUrl: imageUrl,
+          prompt: body.prompt as string,
+          style: body.style as "AUTO" | "REALISTIC" | "FICTION" | undefined,
+          renderingSpeed: body.renderingSpeed as "TURBO" | "BALANCED" | "QUALITY" | undefined,
+          imageSize: body.imageSize as string | undefined,
+          numImages: body.numImages ? Number(body.numImages) : 1,
+          seed: body.seed ? Number(body.seed) : undefined,
+          negativePrompt: body.negativePrompt as string | undefined,
+          expandPrompt: body.expandPrompt as boolean | undefined,
+          callbackUrl,
+        });
+        kieTaskId = result.taskId;
+      } else if (slug === "ideogram-character-remix") {
+        const [srcUrl, refUrl] = await Promise.all([
+          resolveImg(userId, body.sourceImage),
+          resolveImg(userId, body.referenceImage),
+        ]);
+        if (!srcUrl || !refUrl) throw new Error("Missing source or reference image");
+        const result = await submitIdeogramCharacterRemix({
+          imageUrl: srcUrl,
+          referenceImageUrl: refUrl,
+          prompt: body.prompt as string,
+          strength: body.strength ? Number(body.strength) : undefined,
+          style: body.style as "AUTO" | "REALISTIC" | "FICTION" | undefined,
+          renderingSpeed: body.renderingSpeed as "TURBO" | "BALANCED" | "QUALITY" | undefined,
+          imageSize: body.imageSize as string | undefined,
+          numImages: body.numImages ? Number(body.numImages) : 1,
+          seed: body.seed ? Number(body.seed) : undefined,
+          negativePrompt: body.negativePrompt as string | undefined,
+          expandPrompt: body.expandPrompt as boolean | undefined,
+          callbackUrl,
+        });
+        kieTaskId = result.taskId;
+      } else if (slug === "recraft-crisp-upscale") {
+        const imageUrl = await resolveImg(userId, body.image);
+        if (!imageUrl) throw new Error("Missing image");
+        const result = await submitRecraftCrispUpscale({ imageUrl, callbackUrl });
+        kieTaskId = result.taskId;
+      } else { // grok-video-upscale
+        if (!body.sourceTaskId) throw new Error("Missing source task ID");
+        const result = await submitGrokVideoUpscale({
+          sourceTaskId: body.sourceTaskId as string,
+          callbackUrl,
+        });
+        kieTaskId = result.taskId;
+      }
+    } catch (err) {
+      await refundCredits(userId, credits, `Refund: ${slug} submission failed`);
+      console.error(`[workshop/${slug}] KIE.AI submission failed:`, err);
+      return NextResponse.json({ error: "Generation submission failed" }, { status: 500 });
+    }
+
+    const prefix = isImageOutput ? "kieai:image:" : "kieai:video:";
+    return NextResponse.json({ taskId: `${prefix}${kieTaskId}`, credits });
   }
 
   let taskId: string;

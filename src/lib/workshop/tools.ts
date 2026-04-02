@@ -14,6 +14,52 @@ export interface WorkshopTool {
 }
 
 export const WORKSHOP_TOOLS: WorkshopTool[] = [
+  // ── Featured: KIE.AI Tools ──
+  {
+    slug: "ideogram-character",
+    name: "Character in Scene",
+    tagline: "Place any person into a new AI-generated scene",
+    description: "Upload a reference photo of a person and describe a scene. The model preserves their face, hair, and appearance while generating them in a completely new environment.",
+    category: "image",
+    credits: 120,
+    creditLabel: "from 120 cr",
+    status: "available",
+    outputType: "multi-image",
+  },
+  {
+    slug: "ideogram-character-remix",
+    name: "Scene Remix",
+    tagline: "Swap the background or scene of any photo",
+    description: "Transform the background or scene of an existing photo while keeping the subject. Provide a character reference to help maintain their appearance across the change.",
+    category: "image",
+    credits: 120,
+    creditLabel: "from 120 cr",
+    status: "available",
+    outputType: "multi-image",
+  },
+  {
+    slug: "recraft-crisp-upscale",
+    name: "Crisp Upscale",
+    tagline: "Upscale any image with razor-sharp detail",
+    description: "Enhance your images to high resolution with Recraft's crisp upscaling engine. Perfect for sharpening AI-generated portraits and preparing images for large display.",
+    category: "image",
+    credits: 60,
+    creditLabel: "60 credits",
+    status: "available",
+    outputType: "image",
+  },
+  {
+    slug: "grok-video-upscale",
+    name: "Video Upscale",
+    tagline: "Upscale a KIE.AI-generated video to higher resolution",
+    description: "Increase the resolution of videos that were generated via KIE.AI on this platform. Requires the original KIE.AI task ID from a completed video generation.",
+    category: "video",
+    credits: 600,
+    creditLabel: "600 credits",
+    status: "beta",
+    outputType: "video",
+  },
+
   // ── Face & Identity ──
   {
     slug: "photo-face-swap",

@@ -212,6 +212,8 @@ export type KieAiTaskStatus = "waiting" | "queuing" | "generating" | "success" |
 export type KieAiTaskResult = {
   status: KieAiTaskStatus;
   videoUrl?: string;
+  imageUrls?: string[];
+  resultUrls?: string[];
   errorMessage?: string;
   progress?: number;
 };
@@ -233,19 +235,27 @@ export async function getKieAiTaskStatus(taskId: string): Promise<KieAiTaskResul
   const state = (task?.state ?? task?.status ?? task?.taskStatus) as KieAiTaskStatus;
 
   let videoUrl: string | undefined;
+  let resultUrls: string[] | undefined;
+
   if (state === "success" && task.resultJson) {
     try {
       const result = JSON.parse(task.resultJson as string) as { resultUrls?: string[] };
-      videoUrl = result.resultUrls?.[0];
+      if (Array.isArray(result.resultUrls) && result.resultUrls.length > 0) {
+        resultUrls = result.resultUrls;
+        videoUrl = result.resultUrls[0];
+      }
     } catch {
       console.error(`[kieai] Failed to parse resultJson for task=${taskId}: ${task.resultJson}`);
     }
   }
 
   // Also try direct resultUrls field in case resultJson isn't used
-  if (!videoUrl && state === "success") {
+  if (!resultUrls && state === "success") {
     const direct = task?.resultUrls as string[] | undefined;
-    if (Array.isArray(direct) && direct.length > 0) videoUrl = direct[0];
+    if (Array.isArray(direct) && direct.length > 0) {
+      resultUrls = direct;
+      videoUrl = direct[0];
+    }
   }
 
   const errorMessage = (task?.failMsg ?? task?.errorMsg ?? task?.error) as string | undefined;
@@ -253,7 +263,184 @@ export async function getKieAiTaskStatus(taskId: string): Promise<KieAiTaskResul
   return {
     status: state,
     videoUrl,
+    resultUrls,
+    imageUrls: resultUrls,
     errorMessage: errorMessage || undefined,
     progress: task?.progress as number | undefined,
   };
+}
+
+// ── Ideogram Character (place person in new scene) ──
+
+export interface KieAiIdeogramCharacterParams {
+  referenceImageUrl: string;
+  prompt: string;
+  style?: "AUTO" | "REALISTIC" | "FICTION";
+  renderingSpeed?: "TURBO" | "BALANCED" | "QUALITY";
+  imageSize?: string; // e.g. "square_hd", "portrait_4_3", "portrait_16_9", "landscape_4_3", "landscape_16_9"
+  numImages?: number; // 1-4
+  seed?: number;
+  negativePrompt?: string;
+  expandPrompt?: boolean;
+  callbackUrl: string;
+}
+
+export async function submitIdeogramCharacter(
+  params: KieAiIdeogramCharacterParams
+): Promise<{ taskId: string }> {
+  const refUrl = await ensureJpeg(params.referenceImageUrl);
+  const kieRefUrl = await uploadToKieAi(refUrl);
+
+  const requestBody = {
+    model: "ideogram/character",
+    callBackUrl: params.callbackUrl,
+    input: {
+      prompt: params.prompt,
+      reference_image_urls: [kieRefUrl],
+      ...(params.style && { style: params.style }),
+      ...(params.renderingSpeed && { rendering_speed: params.renderingSpeed }),
+      ...(params.imageSize && { image_size: params.imageSize }),
+      ...(params.numImages && { num_images: String(params.numImages) }),
+      ...(params.seed !== undefined && { seed: params.seed }),
+      ...(params.negativePrompt && { negative_prompt: params.negativePrompt }),
+      ...(params.expandPrompt !== undefined && { expand_prompt: params.expandPrompt }),
+    },
+  };
+
+  console.log(`[kieai] IDEOGRAM CHARACTER REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI ideogram/character returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Ideogram Character task submitted: taskId=${taskId}`);
+  return { taskId };
+}
+
+// ── Ideogram Character Remix (background/scene swap with character ref) ──
+
+export interface KieAiIdeogramCharacterRemixParams {
+  imageUrl: string;          // Source image to remix
+  referenceImageUrl: string; // Character reference to maintain
+  prompt: string;
+  strength?: number; // 0.1–1.0
+  style?: "AUTO" | "REALISTIC" | "FICTION";
+  renderingSpeed?: "TURBO" | "BALANCED" | "QUALITY";
+  imageSize?: string;
+  numImages?: number;
+  seed?: number;
+  negativePrompt?: string;
+  expandPrompt?: boolean;
+  callbackUrl: string;
+}
+
+export async function submitIdeogramCharacterRemix(
+  params: KieAiIdeogramCharacterRemixParams
+): Promise<{ taskId: string }> {
+  const [safeSrcUrl, safeRefUrl] = await Promise.all([
+    ensureJpeg(params.imageUrl),
+    ensureJpeg(params.referenceImageUrl),
+  ]);
+  const [kieSrcUrl, kieRefUrl] = await Promise.all([
+    uploadToKieAi(safeSrcUrl),
+    uploadToKieAi(safeRefUrl),
+  ]);
+
+  const requestBody = {
+    model: "ideogram/character-remix",
+    callBackUrl: params.callbackUrl,
+    input: {
+      prompt: params.prompt,
+      image_url: kieSrcUrl,
+      reference_image_urls: [kieRefUrl],
+      ...(params.strength !== undefined && { strength: params.strength }),
+      ...(params.style && { style: params.style }),
+      ...(params.renderingSpeed && { rendering_speed: params.renderingSpeed }),
+      ...(params.imageSize && { image_size: params.imageSize }),
+      ...(params.numImages && { num_images: String(params.numImages) }),
+      ...(params.seed !== undefined && { seed: params.seed }),
+      ...(params.negativePrompt && { negative_prompt: params.negativePrompt }),
+      ...(params.expandPrompt !== undefined && { expand_prompt: params.expandPrompt }),
+    },
+  };
+
+  console.log(`[kieai] IDEOGRAM CHARACTER REMIX REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI ideogram/character-remix returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Ideogram Character Remix task submitted: taskId=${taskId}`);
+  return { taskId };
+}
+
+// ── Recraft Crisp Upscale ──
+
+export async function submitRecraftCrispUpscale(params: {
+  imageUrl: string;
+  callbackUrl: string;
+}): Promise<{ taskId: string }> {
+  const jpegUrl = await ensureJpeg(params.imageUrl);
+  const kieUrl = await uploadToKieAi(jpegUrl);
+
+  const requestBody = {
+    model: "recraft/crisp-upscale",
+    callBackUrl: params.callbackUrl,
+    input: { image: kieUrl },
+  };
+
+  console.log(`[kieai] RECRAFT CRISP UPSCALE REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI recraft/crisp-upscale returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Recraft Crisp Upscale task submitted: taskId=${taskId}`);
+  return { taskId };
+}
+
+// ── Grok Imagine Video Upscale ──
+
+export async function submitGrokVideoUpscale(params: {
+  sourceTaskId: string; // KIE.AI task_id from a previous grok-imagine video generation
+  callbackUrl: string;
+}): Promise<{ taskId: string }> {
+  const requestBody = {
+    model: "grok-imagine/upscale",
+    callBackUrl: params.callbackUrl,
+    input: { task_id: params.sourceTaskId },
+  };
+
+  console.log(`[kieai] GROK VIDEO UPSCALE REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI grok-imagine/upscale returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Grok Video Upscale task submitted: taskId=${taskId}`);
+  return { taskId };
 }

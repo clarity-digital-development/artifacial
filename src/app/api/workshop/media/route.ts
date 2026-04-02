@@ -10,7 +10,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [generations, characters] = await Promise.all([
+  const [generations, characters, imageGens] = await Promise.all([
     prisma.generation.findMany({
       where: {
         userId,
@@ -40,7 +40,22 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
+    prisma.generation.findMany({
+      where: { userId, status: "COMPLETED", workflowType: "IMAGE_EDIT", outputUrl: { not: null } },
+      orderBy: { completedAt: "desc" },
+      take: 20,
+      select: { id: true, outputUrl: true, thumbnailUrl: true },
+    }),
   ]);
+
+  const generatedImages = imageGens
+    .filter((g) => g.outputUrl)
+    .map((g) => ({
+      id: g.id,
+      url: g.outputUrl!,
+      thumbnailUrl: g.thumbnailUrl ?? g.outputUrl!,
+      name: "Generated image",
+    }));
 
   return NextResponse.json({
     videos: generations.map((g) => ({
@@ -53,5 +68,6 @@ export async function GET() {
       url: c.faceImageUrl!,
       name: c.name,
     })),
+    generatedImages,
   });
 }
