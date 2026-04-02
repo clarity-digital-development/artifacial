@@ -153,13 +153,14 @@ function CategoryDropdown({
   );
 }
 
-export function WorkshopClient({ totalCredits }: { totalCredits: number }) {
+export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredits: number; tools?: WorkshopTool[] }) {
+  const tools = toolsProp ?? WORKSHOP_TOOLS;
   const [category, setCategory] = useState<"all" | ToolCategory>("all");
 
   const filtered =
     category === "all"
-      ? WORKSHOP_TOOLS
-      : WORKSHOP_TOOLS.filter((t) => t.category === category);
+      ? tools
+      : tools.filter((t) => t.category === category);
 
   return (
     <div>
@@ -176,7 +177,7 @@ export function WorkshopClient({ totalCredits }: { totalCredits: number }) {
             Creative Tools
           </h1>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            {WORKSHOP_TOOLS.length} AI-powered tools for every creative need
+            {tools.length} AI-powered tool{tools.length !== 1 ? "s" : ""} available
           </p>
         </div>
 
@@ -188,14 +189,15 @@ export function WorkshopClient({ totalCredits }: { totalCredits: number }) {
       {category === "all" ? (
         <div className="space-y-8">
           {CATEGORY_ORDER.map((cat) => {
-            const tools = WORKSHOP_TOOLS.filter((t) => t.category === cat);
+            const catTools = tools.filter((t) => t.category === cat);
+            if (catTools.length === 0) return null;
             return (
               <section key={cat}>
                 <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   {CATEGORY_LABELS[cat]}
                 </h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {tools.map((tool) => (
+                  {catTools.map((tool) => (
                     <ToolCard key={tool.slug} tool={tool} />
                   ))}
                 </div>
