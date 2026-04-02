@@ -382,6 +382,7 @@ export async function POST(
     const isImageOutput = slug !== "grok-video-upscale";
 
     try {
+      console.log(`[workshop/${slug}] starting KIE.AI submission, body keys:`, Object.keys(body));
       if (slug === "ideogram-character") {
         // Character swap: target photo is the scene, character photo is the reference to insert
         const [targetUrl, charUrl] = await Promise.all([
@@ -439,8 +440,9 @@ export async function POST(
       }
     } catch (err) {
       await refundCredits(userId, credits, `Refund: ${slug} submission failed`);
-      console.error(`[workshop/${slug}] KIE.AI submission failed:`, err);
-      return NextResponse.json({ error: "Generation submission failed" }, { status: 500 });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[workshop/${slug}] KIE.AI submission failed:`, msg);
+      return NextResponse.json({ error: msg }, { status: 500 });
     }
 
     const prefix = isImageOutput ? "kieai:image:" : "kieai:video:";
