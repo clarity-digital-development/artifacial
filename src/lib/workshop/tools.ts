@@ -17,14 +17,14 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
   // ── Featured: KIE.AI Tools ──
   {
     slug: "ideogram-character",
-    name: "Character in Scene",
-    tagline: "Place any person into a new AI-generated scene",
-    description: "Upload a reference photo of a person and describe a scene. The model preserves their face, hair, and appearance while generating them in a completely new environment.",
+    name: "Character Swap",
+    tagline: "Swap one person for another in any photo",
+    description: "Upload a target photo and a character reference. The model replaces the person in the target photo with your character, preserving the original scene, background, lighting, and pose.",
     category: "image",
     credits: 120,
-    creditLabel: "from 120 cr",
+    creditLabel: "120 credits",
     status: "available",
-    outputType: "multi-image",
+    outputType: "image",
   },
   {
     slug: "ideogram-character-remix",

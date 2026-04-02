@@ -1259,146 +1259,56 @@ function IdeogramCharacterForm({
   onSubmit: (d: Record<string, unknown>) => void;
   loading: boolean;
 }) {
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState("");
-  const [style, setStyle] = useState("AUTO");
-  const [renderingSpeed, setRenderingSpeed] = useState("BALANCED");
+  const [targetImage, setTargetImage] = useState<string | null>(null);
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState("portrait_4_3");
-  const [numImages, setNumImages] = useState(1);
-  const [negativePrompt, setNegativePrompt] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const canSubmit = !!referenceImage && prompt.trim().length > 0;
-  const totalCredits = 120 * numImages;
-  const isDisabled = loading;
+  const canSubmit = !!targetImage && !!characterImage;
 
   return (
     <div className="space-y-5">
+      {/* Target photo */}
       <div>
         <div className="mb-1.5 flex items-center gap-2">
-          <Label>Character Photo</Label>
-          <InfoTooltip content="Upload a clear, front-facing photo of the person you want to place in a new scene. The model preserves their face, hair, and overall appearance. Works best with well-lit portraits." />
+          <Label>Target Photo</Label>
+          <InfoTooltip content="The photo that contains the person you want to replace. The scene, background, lighting, and pose from this image will be preserved in the output." />
         </div>
-        <ImageInput value={referenceImage} onChange={setReferenceImage} disabled={isDisabled} />
+        <ImageInput value={targetImage} onChange={setTargetImage} disabled={loading} />
       </div>
 
+      {/* Character to insert */}
       <div>
         <div className="mb-1.5 flex items-center gap-2">
-          <Label>Scene Description</Label>
-          <InfoTooltip content="Describe the environment, setting, lighting, and mood you want the person to appear in. Be specific for best results — e.g. 'standing on a foggy London bridge at sunset, cinematic lighting'." />
+          <Label>Character to Insert</Label>
+          <InfoTooltip content="A clear photo of the person you want to swap in. Use a well-lit, front-facing portrait for best identity preservation. This person will replace the subject in the target photo." />
         </div>
-        <TextArea
-          value={prompt}
-          onChange={setPrompt}
-          placeholder="e.g. standing on a rooftop in Tokyo at night, neon lights, cinematic"
-          rows={3}
-          disabled={isDisabled}
-        />
+        <ImageInput value={characterImage} onChange={setCharacterImage} disabled={loading} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="mb-1.5">Style</Label>
-          <SelectInput
-            value={style}
-            onChange={setStyle}
-            options={[
-              { value: "AUTO", label: "Auto" },
-              { value: "REALISTIC", label: "Realistic" },
-              { value: "FICTION", label: "Fiction" },
-            ]}
-            disabled={isDisabled}
-          />
-        </div>
-        <div>
-          <Label className="mb-1.5">Number of Images</Label>
-          <SelectInput
-            value={String(numImages)}
-            onChange={(v) => setNumImages(Number(v))}
-            options={[
-              { value: "1", label: "1 image" },
-              { value: "2", label: "2 images" },
-              { value: "3", label: "3 images" },
-              { value: "4", label: "4 images" },
-            ]}
-            disabled={isDisabled}
-          />
-        </div>
-      </div>
-
+      {/* Output size */}
       <div>
         <Label className="mb-1.5">Output Size</Label>
         <SelectInput
           value={imageSize}
           onChange={setImageSize}
           options={[
-            { value: "square_hd", label: "Square HD (1:1)" },
             { value: "portrait_4_3", label: "Portrait 4:3" },
             { value: "portrait_16_9", label: "Portrait 9:16" },
+            { value: "square_hd", label: "Square (1:1)" },
             { value: "landscape_4_3", label: "Landscape 4:3" },
             { value: "landscape_16_9", label: "Landscape 16:9" },
-            { value: "square", label: "Square" },
           ]}
-          disabled={isDisabled}
+          disabled={loading}
         />
       </div>
 
       <button
         type="button"
-        onClick={() => setShowAdvanced((v) => !v)}
-        className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-      >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6"/></svg>
-        Advanced options
-      </button>
-
-      {showAdvanced && (
-        <div className="space-y-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-input)] p-4">
-          <div>
-            <Label className="mb-1.5">Rendering Quality</Label>
-            <SelectInput
-              value={renderingSpeed}
-              onChange={setRenderingSpeed}
-              options={[
-                { value: "TURBO", label: "Turbo (fastest)" },
-                { value: "BALANCED", label: "Balanced" },
-                { value: "QUALITY", label: "Quality (best)" },
-              ]}
-              disabled={isDisabled}
-            />
-          </div>
-          <div>
-            <Label className="mb-1.5">Negative Prompt</Label>
-            <TextInput
-              value={negativePrompt}
-              onChange={setNegativePrompt}
-              placeholder="What to avoid — e.g. blurry, low quality"
-              disabled={isDisabled}
-            />
-          </div>
-        </div>
-      )}
-
-      <p className="text-xs text-[var(--text-muted)]">
-        Cost: <span className="font-semibold text-[var(--accent-amber)]">{totalCredits} credits</span>
-        {numImages > 1 && ` (${numImages} × 120 cr)`}
-      </p>
-
-      <button
-        type="button"
-        onClick={() => onSubmit({
-          referenceImage,
-          prompt: prompt.trim(),
-          style,
-          renderingSpeed,
-          imageSize,
-          numImages,
-          negativePrompt: negativePrompt.trim() || undefined,
-        })}
-        disabled={isDisabled || !canSubmit}
+        onClick={() => onSubmit({ targetImage, characterImage, imageSize })}
+        disabled={loading || !canSubmit}
         className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        Generate · {totalCredits} cr
+        Swap Character · 120 cr
       </button>
     </div>
   );

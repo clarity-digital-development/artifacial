@@ -75,7 +75,7 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "add-audio":         return 75;
     case "diffrhythm":        return 80;
     case "ideogram-character":
-      return 120 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
+      return 120;
     case "ideogram-character-remix":
       return 120 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
     case "recraft-crisp-upscale":
@@ -383,18 +383,23 @@ export async function POST(
 
     try {
       if (slug === "ideogram-character") {
-        const imageUrl = await resolveImg(userId, body.referenceImage);
-        if (!imageUrl) throw new Error("Missing reference image");
-        const result = await submitIdeogramCharacter({
-          referenceImageUrl: imageUrl,
-          prompt: body.prompt as string,
-          style: body.style as "AUTO" | "REALISTIC" | "FICTION" | undefined,
-          renderingSpeed: body.renderingSpeed as "TURBO" | "BALANCED" | "QUALITY" | undefined,
+        // Character swap: target photo is the scene, character photo is the reference to insert
+        const [targetUrl, charUrl] = await Promise.all([
+          resolveImg(userId, body.targetImage),
+          resolveImg(userId, body.characterImage),
+        ]);
+        if (!targetUrl || !charUrl) throw new Error("Missing target or character image");
+        const result = await submitIdeogramCharacterRemix({
+          imageUrl: targetUrl,
+          referenceImageUrl: charUrl,
+          // Auto-prompt — user doesn't need to write this
+          prompt: "Replace the person in this photo with the person from the reference image. Preserve the original scene, background, environment, lighting, and pose exactly. Only the person's identity and appearance should change.",
+          strength: 0.55,
+          style: "REALISTIC",
+          renderingSpeed: "QUALITY",
           imageSize: body.imageSize as string | undefined,
-          numImages: body.numImages ? Number(body.numImages) : 1,
-          seed: body.seed ? Number(body.seed) : undefined,
-          negativePrompt: body.negativePrompt as string | undefined,
-          expandPrompt: body.expandPrompt as boolean | undefined,
+          numImages: 1,
+          expandPrompt: false,
           callbackUrl,
         });
         kieTaskId = result.taskId;
