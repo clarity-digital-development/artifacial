@@ -73,9 +73,9 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "song-extend":       return 200;
     case "add-audio":         return 75;
     case "diffrhythm":        return 80;
-    case "ideogram-character":
+    case "character-swap":
       return 240;
-    case "ideogram-character-remix":
+    case "character-swap-remix":
       return 240 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
     case "recraft-crisp-upscale":
       return 60;
@@ -374,7 +374,7 @@ export async function POST(
   }
 
   // ── Character Swap — Nano Banana 2 via PiAPI ──
-  if (slug === "ideogram-character") {
+  if (slug === "character-swap") {
     const [targetUrl, charUrl] = await Promise.all([
       resolveImg(userId, body.targetImage),
       resolveImg(userId, body.characterImage),
@@ -418,7 +418,7 @@ export async function POST(
   }
 
   // ── KIE.AI tools (ideogram-remix, recraft, grok) ──
-  const kieAiTools = ["ideogram-character-remix", "recraft-crisp-upscale", "grok-video-upscale"];
+  const kieAiTools = ["character-swap-remix", "recraft-crisp-upscale", "grok-video-upscale"];
   if (kieAiTools.includes(slug)) {
     const callbackUrl = `${process.env.APP_URL ?? "https://artifacial.app"}/api/webhooks/kieai`;
     let kieTaskId: string;
@@ -426,7 +426,7 @@ export async function POST(
 
     try {
       console.log(`[workshop/${slug}] starting KIE.AI submission, body keys:`, Object.keys(body));
-      if (slug === "ideogram-character-remix") {
+      if (slug === "character-swap-remix") {
         const [srcUrl, refUrl] = await Promise.all([
           resolveImg(userId, body.sourceImage),
           resolveImg(userId, body.referenceImage),

@@ -1678,8 +1678,8 @@ function ToolForm({
     case "music-gen":          return <MusicGenForm {...props} />;
     case "add-audio":          return <AddAudioForm {...props} />;
     case "diffrhythm":              return <DiffRhythmForm {...props} />;
-    case "ideogram-character":      return <IdeogramCharacterForm {...props} />;
-    case "ideogram-character-remix": return <IdeogramCharacterRemixForm {...props} />;
+    case "character-swap":      return <IdeogramCharacterForm {...props} />;
+    case "character-swap-remix": return <IdeogramCharacterRemixForm {...props} />;
     case "recraft-crisp-upscale":   return <RecraftCrispUpscaleForm {...props} />;
     case "grok-video-upscale":      return <GrokVideoUpscaleForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;

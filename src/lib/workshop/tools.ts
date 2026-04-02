@@ -16,7 +16,7 @@ export interface WorkshopTool {
 export const WORKSHOP_TOOLS: WorkshopTool[] = [
   // ── Featured: KIE.AI Tools ──
   {
-    slug: "ideogram-character",
+    slug: "character-swap",
     name: "Character Swap",
     tagline: "Swap one person for another in any photo",
     description: "Upload a target photo and a character reference. The model replaces the person in the target photo with your character, preserving the original scene, background, lighting, and pose.",
@@ -27,7 +27,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "image",
   },
   {
-    slug: "ideogram-character-remix",
+    slug: "character-swap-remix",
     name: "Scene Remix",
     tagline: "Swap the background or scene of any photo",
     description: "Transform the background or scene of an existing photo while keeping the subject. Provide a character reference to help maintain their appearance across the change.",

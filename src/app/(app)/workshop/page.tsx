@@ -9,7 +9,7 @@ export const metadata = {
 
 // Slugs visible to all users on the public workshop page
 const PUBLIC_TOOL_SLUGS = [
-  "ideogram-character",
+  "character-swap",
   "recraft-crisp-upscale",
 ];
 
