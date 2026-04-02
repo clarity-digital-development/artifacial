@@ -74,9 +74,9 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "add-audio":         return 75;
     case "diffrhythm":        return 80;
     case "ideogram-character":
-      return 120;
+      return 240;
     case "ideogram-character-remix":
-      return 120 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
+      return 240 * Math.max(1, Math.min(4, Number(body.numImages ?? 1)));
     case "recraft-crisp-upscale":
       return 60;
     case "grok-video-upscale":

@@ -1308,7 +1308,7 @@ function IdeogramCharacterForm({
         disabled={loading || !canSubmit}
         className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        Swap Character · 120 cr
+        Swap Character · 240 cr
       </button>
     </div>
   );
