@@ -395,8 +395,12 @@ export async function POST(
 
     let taskId: string;
     try {
+      const swapMode = body.swapMode === "face" ? "face" : "full";
+      const prompt = swapMode === "face"
+        ? "The first image is the target scene. The second image is the character reference. Keep everything from the first image exactly as-is — background, body, clothing, pose, and environment — but replace only the face and hair of the person with the face and hair from the second image. Do not change any clothing, body shape, or background."
+        : "The first image is the target scene. The second image is the character reference. Keep the background, environment, lighting, and spatial perspective from the first image exactly as they appear. Replace the person in the first image entirely with the person from the second image — including their face, hair, body, and clothing. Maintain the original pose and scene composition.";
       const result = await submitTask("gemini", "nano-banana-2", {
-        prompt: "The first image is the target scene. The second image is the character reference. Place the person from the second image into the scene shown in the first image. Preserve the original background, environment, lighting, shadows, and spatial perspective exactly as they appear in the first image. Only swap the person's identity and appearance.",
+        prompt,
         image_urls: [targetUrl, charUrl],
         aspect_ratio: aspectRatio,
         resolution: "1K",

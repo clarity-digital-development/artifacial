@@ -1262,16 +1262,44 @@ function IdeogramCharacterForm({
   const [targetImage, setTargetImage] = useState<string | null>(null);
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState("portrait_4_3");
+  const [swapMode, setSwapMode] = useState<"face" | "full">("full");
 
   const canSubmit = !!targetImage && !!characterImage;
 
   return (
     <div className="space-y-5">
+      {/* Swap mode toggle */}
+      <div>
+        <Label className="mb-1.5">Swap Mode</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {(["full", "face"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setSwapMode(mode)}
+              disabled={loading}
+              className={`flex flex-col gap-0.5 rounded-[var(--radius-md)] border px-3 py-2.5 text-left transition-colors ${
+                swapMode === mode
+                  ? "border-[var(--accent-amber)] bg-[var(--accent-amber-glow)] text-[var(--accent-amber)]"
+                  : "border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:border-[var(--border-subtle)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <span className="text-sm font-semibold">
+                {mode === "full" ? "Full Character" : "Face Only"}
+              </span>
+              <span className="text-[11px] opacity-70">
+                {mode === "full" ? "Body, clothing & face" : "Face & hair only"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Target photo */}
       <div>
         <div className="mb-1.5 flex items-center gap-2">
           <Label>Target Photo</Label>
-          <InfoTooltip content="The photo that contains the person you want to replace. The scene, background, lighting, and pose from this image will be preserved in the output." />
+          <InfoTooltip content="The photo containing the person you want to replace. The scene, background, lighting, and pose will be preserved." />
         </div>
         <ImageInput value={targetImage} onChange={setTargetImage} disabled={loading} />
       </div>
@@ -1280,7 +1308,7 @@ function IdeogramCharacterForm({
       <div>
         <div className="mb-1.5 flex items-center gap-2">
           <Label>Character to Insert</Label>
-          <InfoTooltip content="A clear photo of the person you want to swap in. Use a well-lit, front-facing portrait for best identity preservation. This person will replace the subject in the target photo." />
+          <InfoTooltip content={swapMode === "full" ? "A full-body photo of the person to swap in. Their face, body, and clothing will be transferred into the target scene." : "A clear photo of the person to swap in. Use a well-lit, front-facing portrait for best face preservation."} />
         </div>
         <ImageInput value={characterImage} onChange={setCharacterImage} disabled={loading} />
       </div>
@@ -1304,7 +1332,7 @@ function IdeogramCharacterForm({
 
       <button
         type="button"
-        onClick={() => onSubmit({ targetImage, characterImage, imageSize })}
+        onClick={() => onSubmit({ targetImage, characterImage, imageSize, swapMode })}
         disabled={loading || !canSubmit}
         className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-all hover:bg-[var(--accent-amber-dim)] disabled:opacity-40 disabled:cursor-not-allowed"
       >
