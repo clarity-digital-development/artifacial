@@ -1,9 +1,13 @@
 import { Resend } from "resend";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("RESEND_API_KEY is not set");
+  return new Resend(key);
+}
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: "Artifacial <noreply@artifacial.app>",
     to: email,
     subject: "Reset your Artifacial password",
