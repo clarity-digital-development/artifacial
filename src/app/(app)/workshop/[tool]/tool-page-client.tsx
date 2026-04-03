@@ -1987,24 +1987,48 @@ function DownloadButton({
   className?: string;
   fullWidth?: boolean;
 }) {
-  const handleDownload = () => {
-    const a = document.createElement("a");
-    a.href = `/api/download?url=${encodeURIComponent(url)}`;
-    a.download = filename;
-    a.click();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Fall back to proxy if direct fetch fails (e.g. CORS)
+      const a = document.createElement("a");
+      a.href = `/api/download?url=${encodeURIComponent(url)}`;
+      a.download = filename;
+      a.click();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
     <button
       onClick={handleDownload}
-      className={`flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-amber)]/40 hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] ${fullWidth ? "w-full" : ""} ${className}`}
+      disabled={downloading}
+      className={`flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-amber)]/40 hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] disabled:opacity-50 ${fullWidth ? "w-full" : ""} ${className}`}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      {label}
+      {downloading ? (
+        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      )}
+      {downloading ? "Downloading…" : label}
     </button>
   );
 }
