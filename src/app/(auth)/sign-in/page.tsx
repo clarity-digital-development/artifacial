@@ -69,9 +69,14 @@ function SignInForm() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">
+              Password
+            </label>
+            <Link href="/forgot-password" className="text-[var(--text-xs)] text-[var(--text-muted)] transition-colors hover:text-[var(--accent-amber)]">
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
