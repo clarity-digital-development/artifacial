@@ -1,73 +1,41 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSignedR2Url } from "@/lib/r2";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ videos: [], images: [] });
+    return NextResponse.json({ images: [], generatedImages: [] });
   }
 
   const userId = session.user.id;
 
-  const [generations, characters, imageGens] = await Promise.all([
-    prisma.generation.findMany({
-      where: {
-        userId,
-        status: "COMPLETED",
-        outputUrl: { not: null },
-        workflowType: { in: ["IMAGE_TO_VIDEO", "TEXT_TO_VIDEO"] as const },
-      },
-      select: {
-        id: true,
-        outputUrl: true,
-        thumbnailUrl: true,
-        workflowType: true,
-      },
-      orderBy: { completedAt: "desc" },
-      take: 30,
-    }),
-    prisma.character.findMany({
-      where: {
-        userId,
-        faceImageUrl: { not: null },
-      },
-      select: {
-        id: true,
-        name: true,
-        faceImageUrl: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-    }),
-    prisma.generation.findMany({
-      where: { userId, status: "COMPLETED", workflowType: "IMAGE_EDIT", outputUrl: { not: null } },
-      orderBy: { completedAt: "desc" },
-      take: 20,
-      select: { id: true, outputUrl: true, thumbnailUrl: true },
-    }),
-  ]);
+  const characters = await prisma.character.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      faceImageUrl: true,
+      referenceImages: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
-  const generatedImages = imageGens
-    .filter((g) => g.outputUrl)
-    .map((g) => ({
-      id: g.id,
-      url: g.outputUrl!,
-      thumbnailUrl: g.thumbnailUrl ?? g.outputUrl!,
-      name: "Generated image",
-    }));
+  const images = await Promise.all(
+    characters.map(async (c) => {
+      // Prefer faceImageUrl (direct URL), fall back to first referenceImage (R2 key → signed)
+      let url: string | null = c.faceImageUrl ?? null;
+      if (!url && c.referenceImages.length > 0) {
+        url = await getSignedR2Url(c.referenceImages[0], 86400);
+      }
+      return url ? { id: c.id, url, name: c.name } : null;
+    })
+  );
 
   return NextResponse.json({
-    videos: generations.map((g) => ({
-      id: g.id,
-      url: g.outputUrl!,
-      thumbnailUrl: g.thumbnailUrl ?? null,
-    })),
-    images: characters.map((c) => ({
-      id: c.id,
-      url: c.faceImageUrl!,
-      name: c.name,
-    })),
-    generatedImages,
+    images: images.filter(Boolean),
+    generatedImages: [],
   });
 }
