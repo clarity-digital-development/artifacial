@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 export const TUTORIAL_PHASE_KEY = "artifacial_tutorial_phase";
@@ -185,6 +186,9 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
     return () => window.removeEventListener("resize", updateSpotlight);
   }, [visible, updateSpotlight]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const markDone = useCallback(() => {
     localStorage.setItem(TUTORIAL_DONE_KEY, "1");
     localStorage.removeItem(TUTORIAL_PHASE_KEY);
@@ -204,7 +208,7 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
     }
   };
 
-  if (!visible || !step) return null;
+  if (!visible || !step || !mounted) return null;
 
   // Compute tooltip position
   let tooltipStyle: React.CSSProperties = {};
@@ -256,9 +260,9 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
 
   const totalSteps = steps.length;
 
-  return (
+  const overlay = (
     <>
-      {/* Backdrop / spotlight */}
+      {/* Backdrop / spotlight — rendered via portal to escape app layout stacking context */}
       {spotlightRect ? (
         <div
           style={{
@@ -268,8 +272,8 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
             width: spotlightRect.width + 16,
             height: spotlightRect.height + 16,
             borderRadius: 8,
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.75)",
-            zIndex: 9998,
+            boxShadow: "0 0 0 9999px rgba(0,0,0,0.80)",
+            zIndex: 99998,
             pointerEvents: "none",
           }}
         />
@@ -278,8 +282,8 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0,0,0,0.75)",
-            zIndex: 9998,
+            backgroundColor: "rgba(0,0,0,0.80)",
+            zIndex: 99998,
             pointerEvents: "none",
           }}
         />
@@ -288,7 +292,7 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
       {/* Tooltip card */}
       <div
         key={cardKey}
-        style={tooltipStyle}
+        style={{ ...tooltipStyle, zIndex: 99999 }}
         className="animate-fade-in-up rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
       >
         {/* Progress dots */}
@@ -334,4 +338,6 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
       </div>
     </>
   );
+
+  return createPortal(overlay, document.body);
 }

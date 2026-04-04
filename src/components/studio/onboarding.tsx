@@ -2,10 +2,57 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 
 const PHASE_KEY = "artifacial_tutorial_phase";
 const DONE_KEY = "artifacial_tutorial_done";
+
+function TutorialModal({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 99999 }}
+      className="flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+    >
+      <div className="animate-fade-in-up w-full max-w-sm overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-7 shadow-2xl">
+        {/* Icon */}
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-amber)]/10">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+        </div>
+
+        <h2 className="mb-2 font-display text-xl font-bold text-[var(--text-primary)]">
+          New to Artifacial?
+        </h2>
+        <p className="mb-6 text-sm leading-relaxed text-[var(--text-muted)]">
+          We can walk you through creating your first AI video — which models to use, how to build a character, and how to generate your first scene. Takes about 5 minutes.
+        </p>
+
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onYes}
+            className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-opacity hover:opacity-90"
+          >
+            Yes, show me around
+          </button>
+          <button
+            onClick={onNo}
+            className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+          >
+            No thanks, I&apos;ll figure it out
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export function StudioOnboarding() {
   const router = useRouter();
@@ -14,7 +61,6 @@ export function StudioOnboarding() {
   useEffect(() => {
     const done = localStorage.getItem(DONE_KEY);
     const phase = localStorage.getItem(PHASE_KEY);
-    // Show the modal only if they've never answered the tutorial prompt
     if (!done && !phase) {
       setShowModal(true);
     }
@@ -32,43 +78,7 @@ export function StudioOnboarding() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center py-16">
-      {/* Tutorial modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="animate-fade-in-up relative w-full max-w-sm overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-7 shadow-2xl">
-            {/* Icon */}
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-amber)]/10">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 16v-4M12 8h.01"/>
-              </svg>
-            </div>
-
-            <h2 className="mb-2 font-display text-xl font-bold text-[var(--text-primary)]">
-              New to Artifacial?
-            </h2>
-            <p className="mb-6 text-sm leading-relaxed text-[var(--text-muted)]">
-              We can walk you through creating your first AI video — which models to use, how to build a character, and how to generate your first scene. Takes about 5 minutes.
-            </p>
-
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleYes}
-                className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-sm font-semibold text-[var(--bg-deep)] shadow-[0_0_20px_rgba(232,166,52,0.15)] transition-opacity hover:opacity-90"
-              >
-                Yes, show me around
-              </button>
-              <button
-                onClick={handleNo}
-                className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-              >
-                No thanks, I&apos;ll figure it out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showModal && <TutorialModal onYes={handleYes} onNo={handleNo} />}
 
       {/* Decorative icon */}
       <div className="relative mb-12">
