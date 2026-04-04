@@ -9,6 +9,41 @@ datasource db {
 
 // ─── Enums ───
 
+enum AffiliateTier {
+  AFFILIATE
+  AGENT
+}
+
+enum AffiliateStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum PayoutMethod {
+  STRIPE
+  PAYPAL
+}
+
+enum CommissionType {
+  DIRECT    // affiliate earned from their referral
+  OVERRIDE  // agent earned from sub-affiliate's commission
+}
+
+enum CommissionStatus {
+  PENDING      // within NET-30 hold
+  APPROVED     // past NET-30, ready to pay out
+  PAID         // included in a completed payout
+  CLAWED_BACK  // refund/chargeback occurred
+}
+
+enum PayoutRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum ContentMode {
   SFW
   NSFW
@@ -131,6 +166,9 @@ model User {
   banReason        String?
   deletedAt        DateTime?
 
+  // Affiliate attribution — set at signup if referred via link/code
+  referredByAffiliateId String?
+
   accounts            Account[]
   sessions            Session[]
   characters          Character[]
@@ -138,6 +176,7 @@ model User {
   generations         Generation[]
   creditTransactions  CreditTransaction[]
   moderationEvents    ModerationEvent[]
+  affiliate           Affiliate?
 }
 
 model Character {
@@ -299,4 +338,123 @@ model ModerationEvent {
   @@index([userId])
   @@index([type])
   @@index([createdAt])
+}
+
+// ─── Affiliate / Agency Program ───
+
+model Affiliate {
+  id                String          @id @default(cuid())
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identity
+  code              String          @unique  // user-chosen promo code (e.g. "SARAH")
+  tier              AffiliateTier   @default(AFFILIATE)
+  status            AffiliateStatus @default(PENDING)
+
+  // Agent relationship (NULL = no parent agent)
+  parentAffiliateId String?
+  parentAffiliate   Affiliate?      @relation("AgentAffiliates", fields: [parentAffiliateId], references: [id])
+  subAffiliates     Affiliate[]     @relation("AgentAffiliates")
+
+  // Payout settings
+  payoutMethod      PayoutMethod?
+  stripeAccountId   String?         // Stripe Connect account ID
+  paypalEmail       String?         // PayPal email for payouts
+
+  // Application
+  platformUrl       String?         // e.g. TikTok/Instagram link
+  audienceSize      String?
+  contentNiche      String?
+  applicationNote   String?         @db.Text
+  reviewedAt        DateTime?
+  reviewedBy        String?         // admin userId
+
+  commissions       Commission[]
+  clicks            AffiliateClick[]
+  payoutRequests    PayoutRequest[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([code])
+  @@index([status])
+  @@index([parentAffiliateId])
+}
+
+model Commission {
+  id                   String           @id @default(cuid())
+  affiliateId          String
+  affiliate            Affiliate        @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  type                 CommissionType
+  // For override commissions: which sub-affiliate generated the underlying sale
+  sourceAffiliateId    String?
+
+  // Attribution
+  referredUserId       String?
+  stripeInvoiceId      String           @unique
+  stripeSubscriptionId String
+  stripeCustomerId     String
+
+  // Financial
+  subscriptionRevenue  Float            // what the customer paid (USD)
+  amount               Float            // commission earned (USD)
+  currency             String           @default("usd")
+
+  // Lifecycle — month 1–12 for affiliate DIRECT; uncapped for agent OVERRIDE
+  monthNumber          Int              @default(1)
+  status               CommissionStatus @default(PENDING)
+  paysOutAt            DateTime         // invoice date + 30 days (NET-30)
+  paidAt               DateTime?
+  payoutRequestId      String?
+  payoutRequest        PayoutRequest?   @relation(fields: [payoutRequestId], references: [id])
+
+  createdAt            DateTime         @default(now())
+
+  @@index([affiliateId])
+  @@index([status])
+  @@index([paysOutAt])
+  @@index([stripeSubscriptionId])
+}
+
+model AffiliateClick {
+  id                String    @id @default(cuid())
+  affiliateId       String
+  affiliate         Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  ipHash            String    // hashed for privacy
+  userAgent         String?
+  landingPage       String?
+  convertedToUserId String?   // set when this click leads to a signup
+
+  createdAt         DateTime  @default(now())
+
+  @@index([affiliateId])
+  @@index([createdAt])
+}
+
+model PayoutRequest {
+  id          String              @id @default(cuid())
+  affiliateId String
+  affiliate   Affiliate           @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  amount      Float               // total USD being paid out
+  method      PayoutMethod
+  status      PayoutRequestStatus @default(PENDING)
+
+  // Stripe Connect
+  stripeTransferId    String?
+  // PayPal Payouts
+  paypalBatchId       String?
+  paypalPayoutItemId  String?
+
+  commissions Commission[]        // which commissions are included
+
+  notes       String?
+  requestedAt DateTime            @default(now())
+  processedAt DateTime?
+
+  @@index([affiliateId])
+  @@index([status])
 }
