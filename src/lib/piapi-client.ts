@@ -573,6 +573,10 @@ const COST_ESTIMATES: Record<string, {
   "veo-31": { perSecond: 0.12 },
   "veo-3-audio": { perSecond: 0.24 },
   "veo-31-audio": { perSecond: 0.24 },
+  "veo-3-fast": { perSecond: 0.06 },
+  "veo-31-fast": { perSecond: 0.06 },
+  "veo-3-fast-audio": { perSecond: 0.09 },
+  "veo-31-fast-audio": { perSecond: 0.09 },
   // Video — Sora
   "sora-2": { perSecond: 0.08 },
   "sora-2-pro": { perSecond: 0.24 },
