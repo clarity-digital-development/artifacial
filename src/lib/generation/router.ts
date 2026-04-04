@@ -146,6 +146,11 @@ async function submitToPiAPI(
     Object.assign(input, model.pipiConfig.defaults);
   }
 
+  // Kling: image_tail_url (anchor end frame) requires mode=pro — override regardless of model default
+  if (piApiModel === "kling" && params.endImageUrl) {
+    (input as Record<string, unknown>).mode = "pro";
+  }
+
   const result = await submitTask(piApiModel, taskType, input);
   return { taskId: result.taskId, piApiModel };
 }
