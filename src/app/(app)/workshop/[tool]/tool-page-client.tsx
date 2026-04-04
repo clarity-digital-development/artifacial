@@ -1992,20 +1992,26 @@ function DownloadButton({
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const res = await fetch(url);
+      const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(objectUrl);
     } catch {
-      // Fall back to proxy if direct fetch fails (e.g. CORS)
+      // Last-resort fallback: navigate directly
       const a = document.createElement("a");
-      a.href = `/api/download?url=${encodeURIComponent(url)}`;
+      a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
     } finally {
       setDownloading(false);
     }
