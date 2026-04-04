@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 export const TUTORIAL_PHASE_KEY = "artifacial_tutorial_phase";
 export const TUTORIAL_DONE_KEY = "artifacial_tutorial_done";
 
-export type TutorialPhase = "generate-tour" | "generate-video";
+export type TutorialPhase = "generate-tour" | "generate-video" | "characters-create";
 
 interface TutorialOverlayProps {
   phase: TutorialPhase;
@@ -95,6 +95,42 @@ function buildGenerateVideoSteps(): Step[] {
   ];
 }
 
+function buildCharactersTourSteps(onReadyToGenerate: () => void): Step[] {
+  return [
+    {
+      target: null,
+      title: "Let's create your first character",
+      body: "This is the character studio. Follow these steps and we'll guide you through creating your first AI character.",
+    },
+    {
+      target: "[data-tutorial='char-prompt']",
+      position: "below",
+      title: "Describe your character",
+      body: "Write a detailed description — appearance, style, personality, setting. The more specific, the better.",
+    },
+    {
+      target: "[data-tutorial='char-image-type']",
+      position: "below",
+      title: "Pick your image type",
+      body: "Choose how your character should look — realistic photo, illustration, cinematic, etc.",
+    },
+    {
+      target: "[data-tutorial='char-aspect-ratio']",
+      position: "below",
+      title: "Pick your aspect ratio",
+      body: "Portrait works best for characters. Square is great for headshots.",
+    },
+    {
+      target: "[data-tutorial='char-model']",
+      position: "below",
+      title: "Pick your model",
+      body: "Nano Banana 2 (150 cr) gives the best realism and likeness. Sea Dance is faster and cheaper if you want to iterate quickly.",
+      ctaLabel: "Got it, let's generate!",
+      ctaAction: onReadyToGenerate,
+    },
+  ];
+}
+
 // ─── Spotlight helpers ───
 
 interface SpotlightRect {
@@ -149,9 +185,16 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
     window.location.reload();
   }, []);
 
+  const onReadyToGenerate = useCallback(() => {
+    localStorage.setItem(TUTORIAL_PHASE_KEY, "characters-generate");
+    setVisible(false);
+  }, []);
+
   const steps: Step[] =
     phase === "generate-tour"
       ? buildGenerateTourSteps(startVideo)
+      : phase === "characters-create"
+      ? buildCharactersTourSteps(onReadyToGenerate)
       : buildGenerateVideoSteps();
 
   const step = steps[stepIndex];

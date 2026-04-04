@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CharacterPreviewGrid } from "@/components/character-preview-grid";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { SettingsSheet } from "@/components/generate/settings-sheet";
-import { CharacterTutorialBanner } from "@/components/tutorial/character-tutorial-banner";
+import { TutorialOverlay, TUTORIAL_PHASE_KEY } from "@/components/tutorial-overlay";
 
 const STYLE_OPTIONS = [
   { value: "photorealistic", label: "Photorealistic" },
@@ -301,6 +301,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
   const [saving, setSaving] = useState(false);
   const [generatedCharacterIds, setGeneratedCharacterIds] = useState<(string | null)[]>([null]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [showTutorialSaveRing, setShowTutorialSaveRing] = useState(false);
   const isMobile = useIsMobile();
 
   const photoPreviewRef = useRef<string | null>(null);
@@ -343,6 +344,16 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
       return next;
     });
   }, [count]);
+
+  // Show pulsing ring on save button when in tutorial and generation is complete
+  useEffect(() => {
+    const phase = localStorage.getItem(TUTORIAL_PHASE_KEY);
+    if (phase === "characters-generate" && hasImages && !generating) {
+      setShowTutorialSaveRing(true);
+    } else {
+      setShowTutorialSaveRing(false);
+    }
+  }, [hasImages, generating]);
 
   const handlePhotoSelect = useCallback((file: File) => {
     setPhoto(file);
@@ -469,7 +480,11 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
             })
           )
         );
-        if (validIds.length === 1) {
+        const tutorialPhase = localStorage.getItem(TUTORIAL_PHASE_KEY);
+        if (tutorialPhase === "characters-generate") {
+          localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
+          router.push("/generate");
+        } else if (validIds.length === 1) {
           router.push(`/characters/${validIds[0]}`);
         } else {
           router.push("/characters");
@@ -489,7 +504,13 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
         });
         if (!res.ok) throw new Error("Failed to save character");
         const character = await res.json();
-        router.push(`/characters/${character.id}`);
+        const tutorialPhase = localStorage.getItem(TUTORIAL_PHASE_KEY);
+        if (tutorialPhase === "characters-generate") {
+          localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
+          router.push("/generate");
+        } else {
+          router.push(`/characters/${character.id}`);
+        }
       }
     } catch {
       setError("Failed to save character");
@@ -640,7 +661,6 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
   return (
     <div className="no-stagger flex h-full flex-col">
-      <CharacterTutorialBanner generationComplete={hasImages && !generating} />
       {/* ═══ Canvas ═══ */}
       <div className={`relative flex flex-1 items-center justify-center overflow-hidden ${isMobile ? "px-4 py-4" : "px-8 py-6"}`}>
         {hasImages || generating ? (
@@ -656,8 +676,9 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
                   Redo
                 </button>
                 <button
+                  data-tutorial="char-save-btn"
                   onClick={handleOpenSave}
-                  className="flex items-center gap-1.5 rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-[var(--text-xs)] font-semibold text-[var(--bg-deep)] transition-all duration-200 hover:brightness-110"
+                  className={`flex items-center gap-1.5 rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-[var(--text-xs)] font-semibold text-[var(--bg-deep)] transition-all duration-200 hover:brightness-110${showTutorialSaveRing ? " ring-2 ring-[var(--accent-amber)] ring-offset-2 ring-offset-[var(--bg-deep)] animate-pulse" : ""}`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
                   Save Character
@@ -688,11 +709,13 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
           <div className="w-full max-w-3xl rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/90 px-4 py-3 shadow-[0_-4px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl">
             {/* Controls row */}
             <div className="mb-2.5 flex items-center gap-2">
-              <ModelDropdown
-                value={model}
-                onChange={handleModelChange}
-                options={MODEL_OPTIONS}
-              />
+              <div data-tutorial="char-model">
+                <ModelDropdown
+                  value={model}
+                  onChange={handleModelChange}
+                  options={MODEL_OPTIONS}
+                />
+              </div>
               <PillGroup
                 options={QUALITY_OPTIONS.map((q) => ({
                   ...q,
@@ -701,15 +724,19 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
                 value={quality}
                 onChange={(v) => setQuality(v as Quality)}
               />
-              <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
+              <div data-tutorial="char-image-type">
+                <Dropdown value={style} onChange={setStyle} options={STYLE_OPTIONS} />
+              </div>
               <div className="h-4 w-px bg-[var(--border-default)]" />
-              <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
+              <div data-tutorial="char-aspect-ratio">
+                <Dropdown value={aspectRatio} onChange={setAspectRatio} options={ASPECT_RATIO_OPTIONS} />
+              </div>
               <div className="h-4 w-px bg-[var(--border-default)]" />
               <PillGroup options={COUNT_OPTIONS.map(o => ({ ...o, disabled: generating }))} value={count} onChange={setCount} />
             </div>
 
             {/* Prompt row */}
-            <div className="relative">
+            <div className="relative" data-tutorial="char-prompt">
               {/* Hidden file input (desktop) */}
               <input
                 type="file"
@@ -896,6 +923,8 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
           </div>
         </div>
       )}
+
+      <TutorialOverlay phase="characters-create" onDone={() => {}} />
     </div>
   );
 }
