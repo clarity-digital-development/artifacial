@@ -9,25 +9,32 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const sessionUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+
   const agentAffiliate = await prisma.affiliate.findUnique({
     where: { userId: session.user.id },
     select: { id: true, tier: true },
   });
 
-  if (!agentAffiliate) {
+  const isAdmin = sessionUser?.isAdmin ?? false;
+
+  if (!agentAffiliate && !isAdmin) {
     return NextResponse.json({ error: "No affiliate account found" }, { status: 404 });
   }
 
-  if (agentAffiliate.tier !== "AGENT") {
+  if (!isAdmin && agentAffiliate?.tier !== "AGENT") {
     return NextResponse.json(
       { error: "Only agents can view sub-affiliates" },
       { status: 403 }
     );
   }
 
-  // Fetch all sub-affiliates of this agent
+  // Fetch all sub-affiliates of this agent (or all affiliates for admin preview)
   const subAffiliates = await prisma.affiliate.findMany({
-    where: { parentAffiliateId: agentAffiliate.id },
+    where: agentAffiliate ? { parentAffiliateId: agentAffiliate.id } : { parentAffiliateId: null },
     include: {
       user: {
         select: {
@@ -46,14 +53,16 @@ export async function GET() {
       const subStats = await calculateAffiliateStats(sub.id);
 
       // Agent's override commissions sourced from this sub-affiliate
-      const overrideEarnings = await prisma.commission.aggregate({
-        where: {
-          affiliateId: agentAffiliate.id,
-          type: "OVERRIDE",
-          sourceAffiliateId: sub.id,
-        },
-        _sum: { amount: true },
-      });
+      const overrideEarnings = agentAffiliate
+        ? await prisma.commission.aggregate({
+            where: {
+              affiliateId: agentAffiliate.id,
+              type: "OVERRIDE",
+              sourceAffiliateId: sub.id,
+            },
+            _sum: { amount: true },
+          })
+        : { _sum: { amount: 0 } };
 
       return {
         id: sub.id,
