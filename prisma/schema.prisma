@@ -370,9 +370,10 @@ model Affiliate {
   reviewedAt        DateTime?
   reviewedBy        String?         // admin userId
 
-  commissions       Commission[]
-  clicks            AffiliateClick[]
-  payoutRequests    PayoutRequest[]
+  commissions          Commission[]
+  clicks               AffiliateClick[]
+  payoutRequests       PayoutRequest[]
+  rewardfulAffiliates  RewardfulAffiliate[]
 
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -396,6 +397,9 @@ model Commission {
   stripeInvoiceId      String           @unique
   stripeSubscriptionId String
   stripeCustomerId     String
+
+  // External reference — Rewardful commission ID for Rewardful-sourced overrides
+  rewardfulCommissionId String?         @unique
 
   // Financial
   subscriptionRevenue  Float            // what the customer paid (USD)
@@ -456,5 +460,44 @@ model PayoutRequest {
   processedAt DateTime?
 
   @@index([affiliateId])
+  @@index([status])
+}
+
+// ─── Rewardful / Agent Attribution ───
+
+enum AgentApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Maps a Rewardful affiliate (content creator in the Rewardful program) to
+/// one of our internal agents. Created when `affiliate.created` fires and we
+/// match the email to an AgentApplication.
+model RewardfulAffiliate {
+  id           String    @id @default(cuid())
+  rewardfulId  String    @unique  // Rewardful's own affiliate ID
+  email        String
+  agentId      String              // FK → Affiliate.id (the recruiting agent)
+  agent        Affiliate @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  @@index([email])
+  @@index([agentId])
+}
+
+/// A content creator who clicked an agent's referral link and submitted an
+/// application to join Artifacial as a Rewardful affiliate.
+model AgentApplication {
+  id        String                 @id @default(cuid())
+  email     String
+  name      String
+  agentCode String                 // the agent's Affiliate.code
+  notes     String?                @db.Text
+  status    AgentApplicationStatus @default(PENDING)
+  createdAt DateTime               @default(now())
+
+  @@index([email])
+  @@index([agentCode])
   @@index([status])
 }
