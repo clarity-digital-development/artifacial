@@ -14,7 +14,7 @@ export function CharacterTutorialBanner() {
   }, []);
 
   const handleDone = () => {
-    localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
+    localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-tour");
     router.push("/generate");
   };
 

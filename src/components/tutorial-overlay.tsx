@@ -25,12 +25,12 @@ interface Step {
 
 // ─── Step definitions per phase ───
 
-function buildGenerateTourSteps(onGoToCharacters: () => void): Step[] {
+function buildGenerateTourSteps(onStartVideo: () => void): Step[] {
   return [
     {
       target: null,
-      title: "Welcome to Generate",
-      body: "This is where all your AI videos and images are created. Let's take 30 seconds to learn the key areas before you dive in.",
+      title: "Now let's make your first video",
+      body: "Great — your character is ready! This is the Generate page, where all your AI videos are created. Let's take 30 seconds to learn the layout.",
     },
     {
       target: "[data-tutorial='mode-tabs']",
@@ -41,7 +41,7 @@ function buildGenerateTourSteps(onGoToCharacters: () => void): Step[] {
     {
       target: "[data-tutorial='model-picker']",
       title: "Pick your AI model",
-      body: "Budget models are fast and cheap. Standard is the sweet spot. Ultra gives cinematic quality. For your first video, Kling 2.6 Standard (850 cr) is a great choice.",
+      body: "Budget models are fast and cheap. Standard is the sweet spot. Ultra gives cinematic quality. We'll use Kling 2.6 Standard (850 cr) for your first video.",
       position: "below",
     },
     {
@@ -52,10 +52,10 @@ function buildGenerateTourSteps(onGoToCharacters: () => void): Step[] {
     },
     {
       target: null,
-      title: "First: create your character",
-      body: "Before generating your first video, let's build a character. You'll use Nano Banana 2 (150 cr) to generate a photorealistic face, then animate it with Kling 2.6 Standard.",
-      ctaLabel: "Create My Character →",
-      ctaAction: onGoToCharacters,
+      title: "Ready to generate",
+      body: "Switch to Image→Video, select your character, pick Kling 2.6 Standard, write your prompt, and hit Generate. Your first video will appear in the center panel.",
+      ctaLabel: "Let's do it →",
+      ctaAction: onStartVideo,
     },
   ];
 }
@@ -142,14 +142,15 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [cardKey, setCardKey] = useState(0);
 
-  const goToCharacters = useCallback(() => {
-    localStorage.setItem(TUTORIAL_PHASE_KEY, "characters-create");
-    router.push("/characters/new");
-  }, [router]);
+  const startVideo = useCallback(() => {
+    localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
+    // Stay on /generate but switch phase — reload the tutorial
+    window.location.reload();
+  }, []);
 
   const steps: Step[] =
     phase === "generate-tour"
-      ? buildGenerateTourSteps(goToCharacters)
+      ? buildGenerateTourSteps(startVideo)
       : buildGenerateVideoSteps();
 
   const step = steps[stepIndex];
@@ -316,18 +317,18 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
           {step.body}
         </p>
 
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            onClick={markDone}
-            className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Skip tutorial
-          </button>
+        <div className="mt-4 flex flex-col gap-2">
           <button
             onClick={handleNext}
-            className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] transition-opacity hover:opacity-90"
+            className="w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-deep)] transition-opacity hover:opacity-90"
           >
             {step.ctaLabel ?? (isLast ? "Done ✓" : "Next →")}
+          </button>
+          <button
+            onClick={markDone}
+            className="w-full py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            Skip tutorial
           </button>
         </div>
       </div>

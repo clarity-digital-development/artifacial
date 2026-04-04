@@ -21,8 +21,8 @@ export function StudioOnboarding() {
   }, []);
 
   const handleYes = () => {
-    localStorage.setItem(PHASE_KEY, "generate-tour");
-    router.push("/generate");
+    localStorage.setItem(PHASE_KEY, "characters-create");
+    router.push("/characters/new");
   };
 
   const handleNo = () => {
