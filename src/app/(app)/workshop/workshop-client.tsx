@@ -29,7 +29,7 @@ function ToolCard({ tool }: { tool: WorkshopTool }) {
         <img
           src={`/workshop-thumbs/${tool.slug}.webp`}
           alt={tool.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          className="relative z-[1] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           onError={(e) => {
             // Fallback: hide broken img and show placeholder
             (e.target as HTMLImageElement).style.display = "none";
