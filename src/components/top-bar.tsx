@@ -27,7 +27,7 @@ interface TopBarProps {
 
 export function TopBar({
   user,
-  credits,
+  credits: initialCredits,
   contentMode = "SFW",
   subscriptionTier = "FREE",
   hasDateOfBirth = false,
@@ -39,6 +39,18 @@ export function TopBar({
   const [toggling, setToggling] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [credits, setCredits] = useState(initialCredits);
+
+  // Refresh credits when a generation completes (event dispatched by generate client)
+  useEffect(() => {
+    const refresh = () => {
+      fetch("/api/usage").then((r) => r.json()).then((d) => {
+        if (typeof d.total === "number") setCredits(d.total);
+      }).catch(() => {});
+    };
+    window.addEventListener("credits:refresh", refresh);
+    return () => window.removeEventListener("credits:refresh", refresh);
+  }, []);
 
   const section =
     Object.entries(SECTION_NAMES).find(([path]) =>

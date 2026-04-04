@@ -521,6 +521,13 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
             if (newStatus === "completed" || newStatus === "failed") {
               stopPollingFor(itemId);
+              // Refresh credits from server so balance is accurate after completion/refund
+              fetch("/api/usage").then((r) => r.json()).then((d) => {
+                if (typeof d.total === "number") {
+                  setCredits(d.total);
+                  window.dispatchEvent(new Event("credits:refresh"));
+                }
+              }).catch(() => {});
             }
 
             return updated;
