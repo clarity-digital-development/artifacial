@@ -553,8 +553,17 @@ const COST_ESTIMATES: Record<string, {
   // Video — Kling
   "kling-26-std": { perSecond: 0.04 },
   "kling-26-pro": { perSecond: 0.066 },
-  "kling-30-std": { perSecond: 0.04 },
+  "kling-26-pro-audio": { perSecond: 0.132 },
+  "kling-30-std": { perSecond: 0.10 },
   "kling-30-pro": { perSecond: 0.10 },
+  "kling-30-720p-audio": { perSecond: 0.15 },
+  "kling-30-1080p": { perSecond: 0.15 },
+  "kling-30-1080p-audio": { perSecond: 0.20 },
+  // KIE.AI motion control costs
+  "kieai-kling26-motion-720p": { perSecond: 0.030 },
+  "kieai-kling26-motion-1080p": { perSecond: 0.045 },
+  "kieai-kling30-motion-720p": { perSecond: 0.100 },
+  "kieai-kling30-motion-1080p": { perSecond: 0.135 },
   // Video — Wan
   "wan-26": { perSecond: 0.08 },
   "wan-26-1080p": { perSecond: 0.12 },
@@ -568,8 +577,18 @@ const COST_ESTIMATES: Record<string, {
   "sora-2": { perSecond: 0.08 },
   "sora-2-pro": { perSecond: 0.24 },
   // Video — Seedance
-  "seedance-2": { perSecond: 0.15 },
-  "seedance-2-fast": { perSecond: 0.08 },
+  "seedance-2": { perSecond: 0.12 },
+  "seedance-2-fast": { perSecond: 0.09 },
+  // Video — Hailuo v2.3
+  "hailuo-v23-6s-768p": { perRequest: 0.23 },
+  "hailuo-v23-10s-768p": { perRequest: 0.45 },
+  "hailuo-v23-6s-1080p": { perRequest: 0.40 },
+  "hailuo-fast-6s-768p": { perRequest: 0.16 },
+  "hailuo-fast-10s-768p": { perRequest: 0.26 },
+  "hailuo-fast-6s-1080p": { perRequest: 0.26 },
+  // Video — Luma Ray2
+  "luma-5s": { perRequest: 0.20 },
+  "luma-9s": { perRequest: 0.40 },
   // Video — Other
   "framepack": { perSecond: 0.03 },
   "skyreels": { perRequest: 0.15 },
