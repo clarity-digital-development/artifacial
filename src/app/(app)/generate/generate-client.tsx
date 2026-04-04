@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { SettingsSheet } from "@/components/generate/settings-sheet";
 import { BottomButton } from "@/components/generate/bottom-button";
 import { GenerationDetailsCard } from "@/components/generate/generation-details-card";
+import { TutorialOverlay } from "@/components/tutorial-overlay";
 
 // ─── Client-side model data (mirrors registry.ts for use in the browser) ───
 
@@ -99,8 +100,8 @@ const MODELS: ClientModel[] = [
   { id: "veo-31", name: "Veo 3.1", provider: "PIAPI", tier: "ULTRA", creditCost: 500, creditCostTable: { "4_720p": 480, "6_720p": 720, "8_720p": 960, "4_1080p": 720, "6_1080p": 1080, "8_1080p": 1440 }, supportedModes: ["T2V", "I2V"], maxDuration: 8, maxResolution: "1080p", supportsAudio: true, contentMode: "SFW", description: "Google's best. Cinematic quality with audio.", durations: [4, 6, 8], aspectRatios: ["16:9", "9:16"], resolutions: ["720p", "1080p"], supportsEndFrame: false },
   { id: "seedance-2-pro", name: "Seedance 2 Pro", provider: "PIAPI", tier: "ULTRA", creditCost: 1100, creditCostTable: { "5": 1100 }, supportedModes: ["T2V", "I2V"], maxDuration: 5, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "ByteDance premium. Higher quality.", durations: [5], aspectRatios: ["16:9", "9:16", "4:3", "3:4"], resolutions: [], supportsEndFrame: false },
   // ── Motion Control (Kling 3.0 only — KIE.AI, supports background_source) ──
-  { id: "kling-30-motion-std", name: "Kling 3.0 Motion", provider: "KIEAI", tier: "STANDARD", creditCost: 1050, creditCostTable: { "5": 1050 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 720p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
-  { id: "kling-30-motion-pro", name: "Kling 3.0 Motion Pro", provider: "KIEAI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 15, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 1080p output.", durations: [], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
+  { id: "kling-30-motion-std", name: "Kling 3.0 Motion", provider: "KIEAI", tier: "STANDARD", creditCost: 1050, creditCostTable: { "5": 1050 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 30, maxResolution: "720p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 720p output. 3–30 seconds.", durations: [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
+  { id: "kling-30-motion-pro", name: "Kling 3.0 Motion Pro", provider: "KIEAI", tier: "ULTRA", creditCost: 2100, creditCostTable: { "5": 2100 }, supportedModes: ["MOTION_TRANSFER"], maxDuration: 30, maxResolution: "1080p", supportsAudio: false, contentMode: "SFW", description: "Kling 3.0 motion control. 1080p output. 3–30 seconds.", durations: [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30], aspectRatios: [], resolutions: [], supportsEndFrame: false, badge: "New" },
   // ── NSFW Budget ──
   { id: "wan22-nsfw-t2v", name: "Wan 2.2 NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1250, creditCostTable: { "5": 1250 }, supportedModes: ["T2V"], maxDuration: 5, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Most consistent NSFW generation. Fast 720p.", durations: [5], aspectRatios: ["16:9", "9:16"], resolutions: [], supportsEndFrame: false },
   { id: "wan21-pro-nsfw-i2v", name: "Wan 2.1 Pro NSFW", provider: "VENICE", tier: "BUDGET", creditCost: 1100, creditCostTable: { "6": 1100 }, supportedModes: ["I2V"], maxDuration: 6, maxResolution: "720p", supportsAudio: false, contentMode: "NSFW", description: "Reliable unrestricted image-to-video. 6 seconds.", durations: [6], aspectRatios: ["16:9"], resolutions: [], supportsEndFrame: false },
@@ -280,6 +281,15 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const maxConcurrent = TIER_CONCURRENT_LIMITS[tier] ?? 3;
   const nextTierInfo = NEXT_TIER[tier] ?? null;
   const [showQueueUpsell, setShowQueueUpsell] = useState(false);
+  const [showCreditsUpsell, setShowCreditsUpsell] = useState(false);
+
+  // Tutorial — show on first visit
+  const [showTutorial, setShowTutorial] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("artifacial_tutorial_done")) {
+      setShowTutorial(true);
+    }
+  }, []);
 
   // Popup state for duration/aspect/quality pickers
   const [durationPopupOpen, setDurationPopupOpen] = useState(false);
@@ -555,7 +565,8 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   const handleSubmit = async () => {
     if (isMobile) setSheetOpen(false);
-    if (submitting || !canAfford || (!isMotionMode && !prompt.trim())) return;
+    if (submitting || (!isMotionMode && !prompt.trim())) return;
+    if (!canAfford) { setShowCreditsUpsell(true); return; }
     if (inFlightCount >= maxConcurrent) { setShowQueueUpsell(true); return; }
 
     const itemId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -681,7 +692,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const settingsContent = (
     <>
       {/* Mode Toggle */}
-      <div className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
+      <div data-tutorial="mode-tabs" className="mb-5 flex gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
         {(["T2V", "I2V", "MOTION_TRANSFER"] as const)
           .map((tab) => (
           <button
@@ -702,7 +713,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Model
         </label>
-        <div ref={dropdownRef} className="relative mb-4">
+        <div data-tutorial="model-picker" ref={dropdownRef} className="relative mb-4">
           {/* Trigger button — shows selected model */}
           <button
             onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
@@ -832,7 +843,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Prompt
             </label>
-            <div className="relative mb-1">
+            <div data-tutorial="prompt-area" className="relative mb-1">
               <textarea
                 ref={(el) => {
                   if (!el) return;
@@ -1314,6 +1325,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         </div>
 
         {/* Generate button */}
+        <div data-tutorial="generate-btn">
         <Button
           variant="primary"
           size="md"
@@ -1321,7 +1333,6 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
           onClick={handleSubmit}
           disabled={
             submitting ||
-            !canAfford ||
             (!isMotionMode && !prompt.trim()) ||
             // Motion transfer: needs uploaded image and video
             (isMotionMode && needsImage && !imageFile) ||
@@ -1342,6 +1353,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             `Generate — ${creditCost.toLocaleString()} cr`
           )}
         </Button>
+        </div>
     </>
   );
 
@@ -1816,6 +1828,79 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         </div>
       </div>
     )}
+
+    {/* Credits upsell modal */}
+    {showCreditsUpsell && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowCreditsUpsell(false)}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          className="relative w-full max-w-sm overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setShowCreditsUpsell(false)}
+            className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-amber)]/10 text-[var(--accent-amber)]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+
+          <h2 className="mb-1 font-display text-lg font-bold text-[var(--text-primary)]">
+            Not enough credits
+          </h2>
+          <p className="mb-5 text-sm text-[var(--text-muted)]">
+            This generation costs <span className="font-semibold text-[var(--text-primary)]">{creditCost.toLocaleString()} credits</span> and you have <span className="font-semibold text-[var(--text-primary)]">{credits.toLocaleString()}</span>. Upgrade your plan or top up to continue.
+          </p>
+
+          {/* Plan cards */}
+          <div className="mb-4 space-y-2">
+            {[
+              { name: "Starter", price: "$15/mo", credits: "15,000 cr/mo" },
+              { name: "Creator", price: "$50/mo", credits: "60,000 cr/mo", highlight: true },
+              { name: "Pro", price: "$100/mo", credits: "125,000 cr/mo" },
+            ].map((plan) => (
+              <div
+                key={plan.name}
+                className={`flex items-center justify-between rounded-[var(--radius-md)] border px-4 py-3 ${
+                  plan.highlight
+                    ? "border-[var(--accent-amber)]/40 bg-[var(--accent-amber)]/5"
+                    : "border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
+                }`}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{plan.name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{plan.credits}</p>
+                </div>
+                <span className={`text-sm font-bold ${plan.highlight ? "text-[var(--accent-amber)]" : "text-[var(--text-secondary)]"}`}>
+                  {plan.price}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href="/pricing"
+            className="block w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] py-3 text-center text-sm font-semibold text-[#0A0A0B] shadow-[0_0_20px_rgba(232,166,52,0.2)] transition-opacity hover:opacity-90"
+          >
+            View plans & upgrade
+          </a>
+          <button
+            onClick={() => setShowCreditsUpsell(false)}
+            className="mt-2 w-full py-2 text-center text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+          >
+            Maybe later
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* First-time tutorial */}
+    <TutorialOverlay active={showTutorial} onDone={() => setShowTutorial(false)} />
     </>
   );
 }

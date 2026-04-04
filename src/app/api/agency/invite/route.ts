@@ -49,7 +49,7 @@ export async function POST() {
   // The agent's own promo code serves as the invite token.
   // Any affiliate who applies via /join/[code] will be linked to this agent
   // as their parentAffiliateId.
-  const inviteUrl = `${appUrl}/join/${agentAffiliate.code}`;
+  const inviteUrl = `${appUrl}/join/${agentAffiliate!.code}`;
 
   return NextResponse.json({ inviteUrl });
 }
