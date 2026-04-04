@@ -246,10 +246,10 @@ const KLING_30_PRO: ModelConfig = {
     costKey: "kling-30-pro",
   },
   tier: "ULTRA",
-  creditCost: 1300,
+  creditCost: 2000,
   creditCostTable: {
-    "5_720p": 1300, "10_720p": 2650,
-    "5_1080p": 1300, "10_1080p": 2650,
+    "5_720p": 2000, "10_720p": 4000,
+    "5_1080p": 2000, "10_1080p": 4000,
   },
   audioCreditAddon: { "5": 1000, "10": 2000 },
   supportedModes: ["T2V", "I2V"],

@@ -554,7 +554,7 @@ const COST_ESTIMATES: Record<string, {
   "kling-26-std": { perSecond: 0.04 },
   "kling-26-pro": { perSecond: 0.066 },
   "kling-30-std": { perSecond: 0.04 },
-  "kling-30-pro": { perSecond: 0.066 },
+  "kling-30-pro": { perSecond: 0.10 },
   // Video — Wan
   "wan-26": { perSecond: 0.08 },
   "wan-26-1080p": { perSecond: 0.12 },
