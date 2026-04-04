@@ -640,7 +640,7 @@ export function NewCharacterClient({ contentMode = "SFW" }: { contentMode?: stri
 
   return (
     <div className="no-stagger flex h-full flex-col">
-      <CharacterTutorialBanner />
+      <CharacterTutorialBanner generationComplete={hasImages && !generating} />
       {/* ═══ Canvas ═══ */}
       <div className={`relative flex flex-1 items-center justify-center overflow-hidden ${isMobile ? "px-4 py-4" : "px-8 py-6"}`}>
         {hasImages || generating ? (

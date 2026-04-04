@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TUTORIAL_PHASE_KEY, TUTORIAL_DONE_KEY } from "@/components/tutorial-overlay";
 
-export function CharacterTutorialBanner() {
+interface CharacterTutorialBannerProps {
+  generationComplete?: boolean;
+}
+
+export function CharacterTutorialBanner({ generationComplete = false }: CharacterTutorialBannerProps) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
 
@@ -14,7 +18,6 @@ export function CharacterTutorialBanner() {
   }, []);
 
   const handleDone = () => {
-    // Skip generate-tour, go straight to the video generation tutorial
     localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
     router.push("/generate");
   };
@@ -27,67 +30,91 @@ export function CharacterTutorialBanner() {
 
   if (!visible) return null;
 
-  return (
-    <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--accent-amber)]/25 bg-[var(--accent-amber)]/5 p-5">
-      {/* Header */}
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-amber)] text-[11px] font-bold text-[var(--bg-deep)]">
-          1
-        </div>
-        <p className="text-sm font-semibold text-[var(--text-primary)]">
-          Create your first character
-        </p>
-        <span className="ml-auto rounded-full bg-[var(--accent-amber)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--accent-amber)]">
-          Step 1 of 2
+  const steps = [
+    {
+      num: 1,
+      title: "Put your prompt in first",
+      body: "Describe your character in the prompt box below.",
+    },
+    {
+      num: 2,
+      title: "Pick your image type",
+      body: "Choose a style — e.g. Photorealistic, Cinematic, Anime.",
+    },
+    {
+      num: 3,
+      title: "Pick your aspect ratio",
+      body: "Portrait (2:3 or 9:16), square (1:1), or landscape.",
+    },
+    {
+      num: 4,
+      title: (
+        <>
+          Pick your model — use <span className="font-bold text-[var(--text-primary)]">Nano Banana 2</span> for best quality
+        </>
+      ),
+      body: (
+        <span className="text-[var(--text-muted)]">
+          Or try <span className="text-[var(--text-secondary)]">Sea Dance</span> for a faster, cheaper generation.
         </span>
-      </div>
+      ),
+    },
+  ];
 
-      {/* Model guide */}
-      <p className="mb-3 text-xs leading-relaxed text-[var(--text-muted)]">
-        Upload a photo or describe a person below. Here&apos;s which model to pick:
-      </p>
-      <div className="mb-4 space-y-2">
-        <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/5 px-3 py-2.5">
-          <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[var(--accent-amber)]" />
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-primary)]">
-              Nano Banana 2 — 150 cr <span className="font-normal text-[var(--accent-amber)]">(Recommended)</span>
-            </p>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              Google&apos;s image editing model. Best realism, preserves likeness, photographic quality.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2.5">
-          <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[var(--border-default)]" />
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-secondary)]">Flux Dev / Seedream 5 — 90 cr</p>
-            <p className="text-[11px] text-[var(--text-muted)]">Good quality, faster. Use if you want to iterate quickly.</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2.5">
-          <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[var(--border-default)]" />
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-secondary)]">Flux Schnell / Z-Image Turbo — 10–40 cr</p>
-            <p className="text-[11px] text-[var(--text-muted)]">Budget option. Fast drafts, lower fidelity.</p>
-          </div>
-        </div>
-      </div>
-
-      <p className="mb-4 text-xs text-[var(--text-muted)]">
-        Generate your character image, then save it with a name. When you&apos;re happy with it, click below to move to Step 2 — generating your first video with Kling 2.6 Standard.
-      </p>
-
-      <div className="flex items-center justify-between">
+  return (
+    <div className="mb-4 rounded-[var(--radius-lg)] border-l-2 border-[var(--accent-amber)] bg-[var(--bg-surface)] px-4 py-3.5 shadow-sm">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-amber)]">
+          Tutorial — Step 1 of 2
+        </p>
         <button
           onClick={handleSkip}
-          className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          className="text-[11px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
           Skip tutorial
         </button>
+      </div>
+
+      {/* Steps */}
+      <ol className="mb-3 space-y-2">
+        {steps.map((step) => (
+          <li key={step.num} className="flex items-start gap-2.5">
+            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent-amber)] text-[9px] font-bold text-[var(--bg-deep)]">
+              {step.num}
+            </div>
+            <div>
+              <p className="text-xs font-medium leading-snug text-[var(--text-secondary)]">
+                {step.title}
+              </p>
+              {step.body && (
+                <p className="mt-0.5 text-[11px] leading-relaxed">{step.body}</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {/* Post-generation callout */}
+      {generationComplete && (
+        <div className="mb-3 flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--accent-amber)]/30 bg-[var(--accent-amber)]/8 px-3 py-2">
+          <span
+            className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent-amber)] text-[9px] font-bold text-[var(--bg-deep)]"
+            style={{ animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" }}
+          >
+            ✓
+          </span>
+          <p className="text-xs font-medium text-[var(--accent-amber)]">
+            Great! Now save your character below.
+          </p>
+        </div>
+      )}
+
+      {/* CTA */}
+      <div className="flex items-center justify-end">
         <button
           onClick={handleDone}
-          className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] transition-opacity hover:opacity-90"
+          className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-xs font-semibold text-[var(--bg-deep)] transition-opacity hover:opacity-90"
         >
           I&apos;ve saved my character →
         </button>
