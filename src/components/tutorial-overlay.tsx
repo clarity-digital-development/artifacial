@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
+export const TUTORIAL_PHASE_KEY = "artifacial_tutorial_phase";
+export const TUTORIAL_DONE_KEY = "artifacial_tutorial_done";
+
+export type TutorialPhase = "generate-tour" | "generate-video";
 
 interface TutorialOverlayProps {
-  active: boolean;
+  phase: TutorialPhase;
   onDone: () => void;
 }
 
@@ -12,41 +18,83 @@ interface Step {
   title: string;
   body: string;
   position?: "below" | "above" | "right";
+  // If set, the Next button text and action are overridden
+  ctaLabel?: string;
+  ctaAction?: () => void;
 }
 
-const STEPS: Step[] = [
-  {
-    target: null,
-    title: "Welcome to Artifacial",
-    body: "Let's take a quick tour so you know how to create your first AI video. It only takes a minute.",
-  },
-  {
-    target: "[data-tutorial='mode-tabs']",
-    title: "Choose your mode",
-    body: "Text-to-Video generates from a prompt. Image-to-Video animates a photo. Motion Transfer overlays motion from one video onto your character.",
-    position: "below",
-  },
-  {
-    target: "[data-tutorial='model-picker']",
-    title: "Pick a model",
-    body: "Each model has different strengths. Budget models are fast and cheap. Ultra models produce cinematic quality. Start with Kling 3.0 for the best results.",
-    position: "right",
-  },
-  {
-    target: "[data-tutorial='prompt-area']",
-    title: "Describe your video",
-    body: "Type a detailed description of what you want to see. Include the scene, lighting, camera movement, and mood. More detail = better results.",
-    position: "above",
-  },
-  {
-    target: "[data-tutorial='generate-btn']",
-    title: "Generate your video",
-    body: "Hit Generate when you're ready. Your video will appear in the center panel. You can queue multiple generations at once.",
-    position: "above",
-  },
-];
+// ─── Step definitions per phase ───
 
-const STORAGE_KEY = "artifacial_tutorial_done";
+function buildGenerateTourSteps(onGoToCharacters: () => void): Step[] {
+  return [
+    {
+      target: null,
+      title: "Welcome to Generate",
+      body: "This is where all your AI videos and images are created. Let's take 30 seconds to learn the key areas before you dive in.",
+    },
+    {
+      target: "[data-tutorial='mode-tabs']",
+      title: "Choose your creation mode",
+      body: "Text→Video creates from a prompt alone. Image→Video animates a photo. Motion Transfer overlays movement from a reference video onto your character.",
+      position: "below",
+    },
+    {
+      target: "[data-tutorial='model-picker']",
+      title: "Pick your AI model",
+      body: "Budget models are fast and cheap. Standard is the sweet spot. Ultra gives cinematic quality. For your first video, Kling 2.6 Standard (850 cr) is a great choice.",
+      position: "below",
+    },
+    {
+      target: "[data-tutorial='prompt-area']",
+      title: "Describe your scene",
+      body: "Write a detailed description — setting, lighting, camera movement, mood. The more specific you are, the better your video will look.",
+      position: "above",
+    },
+    {
+      target: null,
+      title: "First: create your character",
+      body: "Before generating your first video, let's build a character. You'll use Nano Banana 2 (150 cr) to generate a photorealistic face, then animate it with Kling 2.6 Standard.",
+      ctaLabel: "Create My Character →",
+      ctaAction: onGoToCharacters,
+    },
+  ];
+}
+
+function buildGenerateVideoSteps(): Step[] {
+  return [
+    {
+      target: null,
+      title: "Your character is ready!",
+      body: "Now let's generate your first video using it. We'll use Image→Video mode with Kling 2.6 Standard — 850 credits for a 5-second clip.",
+    },
+    {
+      target: "[data-tutorial='mode-tabs']",
+      title: "Switch to Image → Video",
+      body: "Click \"Image → Video\" in the mode tabs. This lets you select your character image as the starting frame for your video.",
+      position: "below",
+    },
+    {
+      target: "[data-tutorial='model-picker']",
+      title: "Select Kling 2.6 Standard",
+      body: "Open the model dropdown and choose Kling 2.6 Standard. It costs 850 credits for 5 seconds — reliable quality, great for your first generation.",
+      position: "below",
+    },
+    {
+      target: "[data-tutorial='prompt-area']",
+      title: "Describe the scene",
+      body: "Write what you want happening around your character — the setting, camera movement, and mood. Your character will be the subject.",
+      position: "above",
+    },
+    {
+      target: "[data-tutorial='generate-btn']",
+      title: "Generate your first video",
+      body: "Hit Generate. Your video will appear in the center panel while it processes. You've got this — enjoy your first Artifacial creation!",
+      position: "above",
+    },
+  ];
+}
+
+// ─── Spotlight helpers ───
 
 interface SpotlightRect {
   top: number;
@@ -70,91 +118,66 @@ function clampToViewport(
   let resolvedTop = top;
   let resolvedBottom = bottom;
 
-  // Clamp left so card doesn't go off right edge
-  if (resolvedLeft + cardWidth > vw - padding) {
-    resolvedLeft = vw - cardWidth - padding;
-  }
-  if (resolvedLeft < padding) {
-    resolvedLeft = padding;
-  }
+  if (resolvedLeft + cardWidth > vw - padding) resolvedLeft = vw - cardWidth - padding;
+  if (resolvedLeft < padding) resolvedLeft = padding;
 
-  // Clamp top so card doesn't go off bottom edge
   if (resolvedTop !== undefined) {
-    if (resolvedTop + cardHeight > vh - padding) {
-      resolvedTop = vh - cardHeight - padding;
-    }
-    if (resolvedTop < padding) {
-      resolvedTop = padding;
-    }
+    if (resolvedTop + cardHeight > vh - padding) resolvedTop = vh - cardHeight - padding;
+    if (resolvedTop < padding) resolvedTop = padding;
   }
-
-  // Clamp bottom so card doesn't go off top edge
   if (resolvedBottom !== undefined) {
-    if (resolvedBottom + cardHeight > vh - padding) {
-      resolvedBottom = vh - cardHeight - padding;
-    }
-    if (resolvedBottom < padding) {
-      resolvedBottom = padding;
-    }
+    if (resolvedBottom + cardHeight > vh - padding) resolvedBottom = vh - cardHeight - padding;
+    if (resolvedBottom < padding) resolvedBottom = padding;
   }
 
   return { top: resolvedTop, left: resolvedLeft, bottom: resolvedBottom };
 }
 
-export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
+// ─── Component ───
+
+export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
-  // cardKey is used to re-trigger the fade-in animation on step change
   const [cardKey, setCardKey] = useState(0);
 
-  const step = STEPS[stepIndex];
-  const isLast = stepIndex === STEPS.length - 1;
-  const CARD_WIDTH = 288; // w-72 = 18rem = 288px
-  const CARD_HEIGHT = 180; // approximate
+  const goToCharacters = useCallback(() => {
+    localStorage.setItem(TUTORIAL_PHASE_KEY, "characters-create");
+    router.push("/characters/new");
+  }, [router]);
+
+  const steps: Step[] =
+    phase === "generate-tour"
+      ? buildGenerateTourSteps(goToCharacters)
+      : buildGenerateVideoSteps();
+
+  const step = steps[stepIndex];
+  const isLast = stepIndex === steps.length - 1;
+  const CARD_WIDTH = 300;
+  const CARD_HEIGHT = 200;
 
   const updateSpotlight = useCallback(() => {
-    if (!step.target) {
-      setSpotlightRect(null);
-      return;
-    }
+    if (!step?.target) { setSpotlightRect(null); return; }
     const el = document.querySelector(step.target);
-    if (!el) {
-      setSpotlightRect(null);
-      return;
-    }
+    if (!el) { setSpotlightRect(null); return; }
     const rect = el.getBoundingClientRect();
-    setSpotlightRect({
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-    });
-  }, [step.target]);
+    setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+  }, [step?.target]);
 
-  // Check localStorage on mount
   useEffect(() => {
-    if (!active) return;
-    try {
-      const done = localStorage.getItem(STORAGE_KEY);
-      if (done === "1") {
-        onDone();
-        return;
-      }
-    } catch {
-      // localStorage unavailable — proceed with tutorial
-    }
+    const done = localStorage.getItem(TUTORIAL_DONE_KEY);
+    const savedPhase = localStorage.getItem(TUTORIAL_PHASE_KEY);
+    if (done === "1" || savedPhase !== phase) { return; }
     setVisible(true);
-  }, [active, onDone]);
+  }, [phase]);
 
-  // Update spotlight when step changes
   useEffect(() => {
     if (!visible) return;
     updateSpotlight();
     setCardKey((k) => k + 1);
   }, [visible, stepIndex, updateSpotlight]);
 
-  // Update spotlight on resize
   useEffect(() => {
     if (!visible) return;
     window.addEventListener("resize", updateSpotlight);
@@ -162,16 +185,17 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
   }, [visible, updateSpotlight]);
 
   const markDone = useCallback(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      // ignore
-    }
+    localStorage.setItem(TUTORIAL_DONE_KEY, "1");
+    localStorage.removeItem(TUTORIAL_PHASE_KEY);
     setVisible(false);
     onDone();
   }, [onDone]);
 
   const handleNext = () => {
+    if (step.ctaAction) {
+      step.ctaAction();
+      return;
+    }
     if (isLast) {
       markDone();
     } else {
@@ -179,17 +203,12 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
     }
   };
 
-  const handleSkip = () => {
-    markDone();
-  };
-
-  if (!visible) return null;
+  if (!visible || !step) return null;
 
   // Compute tooltip position
   let tooltipStyle: React.CSSProperties = {};
 
   if (!spotlightRect) {
-    // Welcome step or target not found — center of screen
     tooltipStyle = {
       position: "fixed",
       top: "50%",
@@ -201,7 +220,6 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
   } else {
     const pad = 8;
     const sr = spotlightRect;
-
     let rawTop: number | undefined;
     let rawLeft: number | undefined;
     let rawBottom: number | undefined;
@@ -225,7 +243,6 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
     }
 
     const clamped = clampToViewport(rawTop, rawLeft, rawBottom, CARD_WIDTH, CARD_HEIGHT);
-
     tooltipStyle = {
       position: "fixed",
       zIndex: 9999,
@@ -236,11 +253,12 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
     };
   }
 
+  const totalSteps = steps.length;
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop / spotlight */}
       {spotlightRect ? (
-        // Spotlight cutout via boxShadow
         <div
           style={{
             position: "fixed",
@@ -249,18 +267,17 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
             width: spotlightRect.width + 16,
             height: spotlightRect.height + 16,
             borderRadius: 8,
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.72)",
+            boxShadow: "0 0 0 9999px rgba(0,0,0,0.75)",
             zIndex: 9998,
             pointerEvents: "none",
           }}
         />
       ) : (
-        // Solid backdrop for welcome step
         <div
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0,0,0,0.72)",
+            backgroundColor: "rgba(0,0,0,0.75)",
             zIndex: 9998,
             pointerEvents: "none",
           }}
@@ -271,36 +288,46 @@ export function TutorialOverlay({ active, onDone }: TutorialOverlayProps) {
       <div
         key={cardKey}
         style={tooltipStyle}
-        className="animate-fade-in-up bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.6)] w-72"
+        className="animate-fade-in-up rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
       >
-        {/* Step counter */}
-        <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1">
-          Step {stepIndex + 1} of {STEPS.length}
-        </p>
+        {/* Progress dots */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-300 ${
+                i === stepIndex
+                  ? "w-4 bg-[var(--accent-amber)]"
+                  : i < stepIndex
+                  ? "w-2 bg-[var(--accent-amber)]/40"
+                  : "w-2 bg-[var(--border-default)]"
+              }`}
+            />
+          ))}
+          <span className="ml-auto text-[10px] text-[var(--text-muted)]">
+            {stepIndex + 1} / {totalSteps}
+          </span>
+        </div>
 
-        {/* Title */}
-        <h3 className="font-display text-lg font-bold text-[var(--text-primary)] leading-snug">
+        <h3 className="font-display text-[15px] font-bold leading-snug text-[var(--text-primary)]">
           {step.title}
         </h3>
-
-        {/* Body */}
-        <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
           {step.body}
         </p>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="mt-4 flex items-center justify-between">
           <button
-            onClick={handleSkip}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            onClick={markDone}
+            className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
           >
-            Skip
+            Skip tutorial
           </button>
           <button
             onClick={handleNext}
-            className="bg-[var(--accent-amber)] text-[var(--bg-deep)] text-sm font-semibold px-4 py-2 rounded-[var(--radius-md)] hover:opacity-90 transition-opacity"
+            className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-[var(--bg-deep)] transition-opacity hover:opacity-90"
           >
-            {isLast ? "Done" : "Next →"}
+            {step.ctaLabel ?? (isLast ? "Done ✓" : "Next →")}
           </button>
         </div>
       </div>

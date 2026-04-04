@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { SettingsSheet } from "@/components/generate/settings-sheet";
 import { BottomButton } from "@/components/generate/bottom-button";
 import { GenerationDetailsCard } from "@/components/generate/generation-details-card";
-import { TutorialOverlay } from "@/components/tutorial-overlay";
+import { TutorialOverlay, TutorialPhase, TUTORIAL_PHASE_KEY, TUTORIAL_DONE_KEY } from "@/components/tutorial-overlay";
 
 // ─── Client-side model data (mirrors registry.ts for use in the browser) ───
 
@@ -283,11 +283,14 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [showQueueUpsell, setShowQueueUpsell] = useState(false);
   const [showCreditsUpsell, setShowCreditsUpsell] = useState(false);
 
-  // Tutorial — show on first visit
-  const [showTutorial, setShowTutorial] = useState(false);
+  // Tutorial — show when tutorial phase targets this page
+  const [tutorialPhase, setTutorialPhase] = useState<TutorialPhase | null>(null);
   useEffect(() => {
-    if (typeof window !== "undefined" && !localStorage.getItem("artifacial_tutorial_done")) {
-      setShowTutorial(true);
+    const done = localStorage.getItem(TUTORIAL_DONE_KEY);
+    if (done === "1") return;
+    const phase = localStorage.getItem(TUTORIAL_PHASE_KEY) as TutorialPhase | null;
+    if (phase === "generate-tour" || phase === "generate-video") {
+      setTutorialPhase(phase);
     }
   }, []);
 
@@ -1899,8 +1902,10 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       </div>
     )}
 
-    {/* First-time tutorial */}
-    <TutorialOverlay active={showTutorial} onDone={() => setShowTutorial(false)} />
+    {/* Phase-driven tutorial */}
+    {tutorialPhase && (
+      <TutorialOverlay phase={tutorialPhase} onDone={() => setTutorialPhase(null)} />
+    )}
     </>
   );
 }
