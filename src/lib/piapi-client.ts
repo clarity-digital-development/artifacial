@@ -324,11 +324,21 @@ export function buildVideoInput(
     return input;
   }
 
-  // ─── Sora 2 ───
+  // ─── Sora 2 / Sora 2 Pro ───
+  // duration: only 4, 8, 12 are accepted — snap to nearest
+  // aspect_ratio: only "16:9" and "9:16" are accepted — default to "16:9"
+  // resolution: standard supports "720p" only; pro supports "720p" | "1080p"
   if (piApiModel === "sora2") {
-    if (params.durationSec) input.duration = params.durationSec;
-    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
-    if (params.resolution) input.resolution = params.resolution;
+    const SORA_DURATIONS = [4, 8, 12];
+    const d = params.durationSec ?? 5;
+    input.duration = SORA_DURATIONS.reduce((prev, curr) =>
+      Math.abs(curr - d) < Math.abs(prev - d) ? curr : prev
+    );
+    const ar = params.aspectRatio ?? "16:9";
+    input.aspect_ratio = ar === "9:16" ? "9:16" : "16:9";
+    const isPro = taskType === "sora2-pro-video";
+    const res = params.resolution ?? "720p";
+    input.resolution = isPro && res === "1080p" ? "1080p" : "720p";
     if (params.imageUrl) input.image_url = params.imageUrl;
     return input;
   }
