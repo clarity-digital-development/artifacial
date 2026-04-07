@@ -22,6 +22,9 @@ interface Step {
   // If set, the Next button text and action are overridden
   ctaLabel?: string;
   ctaAction?: () => void;
+  // When true, clicking CTA hides overlay so user can interact with the element,
+  // then auto-advances when the interaction completes (e.g. dropdown closes).
+  interactive?: boolean;
 }
 
 // ─── Step definitions per phase ───
@@ -113,18 +116,23 @@ function buildCharactersTourSteps(onReadyToGenerate: () => void): Step[] {
       position: "above",
       title: "Pick your image type",
       body: "Choose how your character should look — realistic photo, illustration, cinematic, etc.",
+      interactive: true,
+      ctaLabel: "Got it →",
     },
     {
       target: "[data-tutorial='char-aspect-ratio']",
       position: "above",
       title: "Pick your aspect ratio",
       body: "Portrait works best for characters. Square is great for headshots.",
+      interactive: true,
+      ctaLabel: "Got it →",
     },
     {
       target: "[data-tutorial='char-model']",
       position: "above",
       title: "Pick your model",
       body: "Nano Banana 2 (150 cr) gives the best realism and likeness. Sea Dance is faster and cheaper if you want to iterate quickly.",
+      interactive: true,
       ctaLabel: "Got it, let's generate!",
       ctaAction: onReadyToGenerate,
     },
@@ -178,6 +186,7 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [cardKey, setCardKey] = useState(0);
+  const [waitingForInteraction, setWaitingForInteraction] = useState(false);
 
   const startVideo = useCallback(() => {
     localStorage.setItem(TUTORIAL_PHASE_KEY, "generate-video");
@@ -229,6 +238,35 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
     return () => window.removeEventListener("resize", updateSpotlight);
   }, [visible, updateSpotlight]);
 
+  // When waiting for user interaction: watch target element for dropdown open→close
+  useEffect(() => {
+    if (!waitingForInteraction || !step?.target) return;
+    const el = document.querySelector(step.target);
+    if (!el) return;
+
+    let dropdownSeen = false;
+
+    const observer = new MutationObserver(() => {
+      // Dropdown panel is an absolutely-positioned child added when open
+      const hasDropdownPanel = el.querySelector(".absolute");
+      if (hasDropdownPanel) {
+        dropdownSeen = true;
+      } else if (dropdownSeen) {
+        // Dropdown was open and now closed — user made a selection
+        observer.disconnect();
+        setWaitingForInteraction(false);
+        if (step.ctaAction) {
+          step.ctaAction();
+        } else {
+          setStepIndex((i) => i + 1);
+        }
+      }
+    });
+
+    observer.observe(el, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [waitingForInteraction, step?.target, step?.ctaAction]);
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -240,6 +278,11 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
   }, [onDone]);
 
   const handleNext = () => {
+    if (step.interactive) {
+      // Hide overlay so user can interact with the element (dropdown, etc.)
+      setWaitingForInteraction(true);
+      return;
+    }
     if (step.ctaAction) {
       step.ctaAction();
       return;
@@ -251,7 +294,7 @@ export function TutorialOverlay({ phase, onDone }: TutorialOverlayProps) {
     }
   };
 
-  if (!visible || !step || !mounted) return null;
+  if (!visible || !step || !mounted || waitingForInteraction) return null;
 
   // Compute tooltip position
   let tooltipStyle: React.CSSProperties = {};
