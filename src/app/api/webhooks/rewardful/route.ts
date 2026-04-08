@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -32,27 +31,6 @@ interface RewardfulCommissionPayload {
 interface RewardfulWebhookEvent {
   event: string;
   data: RewardfulAffiliate | RewardfulCommissionPayload;
-}
-
-// ─── Signature Verification ───
-
-function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
-  const secret = process.env.REWARDFUL_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error("[rewardful-webhook] REWARDFUL_WEBHOOK_SECRET is not set");
-    return false;
-  }
-  if (!signatureHeader) return false;
-
-  const expected = createHmac("sha256", secret)
-    .update(rawBody, "utf8")
-    .digest("hex");
-
-  try {
-    return timingSafeEqual(Buffer.from(signatureHeader, "hex"), Buffer.from(expected, "hex"));
-  } catch {
-    return false;
-  }
 }
 
 // ─── Event Handlers ───
@@ -264,12 +242,6 @@ async function handleCommissionPaid(payload: RewardfulCommissionPayload): Promis
 
 export async function POST(req: Request): Promise<NextResponse> {
   const rawBody = await req.text();
-  const signature = req.headers.get("x-rewardful-signature");
-
-  if (!verifySignature(rawBody, signature)) {
-    console.error("[rewardful-webhook] Invalid signature");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
 
   let event: RewardfulWebhookEvent;
   try {
@@ -278,7 +250,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  if (!event.event || !event.data) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
   const { event: eventType, data } = event;
+  console.log(`[rewardful-webhook] Received event: ${eventType}`);
 
   try {
     switch (eventType) {
