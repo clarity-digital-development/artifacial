@@ -155,6 +155,25 @@ async function submitToPiAPI(
   return { taskId: result.taskId, piApiModel };
 }
 
+// ─── WebP → JPEG conversion ───
+// Many video providers (Kling, etc.) reject WebP. Fetch, convert via sharp, re-upload to R2.
+
+async function convertWebpToJpeg(webpUrl: string, userId: string): Promise<string> {
+  const sharp = (await import("sharp")).default;
+  const { uploadToR2, getSignedR2Url } = await import("@/lib/r2");
+  const { randomUUID } = await import("crypto");
+
+  const res = await fetch(webpUrl);
+  if (!res.ok) throw new Error(`Failed to fetch WebP for conversion: ${res.status}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  const jpegBuffer = await sharp(buffer).jpeg({ quality: 92 }).toBuffer();
+
+  const key = `users/${userId}/uploads/${randomUUID()}.jpg`;
+  await uploadToR2(key, jpegBuffer, "image/jpeg");
+  return getSignedR2Url(key, 3600);
+}
+
 // ─── Main Router ───
 
 export async function routeGeneration(
@@ -194,6 +213,14 @@ export async function routeGeneration(
     if (videoUrl?.startsWith("r2:")) {
       const { getSignedR2Url } = await import("@/lib/r2");
       videoUrl = await getSignedR2Url(videoUrl.slice(3), 3600);
+    }
+
+    // Convert WebP images to JPEG — many providers (Kling, etc.) reject WebP
+    if (imageUrl && /\.webp(\?|$)/i.test(imageUrl)) {
+      imageUrl = await convertWebpToJpeg(imageUrl, userId);
+    }
+    if (endImageUrl && /\.webp(\?|$)/i.test(endImageUrl)) {
+      endImageUrl = await convertWebpToJpeg(endImageUrl, userId);
     }
 
     // 1. Resolve content mode (checks user prefs, age, character eligibility)
