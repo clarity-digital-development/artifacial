@@ -332,6 +332,37 @@ export async function GET(
         });
       }
 
+      // If Venice keeps returning transient errors for > 5 min, give up
+      const VENICE_MAX_PROCESSING_MS = 5 * 60 * 1000;
+      if (
+        veniceStatus.errorMessage &&
+        generation.startedAt &&
+        Date.now() - generation.startedAt.getTime() > VENICE_MAX_PROCESSING_MS
+      ) {
+        console.error(`[status] VENICE TIMEOUT gen=${generation.id} queue=${veniceQueueId} model=${veniceModel} elapsed=${Date.now() - generation.startedAt.getTime()}ms error=${veniceStatus.errorMessage}`);
+        if (generation.errorMessage !== "ACCOUNT_DELETED") {
+          await refundCredits(
+            session.user.id,
+            generation.creditsCost,
+            `Refund: Venice generation timed out (${generation.modelId})`
+          );
+        }
+        await prisma.generation.update({
+          where: { id: generation.id },
+          data: {
+            status: "FAILED",
+            errorMessage: "Generation timed out. Credits have been refunded.",
+            completedAt: new Date(),
+          },
+        });
+        return NextResponse.json({
+          id: generation.id,
+          status: "FAILED",
+          progress: 0,
+          errorMessage: "Generation timed out. Credits have been refunded.",
+        });
+      }
+
       // Still processing — estimate progress from execution time
       let progress = 50;
       if (veniceStatus.averageExecutionTime && veniceStatus.executionDuration) {

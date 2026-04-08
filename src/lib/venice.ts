@@ -179,8 +179,8 @@ export async function submitVeniceVideo(
 
   if (params.resolution) body.resolution = params.resolution;
   if (params.aspectRatio) body.aspect_ratio = params.aspectRatio;
-  // Only send audio:true — sending audio:false causes 400 on models that don't support the field
-  if (params.audio === true) body.audio = true;
+  // Explicitly send audio flag — Venice defaults to true if omitted, adding GPU overhead
+  body.audio = params.audio === true;
   if (params.imageUrl) body.image_url = params.imageUrl;
   if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
   if (params.endImageUrl) body.end_image_url = params.endImageUrl;
@@ -229,8 +229,8 @@ export async function submitVeniceVideo(
  * - video/mp4 binary when completed
  * - 404 = expired/not found
  * - 422 = content policy violation
- * - 500 = generation failed
- * - 503 = capacity issues
+ * - 500 = transient error (treated as retryable, caller times out if persistent)
+ * - 503 = capacity issues (retryable)
  */
 export async function retrieveVeniceVideo(
   model: string,
@@ -258,16 +258,13 @@ export async function retrieveVeniceVideo(
       errorMessage: "Blocked by Venice content policy (422)",
     };
   }
-  if (res.status === 500) {
-    return {
-      status: "failed",
-      errorMessage: "Venice generation failed (500)",
-    };
-  }
-  if (res.status === 503) {
+  if (res.status === 500 || res.status === 503) {
+    // Treat as transient — Venice may recover on next poll.
+    // The status endpoint caller will retry on "processing".
+    const label = res.status === 503 ? "at capacity" : "transient error";
     return {
       status: "processing",
-      errorMessage: "Venice at capacity, retrying (503)",
+      errorMessage: `Venice ${label}, retrying (${res.status})`,
     };
   }
   if (!res.ok) {
