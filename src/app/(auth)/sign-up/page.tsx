@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/studio";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +43,7 @@ export default function SignUpPage() {
       if (result?.error) {
         router.push("/sign-in?registered=true");
       } else {
-        router.push("/studio");
+        router.push(callbackUrl);
       }
     } catch {
       setError("Something went wrong");
@@ -130,7 +132,7 @@ export default function SignUpPage() {
 
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl: "/studio" })}
+            onClick={() => signIn("google", { callbackUrl })}
             className="flex w-full items-center justify-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-transparent px-4 py-3 text-[var(--text-sm)] font-medium text-[var(--text-primary)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -144,7 +146,7 @@ export default function SignUpPage() {
 
           <p className="mt-6 text-center text-[var(--text-sm)] text-[var(--text-muted)]">
             Already have an account?{" "}
-            <Link href="/sign-in" className="font-medium text-[var(--accent-amber)] transition-colors hover:text-[var(--accent-amber-dim)]">
+            <Link href={callbackUrl !== "/studio" ? `/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/sign-in"} className="font-medium text-[var(--accent-amber)] transition-colors hover:text-[var(--accent-amber-dim)]">
               Sign in
             </Link>
           </p>

@@ -119,7 +119,28 @@ function StepPlay({ className }: { className?: string }) {
 
 // ─── Page ───
 
-export default function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ prompt?: string; ref?: string }>;
+}) {
+  const { prompt, ref } = await searchParams;
+
+  if (ref) {
+    console.log(`[attribution] ref=${ref} prompt=${prompt ? "yes" : "no"}`);
+  }
+
+  // If a prompt was passed in, forward it through auth to /generate
+  const generateUrl = prompt
+    ? `/generate?prompt=${encodeURIComponent(prompt)}`
+    : "/generate";
+  const signUpHref = prompt
+    ? `/sign-up?callbackUrl=${encodeURIComponent(generateUrl)}`
+    : "/sign-up";
+  const signInHref = prompt
+    ? `/sign-in?callbackUrl=${encodeURIComponent(generateUrl)}`
+    : "/sign-in";
+
   return (
     <div className="grain relative min-h-screen bg-[var(--bg-deep)]">
       {/* ─── Mobile nav ─── */}
@@ -135,7 +156,7 @@ export default function LandingPage() {
             Pricing
           </Link>
           <Link
-            href="/sign-in"
+            href={signInHref}
             className="rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-sm font-semibold text-[var(--bg-deep)]"
           >
             Sign In
@@ -157,13 +178,13 @@ export default function LandingPage() {
             Pricing
           </Link>
           <Link
-            href="/sign-in"
+            href={signInHref}
             className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
           >
             Sign In
           </Link>
           <Link
-            href="/sign-up"
+            href={signUpHref}
             className="rounded-full bg-[var(--accent-amber)] px-5 py-1.5 text-sm font-semibold text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
           >
             Get Started
@@ -193,7 +214,7 @@ export default function LandingPage() {
 
         {/* Single CTA — full width on mobile */}
         <Link
-          href="/sign-up"
+          href={signUpHref}
           className="mt-8 w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-8 py-4 text-center text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_40px_rgba(232,166,52,0.2)] transition-all duration-300 hover:bg-[var(--accent-amber-dim)] hover:shadow-[0_0_60px_rgba(232,166,52,0.3)] md:w-auto md:py-3.5"
         >
           Start Creating &mdash; Free
@@ -280,7 +301,7 @@ export default function LandingPage() {
           Start with 3 free generations. No card required.
         </p>
         <Link
-          href="/sign-up"
+          href={signUpHref}
           className="mt-6 inline-block w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-8 py-4 text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.15)] transition-all duration-300 hover:bg-[var(--accent-amber-dim)] hover:shadow-[0_0_40px_rgba(232,166,52,0.25)] md:w-auto md:py-3.5"
         >
           Start Creating

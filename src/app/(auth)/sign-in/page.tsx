@@ -9,6 +9,7 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+  const callbackUrl = searchParams.get("callbackUrl") || "/studio";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +32,7 @@ function SignInForm() {
         setError("Invalid email or password");
         setLoading(false);
       } else {
-        router.push("/studio");
+        router.push(callbackUrl);
       }
     } catch {
       setError("Something went wrong");
@@ -104,7 +105,7 @@ function SignInForm() {
 
       <button
         type="button"
-        onClick={() => signIn("google", { callbackUrl: "/studio" })}
+        onClick={() => signIn("google", { callbackUrl })}
         className="flex w-full items-center justify-center gap-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-transparent px-4 py-3 text-[var(--text-sm)] font-medium text-[var(--text-primary)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--bg-elevated)] hover:border-[var(--text-muted)]"
       >
         <svg width="18" height="18" viewBox="0 0 24 24">
@@ -118,7 +119,7 @@ function SignInForm() {
 
       <p className="text-center text-[var(--text-sm)] text-[var(--text-muted)]">
         Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="font-medium text-[var(--accent-amber)] transition-colors hover:text-[var(--accent-amber-dim)]">
+        <Link href={callbackUrl !== "/studio" ? `/sign-up?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/sign-up"} className="font-medium text-[var(--accent-amber)] transition-colors hover:text-[var(--accent-amber-dim)]">
           Create one
         </Link>
       </p>
