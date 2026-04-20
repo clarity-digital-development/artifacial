@@ -1618,6 +1618,460 @@ function SubmitButton({
 
 // ─── Form router ─────────────────────────────────────────────────────────────
 
+// ─── Audio Upload (drag + drop + preview) ────────────────────────────────────
+
+function AudioUpload({
+  label,
+  value,
+  onChange,
+  hint,
+  accept = "audio/*",
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  hint?: string;
+  accept?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [sizeKb, setSizeKb] = useState<number | null>(null);
+
+  const onFile = (file: File) => {
+    setFileName(file.name);
+    setSizeKb(Math.round(file.size / 1024));
+    const reader = new FileReader();
+    reader.onload = () => onChange(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div
+        onClick={() => ref.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const file = e.dataTransfer.files?.[0];
+          if (file && file.type.startsWith("audio/")) onFile(file);
+        }}
+        className={`relative flex min-h-[84px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-dashed p-4 transition-colors ${
+          value
+            ? "border-[var(--accent-amber)]/50"
+            : "border-[var(--border-default)] hover:border-[var(--accent-amber)]/40"
+        } bg-[var(--bg-elevated)]`}
+      >
+        {value ? (
+          <div className="w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--accent-amber)]">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+              </svg>
+              <span className="text-xs text-[var(--text-primary)] truncate flex-1" onClick={(e) => e.stopPropagation()}>
+                {fileName ?? "Audio loaded"}
+              </span>
+              {sizeKb !== null && (
+                <span className="text-[10px] text-[var(--text-muted)] shrink-0">
+                  {sizeKb < 1024 ? `${sizeKb} KB` : `${(sizeKb / 1024).toFixed(1)} MB`}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(null);
+                  setFileName(null);
+                  setSizeKb(null);
+                }}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white text-xs leading-none hover:bg-black"
+              >
+                ×
+              </button>
+            </div>
+            <audio
+              src={value}
+              controls
+              onClick={(e) => e.stopPropagation()}
+              className="w-full h-8"
+              style={{ filter: "invert(0.88)" }}
+            />
+          </div>
+        ) : (
+          <div className="text-center">
+            <svg className="mx-auto mb-1.5 text-[var(--text-muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+            <p className="text-xs text-[var(--text-muted)]">Click or drag audio to upload</p>
+            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">MP3 · WAV · M4A</p>
+          </div>
+        )}
+      </div>
+      <input
+        ref={ref}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(file);
+          e.target.value = "";
+        }}
+      />
+      {hint && <FieldHint>{hint}</FieldHint>}
+    </div>
+  );
+}
+
+// ─── Auto Captions ──────────────────────────────────────────────────────────
+
+function AutoCaptionsForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [videoUrl, setVideoUrl] = useState("");
+  const [style, setStyle] = useState("tiktok");
+  const [position, setPosition] = useState("bottom");
+  const [language, setLanguage] = useState("auto");
+
+  const valid = !!videoUrl;
+
+  return (
+    <div className="space-y-4">
+      <VideoInput
+        label="Your video"
+        value={videoUrl}
+        onChange={setVideoUrl}
+        hint="Up to 5 minutes. We transcribe the audio and burn styled captions directly onto the clip."
+      />
+      <SelectInput
+        label="Caption style"
+        value={style}
+        onChange={setStyle}
+        options={[
+          { value: "tiktok", label: "TikTok — bold + word bounce" },
+          { value: "youtube", label: "YouTube — clean + timed" },
+          { value: "reels", label: "Reels — modern sans" },
+          { value: "minimal", label: "Minimal — white text, no bg" },
+        ]}
+      />
+      <SelectInput
+        label="Position"
+        value={position}
+        onChange={setPosition}
+        options={[
+          { value: "bottom", label: "Bottom third" },
+          { value: "middle", label: "Middle (center-screen)" },
+          { value: "top", label: "Top third" },
+        ]}
+      />
+      <SelectInput
+        label="Language"
+        value={language}
+        onChange={setLanguage}
+        options={[
+          { value: "auto", label: "Auto-detect" },
+          { value: "en", label: "English" },
+          { value: "es", label: "Spanish" },
+          { value: "fr", label: "French" },
+          { value: "de", label: "German" },
+          { value: "pt", label: "Portuguese" },
+          { value: "ja", label: "Japanese" },
+        ]}
+        hint="Auto works for 50+ languages. Pick a specific one for best accuracy."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={500}
+        onClick={() => onSubmit({ videoUrl, style, position, language })}
+      />
+    </div>
+  );
+}
+
+// ─── Video to Shorts (auto-clip) ────────────────────────────────────────────
+
+function AutoClipForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [videoUrl, setVideoUrl] = useState("");
+  const [numClips, setNumClips] = useState(5);
+  const [clipLength, setClipLength] = useState("30");
+  const [contentType, setContentType] = useState("podcast");
+  const [addCaptions, setAddCaptions] = useState(true);
+  const [reframeVertical, setReframeVertical] = useState(true);
+
+  const valid = !!videoUrl;
+  const credits = 800 * Math.max(3, Math.min(10, numClips));
+
+  return (
+    <div className="space-y-4">
+      <VideoInput
+        label="Long-form video"
+        value={videoUrl}
+        onChange={setVideoUrl}
+        hint="Up to 2 hours. We'll analyze the transcript and extract the strongest hook moments."
+      />
+      <NumberInput
+        label="Number of clips"
+        value={numClips}
+        onChange={setNumClips}
+        min={3}
+        max={10}
+        step={1}
+        hint="800 credits per clip. We'll pick the strongest moments across your video."
+      />
+      <SelectInput
+        label="Clip length"
+        value={clipLength}
+        onChange={setClipLength}
+        options={[
+          { value: "15", label: "15 seconds" },
+          { value: "30", label: "30 seconds" },
+          { value: "60", label: "60 seconds" },
+        ]}
+      />
+      <SelectInput
+        label="Content type"
+        value={contentType}
+        onChange={setContentType}
+        options={[
+          { value: "podcast", label: "Podcast / Interview" },
+          { value: "tutorial", label: "Tutorial / How-to" },
+          { value: "vlog", label: "Vlog / Daily content" },
+          { value: "talk", label: "Talk / Keynote" },
+        ]}
+        hint="Helps us rank moments based on what works best for your format."
+      />
+      <Toggle
+        label="Burn captions"
+        checked={addCaptions}
+        onChange={setAddCaptions}
+        hint="Word-by-word captions styled for short-form social."
+      />
+      <Toggle
+        label="Reframe to 9:16 (vertical)"
+        checked={reframeVertical}
+        onChange={setReframeVertical}
+        hint="Smart subject tracking keeps speakers centered."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={credits}
+        onClick={() =>
+          onSubmit({ videoUrl, numClips, clipLength, contentType, addCaptions, reframeVertical })
+        }
+      />
+    </div>
+  );
+}
+
+// ─── Smart Reframe ──────────────────────────────────────────────────────────
+
+function AutoReframeForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [videoUrl, setVideoUrl] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("9:16");
+  const [tracking, setTracking] = useState("auto");
+
+  const valid = !!videoUrl;
+
+  return (
+    <div className="space-y-4">
+      <VideoInput
+        label="Source video"
+        value={videoUrl}
+        onChange={setVideoUrl}
+        hint="Any aspect ratio. We track the main subject and crop to your target format."
+      />
+      <SelectInput
+        label="Target aspect ratio"
+        value={aspectRatio}
+        onChange={setAspectRatio}
+        options={[
+          { value: "9:16", label: "9:16 — TikTok / Reels / Shorts" },
+          { value: "1:1", label: "1:1 — Instagram Feed" },
+          { value: "4:5", label: "4:5 — Instagram Portrait" },
+          { value: "16:9", label: "16:9 — YouTube / Horizontal" },
+        ]}
+      />
+      <SelectInput
+        label="Tracking mode"
+        value={tracking}
+        onChange={setTracking}
+        options={[
+          { value: "auto", label: "Auto — detect main subject" },
+          { value: "face", label: "Face focus — best for talking-heads" },
+          { value: "center", label: "Static center crop" },
+        ]}
+        hint="Auto uses saliency detection. Face is optimized for interviews and vlogs."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={400}
+        onClick={() => onSubmit({ videoUrl, aspectRatio, tracking })}
+      />
+    </div>
+  );
+}
+
+// ─── Voice Clone + Narration ────────────────────────────────────────────────
+
+function VoiceCloneForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [voiceSample, setVoiceSample] = useState<string | null>(null);
+  const [script, setScript] = useState("");
+  const [language, setLanguage] = useState("en");
+  const [speed, setSpeed] = useState(1.0);
+  const [saveVoice, setSaveVoice] = useState(true);
+
+  const valid = !!voiceSample && script.trim().length >= 10;
+
+  return (
+    <div className="space-y-4">
+      <AudioUpload
+        label="Your voice sample"
+        value={voiceSample}
+        onChange={setVoiceSample}
+        hint="30 seconds of clean speech (no music or background noise). The cleaner the sample, the better the clone."
+      />
+      <TextArea
+        label="Script"
+        value={script}
+        onChange={setScript}
+        rows={4}
+        placeholder="Type what you want your voice to say..."
+        hint={`${script.length} / 500 characters${script.length < 10 ? " — minimum 10" : ""}`}
+      />
+      <SelectInput
+        label="Language"
+        value={language}
+        onChange={setLanguage}
+        options={[
+          { value: "en", label: "English" },
+          { value: "es", label: "Spanish" },
+          { value: "fr", label: "French" },
+          { value: "de", label: "German" },
+          { value: "pt", label: "Portuguese" },
+          { value: "ja", label: "Japanese" },
+        ]}
+      />
+      <NumberInput
+        label="Speed"
+        value={speed}
+        onChange={setSpeed}
+        min={0.7}
+        max={1.5}
+        step={0.1}
+        hint="1.0 = natural. 1.2 reads slightly faster — good for short-form."
+      />
+      <Toggle
+        label="Save this voice for reuse"
+        checked={saveVoice}
+        onChange={setSaveVoice}
+        hint="Available across Talking Avatar, Lip Sync, and future narration tools."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={500}
+        onClick={() => onSubmit({ voiceSample, script, language, speed, saveVoice })}
+      />
+    </div>
+  );
+}
+
+// ─── Talking Avatar ─────────────────────────────────────────────────────────
+
+function TalkingAvatarForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [script, setScript] = useState("");
+  const [voice, setVoice] = useState("en_male_1");
+  const [aspectRatio, setAspectRatio] = useState("9:16");
+
+  const valid = !!characterImage && script.trim().length >= 10;
+  const estSeconds = Math.max(1, Math.ceil(script.length / 15)); // ~15 chars/sec
+  const credits = Math.max(1200, Math.ceil(estSeconds / 30) * 1200);
+
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Character"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="Pick a character from your library or upload a photo with a clear, centered face."
+      />
+      <TextArea
+        label="Script"
+        value={script}
+        onChange={setScript}
+        rows={4}
+        placeholder="What do you want them to say?"
+        hint={`${script.length} characters · ~${estSeconds}s of speech${script.length < 10 ? " — minimum 10 chars" : ""}`}
+      />
+      <SelectInput
+        label="Voice"
+        value={voice}
+        onChange={setVoice}
+        options={[
+          { value: "en_male_1", label: "English — Male 1" },
+          { value: "en_male_2", label: "English — Male 2 (deep)" },
+          { value: "en_female_1", label: "English — Female 1" },
+          { value: "en_female_2", label: "English — Female 2 (warm)" },
+          { value: "my_clone", label: "Use my cloned voice (if saved)" },
+        ]}
+        hint="Cloned voices require a prior Voice Clone run."
+      />
+      <SelectInput
+        label="Output format"
+        value={aspectRatio}
+        onChange={setAspectRatio}
+        options={[
+          { value: "9:16", label: "9:16 — Vertical (TikTok / Reels)" },
+          { value: "16:9", label: "16:9 — Horizontal (YouTube)" },
+          { value: "1:1", label: "1:1 — Square" },
+        ]}
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={credits}
+        onClick={() => onSubmit({ characterImage, script, voice, aspectRatio })}
+      />
+    </div>
+  );
+}
+
 function ToolForm({
   tool,
   onSubmit,
@@ -1651,6 +2105,12 @@ function ToolForm({
     case "character-swap-remix": return <IdeogramCharacterRemixForm {...props} />;
     case "recraft-crisp-upscale":   return <RecraftCrispUpscaleForm {...props} />;
     case "grok-video-upscale":      return <GrokVideoUpscaleForm {...props} />;
+    // ── New Apr 2026 ──
+    case "auto-captions":      return <AutoCaptionsForm {...props} />;
+    case "auto-clip":          return <AutoClipForm {...props} />;
+    case "auto-reframe":       return <AutoReframeForm {...props} />;
+    case "voice-clone":        return <VoiceCloneForm {...props} />;
+    case "talking-avatar":     return <TalkingAvatarForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }

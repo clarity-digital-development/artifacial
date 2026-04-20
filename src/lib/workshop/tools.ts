@@ -279,6 +279,68 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "audio",
   },
+
+  // ── New Creator Tools (April 2026) ──
+  {
+    slug: "auto-captions",
+    name: "Auto Captions",
+    tagline: "Burn stylized subtitles onto any video",
+    description:
+      "Upload a video — we transcribe the audio word-by-word and burn captions directly onto the clip in your chosen style. Perfect for TikTok, Reels, and Shorts where most viewers watch without sound.",
+    category: "video",
+    credits: 500,
+    creditLabel: "500 credits",
+    status: "beta",
+    outputType: "video",
+  },
+  {
+    slug: "auto-clip",
+    name: "Video to Shorts",
+    tagline: "Turn long videos into viral shorts",
+    description:
+      "Drop a long-form video (podcast, interview, vlog) and we find the strongest moments, cut them into shorts, reframe to vertical, and burn captions. 5–10 ready-to-post clips from a single upload.",
+    category: "video",
+    credits: 4000,
+    creditLabel: "from 800 cr / clip",
+    status: "beta",
+    outputType: "video",
+  },
+  {
+    slug: "auto-reframe",
+    name: "Smart Reframe",
+    tagline: "Convert aspect ratios with subject tracking",
+    description:
+      "Convert any video to 9:16, 1:1, 4:5, or 16:9 with intelligent subject tracking. The subject stays centered frame-by-frame — no awkward middle crops.",
+    category: "video",
+    credits: 400,
+    creditLabel: "400 credits / minute",
+    status: "beta",
+    outputType: "video",
+  },
+  {
+    slug: "voice-clone",
+    name: "Voice Clone",
+    tagline: "Clone your voice from a 30-second sample",
+    description:
+      "Upload 30 seconds of clean audio. We clone your voice and generate natural narration from any script — pair with Talking Avatar or Lip Sync for fully personalized content.",
+    category: "audio",
+    credits: 500,
+    creditLabel: "~500 credits",
+    status: "beta",
+    outputType: "audio",
+  },
+  {
+    slug: "talking-avatar",
+    name: "AI Talking Avatar",
+    tagline: "Make any character speak your script",
+    description:
+      "Pick a character from your library (or upload a photo) and type a script. We generate a lip-synced talking video with your chosen voice — stock voices or your own cloned voice.",
+    category: "face",
+    credits: 1200,
+    creditLabel: "1,200 cr / 30s",
+    status: "beta",
+    outputType: "video",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {

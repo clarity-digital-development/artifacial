@@ -81,6 +81,16 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
       return 60;
     case "grok-video-upscale":
       return 600;
+    // ── New Apr 2026 ──
+    case "auto-captions":     return 500;
+    case "auto-clip":         return 800 * Math.max(3, Math.min(10, Number(body.numClips) || 5));
+    case "auto-reframe":      return 400;
+    case "voice-clone":       return 500;
+    case "talking-avatar": {
+      const len = typeof body.script === "string" ? body.script.length : 0;
+      const seconds = Math.max(1, Math.ceil(len / 15));
+      return Math.max(1200, Math.ceil(seconds / 30) * 1200);
+    }
     default:                  return 100;
   }
 }
@@ -333,6 +343,56 @@ async function buildTask(
         taskType: String(body.taskType || "txt2audio-base"),
         input,
       };
+    }
+
+    // ── New Apr 2026 — uploads validated, provider pipelines wiring in-progress ──
+    // The forms are live and upload files through the standard workshop R2 path
+    // (users/{userId}/workshop/{uuid}.{ext}). Backend pipelines are staged for
+    // the next rollout; until then these throw (credits auto-refund upstream).
+
+    case "auto-captions": {
+      if (!body.videoUrl) throw new Error("Missing video");
+      // TODO: Queue BullMQ job — Whisper STT → ffmpeg drawtext/subtitles burn-in
+      // Inputs collected: videoUrl, style (tiktok|youtube|reels|minimal), position, language
+      throw new Error("Auto Captions is rolling out this week — credits refunded. Try again soon.");
+    }
+
+    case "auto-clip": {
+      if (!body.videoUrl) throw new Error("Missing video");
+      // TODO: Whisper transcript → Claude Haiku hook-scoring → ffmpeg slice →
+      // pipeline into auto-reframe + auto-captions for each clip
+      throw new Error("Video to Shorts is rolling out this week — credits refunded. Try again soon.");
+    }
+
+    case "auto-reframe": {
+      if (!body.videoUrl) throw new Error("Missing video");
+      // TODO: subject-tracking model (AutoFlip / YOLO+tracker) → ffmpeg dynamic crop
+      throw new Error("Smart Reframe is rolling out this week — credits refunded. Try again soon.");
+    }
+
+    case "voice-clone": {
+      const sample = await resolveImg(userId, body.voiceSample);
+      if (!sample) throw new Error("Missing voice sample");
+      if (typeof body.script !== "string" || body.script.trim().length < 10) {
+        throw new Error("Script must be at least 10 characters");
+      }
+      // Voice sample is uploaded to R2 (users/{userId}/workshop/{uuid}.{ext}) ready
+      // for provider ingestion (ElevenLabs / MiniMax voice_clone_v2 via PiAPI).
+      // TODO: wire provider call + persist voice_id for reuse
+      throw new Error("Voice Clone is rolling out this week — credits refunded. Try again soon.");
+    }
+
+    case "talking-avatar": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      if (typeof body.script !== "string" || body.script.trim().length < 10) {
+        throw new Error("Script must be at least 10 characters");
+      }
+      // Character image uploaded to R2. Pipeline will compose TTS (stock or
+      // cloned voice) → Lip Sync with the character image / generated clip.
+      // TODO: chain kling lip_sync with image-to-video priming, or route via
+      // a dedicated talking-head provider (Hedra / D-ID / SyncLabs).
+      throw new Error("Talking Avatar is rolling out this week — credits refunded. Try again soon.");
     }
 
     default:
