@@ -222,7 +222,7 @@ export default async function LandingPage({
           {/* Mobile: scroll-snap horizontal */}
           <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 showcase-scroll md:hidden">
             {REEL.map((item) => (
-              <ReelCard key={item.title} {...item} className="min-w-[78%] snap-start" />
+              <ReelCard key={item.title} {...item} className="w-[72%] flex-shrink-0 snap-start" />
             ))}
           </div>
 
@@ -392,7 +392,7 @@ function ReelCard({
 }) {
   return (
     <div
-      className={`group relative aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-500 hover:border-[var(--accent-amber)]/40 hover:shadow-[0_0_40px_rgba(232,166,52,0.08)] md:aspect-[3/4] ${className}`}
+      className={`group relative aspect-video overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-500 hover:border-[var(--accent-amber)]/40 hover:shadow-[0_0_40px_rgba(232,166,52,0.08)] md:aspect-[3/4] ${className}`}
     >
       <video
         autoPlay
@@ -405,19 +405,19 @@ function ReelCard({
       />
 
       {/* Bottom gradient mask */}
-      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/70 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black via-black/60 to-transparent md:h-3/5" />
 
       {/* Label */}
-      <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
-        <p className="font-display text-[15px] tracking-[0.01em] text-white md:text-lg">
+      <div className="absolute inset-x-0 bottom-0 p-3 md:p-6">
+        <p className="font-display text-[12px] tracking-[0.01em] text-white md:text-lg">
           {title}
         </p>
-        <p className="mt-1 text-sm text-white/60">{desc}</p>
+        <p className="mt-0.5 text-[11px] text-white/60 md:mt-1 md:text-sm">{desc}</p>
       </div>
 
       {/* Corner play indicator */}
-      <div className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-all duration-300 group-hover:border-[var(--accent-amber)] group-hover:bg-[var(--accent-amber)]/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]" />
+      <div className="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-all duration-300 group-hover:border-[var(--accent-amber)] group-hover:bg-[var(--accent-amber)]/20 md:right-4 md:top-4 md:h-8 md:w-8">
+        <span className="h-1 w-1 rounded-full bg-[var(--accent-amber)] md:h-1.5 md:w-1.5" />
       </div>
     </div>
   );

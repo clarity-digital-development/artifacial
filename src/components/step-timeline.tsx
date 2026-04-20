@@ -108,58 +108,92 @@ export function StepTimeline() {
       </div>
 
       {/* ─────────────── Mobile: vertical stack ─────────────── */}
-      <div className="relative md:hidden">
-        <div
-          className="grid gap-5"
-          style={{ gridTemplateColumns: "24px 1fr" }}
-        >
-          {/* Shared vertical rail column */}
-          <div className="relative">
-            {/* Base vertical line */}
-            <div
-              className="absolute left-1/2 top-4 bottom-4 w-[2px] -translate-x-1/2 bg-[var(--border-default)]"
-              aria-hidden
-            />
-            {/* Amber sweep (single segment covering full rail) */}
-            <ConnectorSegment
-              lit={on}
-              delay={T.connectorDelays[0]}
-              duration={T.duration * 2}
-              axis="vertical"
-              style={{
-                left: "50%",
-                top: "1rem",
-                bottom: "1rem",
-                width: "2px",
-                transform: "translateX(-50%)",
-              }}
-            />
-            {/* Nodes stacked — positioned via CSS grid rows */}
-            <div className="absolute inset-0 flex flex-col">
-              {STEPS.map((_, i) => (
-                <div
-                  key={i}
-                  className="flex flex-1 items-start justify-center pt-4"
-                >
-                  <Node lit={on} delay={T.nodeDelays[i]} duration={T.duration} />
-                </div>
-              ))}
-            </div>
-          </div>
+      <MobileTimeline on={on} />
+    </div>
+  );
+}
 
-          {/* Card column */}
-          <div className="flex flex-col gap-5">
-            {STEPS.map((step, i) => (
+// ─── Mobile timeline with JS-measured line ───
+
+function MobileTimeline({ on }: { on: boolean }) {
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [lineMetrics, setLineMetrics] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    function measure() {
+      const first = rowRefs.current[0];
+      const last = rowRefs.current[STEPS.length - 1];
+      if (!first || !last) return;
+      const firstCenter = first.offsetTop + first.offsetHeight / 2;
+      const lastCenter = last.offsetTop + last.offsetHeight / 2;
+      setLineMetrics({ top: firstCenter, height: lastCenter - firstCenter });
+    }
+    measure();
+    // Re-measure on resize and after fonts/images load
+    window.addEventListener("resize", measure);
+    const t = setTimeout(measure, 300);
+    return () => {
+      window.removeEventListener("resize", measure);
+      clearTimeout(t);
+    };
+  }, []);
+
+  return (
+    <div className="relative md:hidden">
+      {/* Base gray line — from first card center to last card center */}
+      {lineMetrics && (
+        <div
+          aria-hidden
+          className="absolute w-[2px] bg-[var(--border-default)]"
+          style={{
+            left: "11px",
+            top: `${lineMetrics.top}px`,
+            height: `${lineMetrics.height}px`,
+          }}
+        />
+      )}
+
+      {/* Amber sweep overlay */}
+      {lineMetrics && (
+        <ConnectorSegment
+          lit={on}
+          delay={T.connectorDelays[0]}
+          duration={T.duration * 2}
+          axis="vertical"
+          style={{
+            left: "11px",
+            top: `${lineMetrics.top}px`,
+            height: `${lineMetrics.height}px`,
+            width: "2px",
+          }}
+        />
+      )}
+
+      {/* Rows */}
+      <div className="flex flex-col gap-5">
+        {STEPS.map((step, i) => (
+          <div
+            key={step.n}
+            ref={(el) => {
+              rowRefs.current[i] = el;
+            }}
+            className="relative flex items-center gap-4"
+          >
+            {/* Node centered vertically with card */}
+            <div className="relative z-10 flex-shrink-0">
+              <Node lit={on} delay={T.nodeDelays[i]} duration={T.duration} />
+            </div>
+            {/* Card */}
+            <div className="flex-1 min-w-0">
               <StepCard
-                key={step.n}
                 step={step}
                 lit={on}
                 delay={T.nodeDelays[i]}
                 duration={T.duration}
               />
-            ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
