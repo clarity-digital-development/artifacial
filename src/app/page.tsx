@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { StepTimeline } from "@/components/step-timeline";
 
 // ─── SEO ───
 
@@ -248,48 +249,7 @@ export default async function LandingPage({
             <span className="text-[var(--text-muted)]">in three steps.</span>
           </h2>
 
-          <div className="mt-10 grid grid-cols-1 gap-5 md:mt-16 md:grid-cols-3 md:gap-6">
-            {[
-              {
-                n: "01",
-                title: "Build your cast",
-                body: "Upload one clear selfie. We train a persistent AI character — same face, same look, every scene you create.",
-              },
-              {
-                n: "02",
-                title: "Direct the scene",
-                body: "Write what you want to see. Pick a model for the vibe — cinematic, stylized, fast, or premium. We handle the rest.",
-              },
-              {
-                n: "03",
-                title: "Render and ship",
-                body: "Cinematic video in under 2 minutes. Ready for TikTok, Reels, YouTube, or wherever you post.",
-              },
-            ].map((step, i) => (
-              <div
-                key={step.n}
-                className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-6 backdrop-blur-sm transition-all duration-500 hover:border-[var(--accent-amber)]/30 hover:bg-[var(--bg-surface)]/70 md:p-8"
-                style={{ animationDelay: `${i * 120}ms` }}
-              >
-                {/* Large step number */}
-                <div className="font-display text-[56px] leading-none text-[var(--accent-amber)]/20 transition-colors duration-500 group-hover:text-[var(--accent-amber)]/40 md:text-[72px]">
-                  {step.n}
-                </div>
-                <h3 className="mt-4 font-display text-xl text-[var(--text-primary)] md:text-2xl">
-                  {step.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">
-                  {step.body}
-                </p>
-
-                {/* Subtle corner accent */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--accent-amber)] opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-[0.08]"
-                />
-              </div>
-            ))}
-          </div>
+          <StepTimeline />
         </div>
       </section>
 

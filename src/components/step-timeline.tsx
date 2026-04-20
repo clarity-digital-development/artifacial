@@ -6,43 +6,27 @@ import { useEffect, useRef, useState } from "react";
 
 const STEPS = [
   {
-    title: "Create your character",
-    desc: "One photo builds your persistent AI identity.",
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </svg>
-    ),
+    n: "01",
+    title: "Build your cast",
+    body: "Upload one clear selfie. We train a persistent AI character — same face, same look, every scene you create.",
   },
   {
-    title: "Write your scene",
-    desc: "Describe what happens — the AI handles the rest.",
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="17" y1="10" x2="3" y2="10" />
-        <line x1="21" y1="6" x2="3" y2="6" />
-        <line x1="21" y1="14" x2="3" y2="14" />
-        <line x1="17" y1="18" x2="3" y2="18" />
-      </svg>
-    ),
+    n: "02",
+    title: "Direct the scene",
+    body: "Write what you want to see. Pick a model for the vibe — cinematic, stylized, fast, or premium. We handle the rest.",
   },
   {
-    title: "Generate in seconds",
-    desc: "Cinematic video, ready to post.",
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <polygon points="10 8 16 12 10 16 10 8" />
-      </svg>
-    ),
+    n: "03",
+    title: "Render and ship",
+    body: "Cinematic video in under 2 minutes. Ready for TikTok, Reels, YouTube, or wherever you post.",
   },
 ];
 
-const TIMING = {
-  circle: [0, 1200, 2400],
-  connector: [600, 1800],
-  duration: 800,
+// Sequence timing
+const T = {
+  nodeDelays: [0, 900, 1800] as const,
+  connectorDelays: [450, 1350] as const,
+  duration: 700,
 };
 
 // ─── Component ───
@@ -61,100 +45,269 @@ export function StepTimeline() {
           io.disconnect();
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.25 }
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
   return (
-    <div ref={ref} className="mx-auto hidden max-w-3xl md:block">
-      {/* Three equal columns — circles centered, connectors bridging the gaps */}
-      <div className="relative flex text-center">
-        {STEPS.map((step, i) => (
-          <div key={i} className="flex flex-1 flex-col items-center">
-            {/* Circle */}
-            <div className="relative z-10">
-              <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border-[2.5px] border-[#2A2A32] bg-[var(--bg-deep)]">
-                <div
-                  style={{
-                    color: on ? "#E8A634" : "#56525A",
-                    transition: `color ${TIMING.duration}ms ease-out ${TIMING.circle[i]}ms`,
-                  }}
-                >
-                  {step.icon}
-                </div>
-              </div>
-
-              {/* Amber overlay ring */}
-              <div
-                className="pointer-events-none absolute inset-0 rounded-full"
-                style={{
-                  boxShadow: on
-                    ? "0 0 20px 2px rgba(232, 166, 52, 0.25), inset 0 0 12px rgba(232, 166, 52, 0.08)"
-                    : "0 0 0 0 rgba(232, 166, 52, 0)",
-                  border: "2.5px solid",
-                  borderColor: on ? "#E8A634" : "transparent",
-                  opacity: on ? 1 : 0,
-                  transition: `all ${TIMING.duration}ms ease-out ${TIMING.circle[i]}ms`,
-                }}
-              />
-            </div>
-
-            {/* Label */}
-            <div className="mt-5 px-2">
-              <h3 className="font-display text-base font-semibold text-[var(--text-primary)]">
-                {step.title}
-              </h3>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                {step.desc}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Connectors — absolutely positioned to bridge circle edges */}
-        {TIMING.connector.map((delay, i) => (
+    <div ref={ref} className="relative mt-10 md:mt-16">
+      {/* ─────────────── Desktop: horizontal row ─────────────── */}
+      <div className="hidden md:block">
+        {/* Node rail */}
+        <div className="relative h-6">
+          {/* Base line (gray) */}
           <div
-            key={i}
-            className="absolute"
-            style={{
-              /* Each column is 33.33% wide. Circle (72px) is centered in column.
-                 Left connector: from center of col 0 + 36px to center of col 1 - 36px
-                 Right connector: from center of col 1 + 36px to center of col 2 - 36px
-                 Column centers are at 16.67%, 50%, 83.33% */
-              left: `calc(${16.667 + i * 33.333}% + 36px)`,
-              right: `calc(${83.333 - (i + 1) * 33.333}% + 36px)`,
-              top: 35, /* vertically center on 72px circles */
-              height: "2.5px",
-            }}
-          >
-            {/* Gray base */}
-            <div className="absolute inset-0 bg-[#2A2A32]" />
+            className="absolute left-[calc(16.667%+12px)] right-[calc(16.667%+12px)] top-1/2 h-[2px] -translate-y-1/2 bg-[var(--border-default)]"
+            aria-hidden
+          />
 
-            {/* Amber sweep */}
-            <div
-              className="absolute inset-0 origin-left"
+          {/* Amber sweep segments */}
+          {T.connectorDelays.map((delay, i) => (
+            <ConnectorSegment
+              key={i}
+              lit={on}
+              delay={delay}
+              duration={T.duration}
+              axis="horizontal"
               style={{
-                background: "linear-gradient(to right, #E8A634, #D4603A)",
-                transform: on ? "scaleX(1)" : "scaleX(0)",
-                transition: `transform ${TIMING.duration}ms ease-out ${delay}ms`,
+                left: `calc(${16.667 + i * 33.333}% + 12px)`,
+                right: `calc(${83.333 - (i + 1) * 33.333}% + 12px)`,
+                top: "50%",
+                height: "2px",
+                transform: "translateY(-50%)",
               }}
             />
+          ))}
 
-            {/* Glow */}
+          {/* Nodes — positioned at column centers */}
+          {STEPS.map((_, i) => (
             <div
-              className="absolute -inset-y-1 inset-x-0 origin-left"
-              style={{
-                background: "linear-gradient(to right, rgba(232,166,52,0.3), rgba(212,96,58,0.15))",
-                filter: "blur(6px)",
-                transform: on ? "scaleX(1)" : "scaleX(0)",
-                transition: `transform ${TIMING.duration}ms ease-out ${delay}ms`,
-              }}
+              key={i}
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${16.667 + i * 33.333}%` }}
+            >
+              <Node lit={on} delay={T.nodeDelays[i]} duration={T.duration} />
+            </div>
+          ))}
+        </div>
+
+        {/* Cards */}
+        <div className="mt-8 grid grid-cols-3 gap-6">
+          {STEPS.map((step, i) => (
+            <StepCard
+              key={step.n}
+              step={step}
+              lit={on}
+              delay={T.nodeDelays[i]}
+              duration={T.duration}
             />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* ─────────────── Mobile: vertical stack ─────────────── */}
+      <div className="relative md:hidden">
+        <div
+          className="grid gap-5"
+          style={{ gridTemplateColumns: "24px 1fr" }}
+        >
+          {/* Shared vertical rail column */}
+          <div className="relative">
+            {/* Base vertical line */}
+            <div
+              className="absolute left-1/2 top-4 bottom-4 w-[2px] -translate-x-1/2 bg-[var(--border-default)]"
+              aria-hidden
+            />
+            {/* Amber sweep (single segment covering full rail) */}
+            <ConnectorSegment
+              lit={on}
+              delay={T.connectorDelays[0]}
+              duration={T.duration * 2}
+              axis="vertical"
+              style={{
+                left: "50%",
+                top: "1rem",
+                bottom: "1rem",
+                width: "2px",
+                transform: "translateX(-50%)",
+              }}
+            />
+            {/* Nodes stacked — positioned via CSS grid rows */}
+            <div className="absolute inset-0 flex flex-col">
+              {STEPS.map((_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-1 items-start justify-center pt-4"
+                >
+                  <Node lit={on} delay={T.nodeDelays[i]} duration={T.duration} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Card column */}
+          <div className="flex flex-col gap-5">
+            {STEPS.map((step, i) => (
+              <StepCard
+                key={step.n}
+                step={step}
+                lit={on}
+                delay={T.nodeDelays[i]}
+                duration={T.duration}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Node ───
+
+function Node({
+  lit,
+  delay,
+  duration,
+}: {
+  lit: boolean;
+  delay: number;
+  duration: number;
+}) {
+  return (
+    <div className="relative h-6 w-6">
+      {/* Outer gray ring (base state) */}
+      <div className="absolute inset-0 rounded-full border-2 border-[var(--border-default)] bg-[var(--bg-deep)]" />
+      {/* Amber ring overlay */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          border: "2px solid #E8A634",
+          boxShadow: lit
+            ? "0 0 18px 3px rgba(232, 166, 52, 0.40), inset 0 0 6px rgba(232, 166, 52, 0.25)"
+            : "0 0 0 0 rgba(232, 166, 52, 0)",
+          opacity: lit ? 1 : 0,
+          transition: `opacity ${duration}ms ease-out ${delay}ms, box-shadow ${duration}ms ease-out ${delay}ms`,
+        }}
+      />
+      {/* Inner amber dot */}
+      <div
+        className="absolute left-1/2 top-1/2 h-[8px] w-[8px] rounded-full bg-[var(--accent-amber)]"
+        style={{
+          transform: `translate(-50%, -50%) scale(${lit ? 1 : 0})`,
+          opacity: lit ? 1 : 0,
+          transition: `transform ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}ms, opacity ${duration}ms ease-out ${delay}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Connector segment (amber sweep + glow) ───
+
+function ConnectorSegment({
+  lit,
+  delay,
+  duration,
+  axis,
+  style,
+}: {
+  lit: boolean;
+  delay: number;
+  duration: number;
+  axis: "horizontal" | "vertical";
+  style: React.CSSProperties;
+}) {
+  const scale = axis === "vertical" ? "scaleY" : "scaleX";
+  const origin = axis === "vertical" ? "top" : "left";
+  return (
+    <div className="absolute pointer-events-none" style={style} aria-hidden>
+      {/* Solid amber gradient fill */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            axis === "vertical"
+              ? "linear-gradient(to bottom, #E8A634, #D4603A)"
+              : "linear-gradient(to right, #E8A634, #D4603A)",
+          transformOrigin: origin,
+          transform: lit ? `${scale}(1)` : `${scale}(0)`,
+          transition: `transform ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
+        }}
+      />
+      {/* Glow */}
+      <div
+        className="absolute"
+        style={{
+          ...(axis === "vertical"
+            ? { top: 0, bottom: 0, left: "-4px", right: "-4px" }
+            : { left: 0, right: 0, top: "-4px", bottom: "-4px" }),
+          background:
+            axis === "vertical"
+              ? "linear-gradient(to bottom, rgba(232,166,52,0.35), rgba(212,96,58,0.12))"
+              : "linear-gradient(to right, rgba(232,166,52,0.35), rgba(212,96,58,0.12))",
+          filter: "blur(6px)",
+          transformOrigin: origin,
+          transform: lit ? `${scale}(1)` : `${scale}(0)`,
+          transition: `transform ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Step card ───
+
+function StepCard({
+  step,
+  lit,
+  delay,
+  duration,
+}: {
+  step: { n: string; title: string; body: string };
+  lit: boolean;
+  delay: number;
+  duration: number;
+}) {
+  const litDelay = delay + 250;
+  return (
+    <div
+      className="group relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--bg-surface)]/40 p-6 backdrop-blur-sm md:p-8"
+      style={{
+        border: "1px solid",
+        borderColor: lit ? "rgba(232, 166, 52, 0.28)" : "var(--border-subtle)",
+        transition: `border-color ${duration}ms ease-out ${litDelay}ms`,
+      }}
+    >
+      {/* Oversized step number */}
+      <div
+        className="font-display text-[56px] leading-none md:text-[72px]"
+        style={{
+          color: lit ? "rgba(232, 166, 52, 0.50)" : "rgba(232, 166, 52, 0.15)",
+          transition: `color ${duration}ms ease-out ${litDelay}ms`,
+        }}
+      >
+        {step.n}
+      </div>
+
+      <h3 className="mt-4 font-display text-xl text-[var(--text-primary)] md:text-2xl">
+        {step.title}
+      </h3>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">
+        {step.body}
+      </p>
+
+      {/* Corner amber wash — appears on ignition, amplifies on hover */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--accent-amber)] blur-3xl transition-opacity duration-700 group-hover:opacity-[0.12]"
+        style={{
+          opacity: lit ? 0.06 : 0,
+          transitionDelay: `${litDelay + 100}ms`,
+        }}
+      />
     </div>
   );
 }
