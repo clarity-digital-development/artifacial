@@ -1,121 +1,58 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { StepTimeline } from "@/components/step-timeline";
 
 // ─── SEO ───
 
 export const metadata: Metadata = {
-  title: "Artifacial — AI Character & Video Generation. No Limits.",
+  title: "Artifacial — Cast Yourself in Anything",
   description:
-    "Create AI characters from a single selfie. Generate cinematic videos in seconds. Face swap, lip sync, motion transfer, and more. Complete creative freedom.",
+    "Train an AI character from a single selfie. Generate cinematic videos starring you. Face swap, motion transfer, image-to-video — all in one studio.",
   openGraph: {
-    title: "Artifacial — Your Characters. No Limits.",
+    title: "Artifacial — Cast Yourself in Anything",
     description:
-      "Create AI characters from a single selfie. Generate cinematic videos in seconds. Complete creative freedom.",
+      "Train an AI character from a selfie. Generate cinematic videos starring you.",
     type: "website",
     url: "https://artifacial.io",
     siteName: "Artifacial",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Artifacial — AI Video Generation. No Limits.",
-    description:
-      "Create AI characters from a selfie. Generate cinematic videos in seconds.",
+    title: "Artifacial — Cast Yourself in Anything",
+    description: "Train an AI character from a selfie. Cinematic videos, starring you.",
   },
 };
 
-// ─── Capability Cards ───
+// ─── Capability Reel ───
 
-const CAPABILITIES = [
+const REEL = [
   {
-    title: "Video Face Swap",
-    tagline: "Your face. Any scene. Seamless.",
-    gradient: "from-amber-900/40 to-orange-900/10",
-    icon: "face-swap",
+    title: "Face Swap",
+    desc: "Your face. Any footage.",
     video: "/face-swap-transition-v2.mp4",
   },
   {
-    title: "Image to Video",
-    tagline: "Watch your photos come alive.",
-    gradient: "from-rose-900/40 to-red-900/10",
-    icon: "lip-sync",
+    title: "Image → Video",
+    desc: "Stills become cinema.",
     video: "/image-to-video-transition.mp4",
   },
   {
     title: "Motion Transfer",
-    tagline: "Copy any movement to your character.",
-    gradient: "from-violet-900/40 to-purple-900/10",
-    icon: "motion",
+    desc: "Copy moves onto your character.",
     video: "/motion-transfer-pip-v5.mp4",
   },
 ];
 
-// ─── Capability Icons ───
+// ─── Workshop chips — feature surface without a deep page ───
 
-function CapabilityIcon({ name, className }: { name: string; className?: string }) {
-  const cls = className ?? "w-8 h-8 text-white/25";
-  switch (name) {
-    case "face-swap":
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="9" cy="9" r="7" />
-          <circle cx="15" cy="15" r="7" />
-        </svg>
-      );
-    case "lip-sync":
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <line x1="12" y1="19" x2="12" y2="23" />
-          <line x1="8" y1="23" x2="16" y2="23" />
-        </svg>
-      );
-    case "motion":
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M13 4h3a2 2 0 0 1 2 2v14" />
-          <path d="M2 20h3" />
-          <path d="M13 20h9" />
-          <path d="M10 12V4.5a2.5 2.5 0 0 0-5 0V12" />
-          <circle cx="12" cy="12" r="2" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
-// ─── Step Icons ───
-
-function StepCamera({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
-function StepPrompt({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="17" y1="10" x2="3" y2="10" />
-      <line x1="21" y1="6" x2="3" y2="6" />
-      <line x1="21" y1="14" x2="3" y2="14" />
-      <line x1="17" y1="18" x2="3" y2="18" />
-    </svg>
-  );
-}
-
-function StepPlay({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="10 8 16 12 10 16 10 8" />
-    </svg>
-  );
-}
+const WORKSHOP = [
+  "Character Swap",
+  "Face Swap",
+  "Lip Sync",
+  "Upscale",
+  "End-Frame Control",
+  "Motion Templates",
+  "Prompt Enhancer",
+];
 
 // ─── Page ───
 
@@ -130,7 +67,6 @@ export default async function LandingPage({
     console.log(`[attribution] ref=${ref} prompt=${prompt ? "yes" : "no"}`);
   }
 
-  // If a prompt was passed in, forward it through auth to /generate
   const generateUrl = prompt
     ? `/generate?prompt=${encodeURIComponent(prompt)}`
     : "/generate";
@@ -142,196 +78,402 @@ export default async function LandingPage({
     : "/sign-in";
 
   return (
-    <div className="grain relative min-h-screen bg-[var(--bg-deep)]">
-      {/* ─── Mobile nav ─── */}
-      <nav className="flex items-center justify-between px-5 pt-4 pb-2 md:hidden">
-        <Link href="/" className="font-display text-base font-bold tracking-tight text-[var(--accent-amber)]">
-          Artifacial
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Pricing
-          </Link>
-          <Link
-            href={signInHref}
-            className="rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-sm font-semibold text-[var(--bg-deep)]"
-          >
-            Sign In
-          </Link>
-        </div>
-      </nav>
-
-      {/* ─── Nav: hidden on mobile, sticky pill on desktop ─── */}
-      <nav className="pointer-events-none sticky top-0 z-50 hidden justify-center px-6 pt-5 pb-3 md:flex">
-        <div className="pointer-events-auto flex items-center gap-5 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/80 px-5 py-2.5 shadow-[0_2px_16px_rgba(0,0,0,0.3)] backdrop-blur-md sm:gap-6 sm:px-6">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-[var(--accent-amber)]">
-            Artifacial
-          </Link>
-          <div className="h-4 w-px bg-[var(--border-subtle)]" />
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Pricing
-          </Link>
-          <Link
-            href={signInHref}
-            className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            Sign In
-          </Link>
-          <Link
-            href={signUpHref}
-            className="rounded-full bg-[var(--accent-amber)] px-5 py-1.5 text-sm font-semibold text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
-          >
-            Get Started
-          </Link>
-        </div>
-      </nav>
-
-      {/* ─── Ambient glow (lightweight, no client JS) ─── */}
-      <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-        <div className="absolute -left-[20%] -top-[10%] h-[600px] w-[600px] rounded-full bg-[var(--accent-amber)] opacity-[0.03] blur-[200px]" />
-        <div className="absolute left-1/2 top-[10%] h-[400px] w-[400px] -translate-x-1/2 rounded-full bg-[var(--accent-amber)] opacity-[0.04] blur-[180px]" />
+    <div className="grain vignette relative min-h-screen overflow-hidden bg-[var(--bg-deep)]">
+      {/* ─── Background: layered warm light ─── */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-[1]">
+        <div className="absolute left-1/2 top-[-10%] h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-[var(--accent-amber)] opacity-[0.05] blur-[180px]" />
+        <div className="absolute left-[-15%] top-[40%] h-[500px] w-[500px] rounded-full bg-[var(--accent-ember)] opacity-[0.04] blur-[160px]" />
+        <div className="absolute right-[-15%] top-[70%] h-[400px] w-[400px] rounded-full bg-[var(--accent-amber)] opacity-[0.03] blur-[160px]" />
       </div>
 
-      {/* ─── Hero ─── */}
-      <section className="relative z-10 flex flex-col items-center px-5 pt-12 pb-10 text-center md:min-h-[calc(100vh-72px)] md:justify-center md:px-16 md:pt-0 md:pb-16">
-        <h1 className="max-w-lg font-display text-4xl font-extrabold leading-[1.1] tracking-[0.03em] text-[var(--text-primary)] sm:text-5xl md:max-w-4xl md:text-7xl lg:text-8xl">
-          Your Characters.
-          <br />
-          <span className="bg-gradient-to-r from-[var(--accent-amber)] to-[var(--accent-ember)] bg-clip-text text-transparent">
-            No Limits.
-          </span>
-        </h1>
-
-        <p className="mt-4 max-w-xs text-sm leading-relaxed text-[var(--text-secondary)] sm:max-w-md sm:text-base md:max-w-lg md:text-lg">
-          Create AI characters from a selfie. Generate videos in seconds. Complete creative freedom.
-        </p>
-
-        {/* Single CTA — full width on mobile */}
-        <Link
-          href={signUpHref}
-          className="mt-8 w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-8 py-4 text-center text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_40px_rgba(232,166,52,0.2)] transition-all duration-300 hover:bg-[var(--accent-amber-dim)] hover:shadow-[0_0_60px_rgba(232,166,52,0.3)] md:w-auto md:py-3.5"
-        >
-          Start Creating &mdash; Free
-        </Link>
-
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
-          3 free generations. No credit card required.
-        </p>
-
-        {/* Capability cards — flow directly from CTA */}
-        <div className="mt-8 flex w-full max-w-sm flex-col gap-4 md:mt-10 md:max-w-5xl md:flex-row md:gap-6">
-          {CAPABILITIES.map((cap) => (
-            <div
-              key={cap.title}
-              className="group relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--accent-amber)]/30 hover:shadow-[0_0_24px_rgba(232,166,52,0.08)] md:flex-1"
+      {/* ─── Nav ─── */}
+      <header className="relative z-20">
+        {/* Mobile */}
+        <nav className="flex items-center justify-between px-5 pt-4 pb-2 md:hidden">
+          <Link href="/" className="font-display text-base tracking-[0.02em] text-[var(--accent-amber)]">
+            ARTIFACIAL
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/pricing"
+              className="rounded-full px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
-              {cap.video ? (
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 h-full w-full object-cover"
-                  src={cap.video}
-                />
-              ) : (
-                <>
-                  <div className={`absolute inset-0 bg-gradient-to-br ${cap.gradient}`} />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <CapabilityIcon name={cap.icon} className="h-10 w-10 text-white/20" />
-                  </div>
-                </>
-              )}
+              Pricing
+            </Link>
+            <Link
+              href={signInHref}
+              className="rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-sm font-semibold text-[var(--bg-deep)]"
+            >
+              Sign in
+            </Link>
+          </div>
+        </nav>
 
-              {/* Label */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-5 pt-10">
-                <p className="font-display text-base font-semibold text-white/90">{cap.title}</p>
-                <p className="mt-0.5 text-sm text-white/50">{cap.tagline}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        {/* Desktop — sticky pill */}
+        <nav className="pointer-events-none sticky top-0 z-50 hidden justify-center px-6 pt-5 pb-3 md:flex">
+          <div className="pointer-events-auto flex items-center gap-6 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/70 px-6 py-2.5 shadow-[0_2px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+            <Link href="/" className="font-display text-sm tracking-[0.02em] text-[var(--accent-amber)]">
+              ARTIFACIAL
+            </Link>
+            <div className="h-3 w-px bg-[var(--border-subtle)]" />
+            <Link
+              href="/pricing"
+              className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              Pricing
+            </Link>
+            <Link
+              href={signInHref}
+              className="text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              Sign in
+            </Link>
+            <Link
+              href={signUpHref}
+              className="rounded-full bg-[var(--accent-amber)] px-4 py-1.5 text-sm font-semibold text-[var(--bg-deep)] transition-colors hover:bg-[var(--accent-amber-dim)]"
+            >
+              Start free
+            </Link>
+          </div>
+        </nav>
+      </header>
 
-      {/* ─── How It Works ─── */}
-      <section className="relative z-10 px-5 py-12 md:px-16 md:py-20">
-        <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-          How it works
-        </p>
-        <h2 className="mb-10 text-center font-display text-2xl font-bold text-[var(--text-primary)] md:mb-14 md:text-3xl">
-          Three steps to your first video
-        </h2>
+      {/* ─────────────────────────────────────── HERO ─────────────────────────────────────── */}
+      <section className="relative z-10 px-5 pt-8 pb-16 md:px-10 md:pt-14 md:pb-28 lg:px-16">
+        <div className="mx-auto max-w-[1240px]">
+          {/* Eyebrow */}
+          <div className="animate-fade-in-up flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-amber)] md:justify-start">
+            <span className="inline-block h-[1px] w-6 bg-[var(--accent-amber)]/60" />
+            AI Video Studio
+          </div>
 
-        {/* Mobile: stacked layout */}
-        <div className="mx-auto flex max-w-sm flex-col gap-8 md:hidden">
-          {[
-            { title: "Create your character", desc: "One photo builds your persistent AI identity.", icon: StepCamera },
-            { title: "Write your scene", desc: "Describe what happens — the AI handles the rest.", icon: StepPrompt },
-            { title: "Generate in seconds", desc: "Cinematic video, ready to post.", icon: StepPlay },
-          ].map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-2 border-[var(--accent-amber)]/50 bg-[var(--bg-surface)] shadow-[0_0_20px_rgba(232,166,52,0.08)]">
-                  <Icon className="h-5 w-5 text-[var(--accent-amber)]" />
-                </div>
-                <div>
-                  <h3 className="font-display text-sm font-semibold text-[var(--text-primary)]">{item.title}</h3>
-                  <p className="mt-0.5 text-sm text-[var(--text-muted)]">{item.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Desktop: scroll-activated gas tube animation */}
-        <StepTimeline />
-      </section>
-
-      {/* ─── Final CTA ─── */}
-      <section className="relative z-10 px-5 py-16 text-center md:py-24">
-        <p className="text-base text-[var(--text-primary)] sm:text-lg">
-          Start with 3 free generations. No card required.
-        </p>
-        <Link
-          href={signUpHref}
-          className="mt-6 inline-block w-full max-w-sm rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-8 py-4 text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.15)] transition-all duration-300 hover:bg-[var(--accent-amber-dim)] hover:shadow-[0_0_40px_rgba(232,166,52,0.25)] md:w-auto md:py-3.5"
-        >
-          Start Creating
-        </Link>
-        <p className="mt-4">
-          <Link
-            href="/pricing"
-            className="text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+          {/* Headline */}
+          <h1
+            className="animate-fade-in-up mt-5 font-display text-[44px] leading-[0.98] tracking-[0.01em] text-[var(--text-primary)] sm:text-[64px] md:text-[96px] lg:text-[120px]"
+            style={{ animationDelay: "60ms" }}
           >
-            View pricing &rarr;
-          </Link>
-        </p>
+            Cast yourself.
+            <br />
+            <span className="italic text-[var(--accent-amber)]" style={{ fontStyle: "italic" }}>
+              In anything.
+            </span>
+          </h1>
+
+          {/* Sub */}
+          <p
+            className="animate-fade-in-up mt-6 max-w-[560px] text-[15px] leading-relaxed text-[var(--text-secondary)] sm:text-base md:mt-8 md:text-lg"
+            style={{ animationDelay: "140ms" }}
+          >
+            Train a consistent AI character from one selfie. Then drop yourself into cinematic scenes, animated shorts, or anywhere else you can imagine — no crew, no camera.
+          </p>
+
+          {/* CTAs */}
+          <div
+            className="animate-fade-in-up mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:mt-10"
+            style={{ animationDelay: "220ms" }}
+          >
+            <Link
+              href={signUpHref}
+              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-7 py-3.5 text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_40px_rgba(232,166,52,0.22)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(232,166,52,0.35)]"
+            >
+              <span className="relative z-10">Start free</span>
+              <svg
+                className="relative z-10 transition-transform duration-300 group-hover:translate-x-0.5"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <a
+              href="#reel"
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-surface)]/40 px-6 py-3.5 text-base font-medium text-[var(--text-primary)] backdrop-blur-sm transition-colors hover:bg-[var(--bg-surface)]/80"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent-amber)]/15 text-[var(--accent-amber)]">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="6 4 20 12 6 20 6 4" />
+                </svg>
+              </span>
+              See it in action
+            </a>
+          </div>
+
+          <p
+            className="animate-fade-in-up mt-4 text-xs text-[var(--text-muted)]"
+            style={{ animationDelay: "300ms" }}
+          >
+            3 generations free · No card required
+          </p>
+        </div>
+
+        {/* ─── Reel strip ─── */}
+        <div
+          id="reel"
+          className="animate-fade-in-up mx-auto mt-14 max-w-[1240px] md:mt-20"
+          style={{ animationDelay: "380ms" }}
+        >
+          {/* Mobile: scroll-snap horizontal */}
+          <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 showcase-scroll md:hidden">
+            {REEL.map((item) => (
+              <ReelCard key={item.title} {...item} className="min-w-[78%] snap-start" />
+            ))}
+          </div>
+
+          {/* Desktop: 3-up grid */}
+          <div className="hidden gap-4 md:grid md:grid-cols-3 md:gap-5">
+            {REEL.map((item) => (
+              <ReelCard key={item.title} {...item} />
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* ─── Footer (minimal) ─── */}
-      <footer className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-8 md:px-16">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 text-center">
-          <Link href="/" className="font-display text-sm font-bold text-[var(--accent-amber)]">
-            Artifacial
+      {/* ─────────────────────────────── HOW IT WORKS ─────────────────────────────── */}
+      <section className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-16 md:px-16 md:py-28">
+        <div className="mx-auto max-w-[1240px]">
+          <div className="flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+            <span className="inline-block h-[1px] w-6 bg-[var(--accent-amber)]/60" />
+            The flow
+          </div>
+
+          <h2 className="mt-4 max-w-[700px] font-display text-[32px] leading-[1.02] text-[var(--text-primary)] sm:text-[44px] md:text-[64px]">
+            Selfie to cinema,
+            <br />
+            <span className="text-[var(--text-muted)]">in three steps.</span>
+          </h2>
+
+          <div className="mt-10 grid grid-cols-1 gap-5 md:mt-16 md:grid-cols-3 md:gap-6">
+            {[
+              {
+                n: "01",
+                title: "Build your cast",
+                body: "Upload one clear selfie. We train a persistent AI character — same face, same look, every scene you create.",
+              },
+              {
+                n: "02",
+                title: "Direct the scene",
+                body: "Write what you want to see. Pick a model for the vibe — cinematic, stylized, fast, or premium. We handle the rest.",
+              },
+              {
+                n: "03",
+                title: "Render and ship",
+                body: "Cinematic video in under 2 minutes. Ready for TikTok, Reels, YouTube, or wherever you post.",
+              },
+            ].map((step, i) => (
+              <div
+                key={step.n}
+                className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-6 backdrop-blur-sm transition-all duration-500 hover:border-[var(--accent-amber)]/30 hover:bg-[var(--bg-surface)]/70 md:p-8"
+                style={{ animationDelay: `${i * 120}ms` }}
+              >
+                {/* Large step number */}
+                <div className="font-display text-[56px] leading-none text-[var(--accent-amber)]/20 transition-colors duration-500 group-hover:text-[var(--accent-amber)]/40 md:text-[72px]">
+                  {step.n}
+                </div>
+                <h3 className="mt-4 font-display text-xl text-[var(--text-primary)] md:text-2xl">
+                  {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">
+                  {step.body}
+                </p>
+
+                {/* Subtle corner accent */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--accent-amber)] opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-[0.08]"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────── WORKSHOP STRIP ─────────────────────────────── */}
+      <section className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-16 md:px-16 md:py-24">
+        <div className="mx-auto max-w-[1240px]">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-[1fr_1fr] md:gap-16 md:items-center">
+            <div>
+              <div className="flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+                <span className="inline-block h-[1px] w-6 bg-[var(--accent-amber)]/60" />
+                Inside the studio
+              </div>
+              <h2 className="mt-4 font-display text-[30px] leading-[1.05] text-[var(--text-primary)] sm:text-[40px] md:text-[52px]">
+                A workshop,
+                <br />
+                <span className="text-[var(--text-muted)]">not just a generator.</span>
+              </h2>
+              <p className="mt-5 max-w-[440px] text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">
+                Everything you need to finish a video sits in one place — face swap, upscale, lip sync, end-frame control, and a growing library of creative tools. Your studio, your settings, your call.
+              </p>
+
+              <Link
+                href={signUpHref}
+                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-amber)] transition-colors hover:text-[var(--accent-amber-dim)]"
+              >
+                Open the workshop
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap gap-2.5 md:gap-3">
+              {WORKSHOP.map((tool, i) => (
+                <span
+                  key={tool}
+                  className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/50 px-4 py-2 text-sm font-medium text-[var(--text-primary)] backdrop-blur-sm transition-all duration-300 hover:border-[var(--accent-amber)]/40 hover:bg-[var(--accent-amber-glow)] hover:text-[var(--accent-amber)]"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                >
+                  {tool}
+                </span>
+              ))}
+              <span className="rounded-full border border-dashed border-[var(--border-default)] px-4 py-2 text-sm font-medium text-[var(--text-muted)]">
+                + more each week
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────── PROOF NUMBERS ─────────────────────────────── */}
+      <section className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-14 md:px-16 md:py-20">
+        <div className="mx-auto grid max-w-[1240px] grid-cols-2 gap-6 md:grid-cols-4 md:gap-8">
+          <Stat value="10+" label="AI video models" />
+          <Stat value="<2m" label="Average render" />
+          <Stat value="1080p" label="Cinematic output" />
+          <Stat value="24/7" label="Studio uptime" />
+        </div>
+      </section>
+
+      {/* ─────────────────────────────── FINAL CTA ─────────────────────────────── */}
+      <section className="relative z-10 overflow-hidden px-5 py-20 md:px-16 md:py-32">
+        {/* Large amber wash */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--accent-amber)] opacity-[0.06] blur-[120px]"
+        />
+
+        <div className="relative mx-auto max-w-[820px] text-center">
+          <h2 className="font-display text-[38px] leading-[1.02] text-[var(--text-primary)] sm:text-[52px] md:text-[72px]">
+            Your first video,
+            <br />
+            <span className="italic text-[var(--accent-amber)]">on us.</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-[480px] text-base leading-relaxed text-[var(--text-secondary)]">
+            Three free generations. No card. Be rendering in under a minute.
+          </p>
+          <Link
+            href={signUpHref}
+            className="group mt-9 inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-8 py-4 text-base font-semibold text-[var(--bg-deep)] shadow-[0_0_40px_rgba(232,166,52,0.25)] transition-all duration-300 hover:shadow-[0_0_80px_rgba(232,166,52,0.4)]"
+          >
+            Create your first video
+            <svg
+              className="transition-transform duration-300 group-hover:translate-x-0.5"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
           </Link>
-          <div className="flex flex-wrap justify-center gap-4 text-xs text-[var(--text-muted)]">
+          <p className="mt-5">
+            <Link
+              href="/pricing"
+              className="text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
+            >
+              View plans →
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────── FOOTER ─────────────────────────────── */}
+      <footer className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-10 md:px-16">
+        <div className="mx-auto flex max-w-[1240px] flex-col items-center gap-4 text-center md:flex-row md:justify-between md:text-left">
+          <Link href="/" className="font-display text-sm tracking-[0.02em] text-[var(--accent-amber)]">
+            ARTIFACIAL
+          </Link>
+          <div className="flex flex-wrap justify-center gap-5 text-xs text-[var(--text-muted)]">
             <Link href="/pricing" className="transition-colors hover:text-[var(--text-secondary)]">Pricing</Link>
             <Link href="/terms" className="transition-colors hover:text-[var(--text-secondary)]">Terms</Link>
             <Link href="/privacy" className="transition-colors hover:text-[var(--text-secondary)]">Privacy</Link>
             <Link href="/acceptable-use" className="transition-colors hover:text-[var(--text-secondary)]">Acceptable Use</Link>
             <Link href="/support" className="transition-colors hover:text-[var(--text-secondary)]">Support</Link>
           </div>
-          <p className="text-xs text-[var(--text-muted)]">&copy; 2026 Artifacial. All rights reserved.</p>
+          <p className="text-xs text-[var(--text-muted)]">© 2026 Artifacial</p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// ─── Reel Card ───
+
+function ReelCard({
+  title,
+  desc,
+  video,
+  className = "",
+}: {
+  title: string;
+  desc: string;
+  video: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`group relative aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-500 hover:border-[var(--accent-amber)]/40 hover:shadow-[0_0_40px_rgba(232,166,52,0.08)] md:aspect-[3/4] ${className}`}
+    >
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        src={video}
+      />
+
+      {/* Bottom gradient mask */}
+      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/70 to-transparent" />
+
+      {/* Label */}
+      <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+        <p className="font-display text-[15px] tracking-[0.01em] text-white md:text-lg">
+          {title}
+        </p>
+        <p className="mt-1 text-sm text-white/60">{desc}</p>
+      </div>
+
+      {/* Corner play indicator */}
+      <div className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-all duration-300 group-hover:border-[var(--accent-amber)] group-hover:bg-[var(--accent-amber)]/20">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Stat ───
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex flex-col">
+      <p className="font-display text-[36px] leading-none text-[var(--text-primary)] md:text-[56px]">
+        {value}
+      </p>
+      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)] md:text-xs">
+        {label}
+      </p>
     </div>
   );
 }
