@@ -11,6 +11,12 @@ export const metadata = {
 const PUBLIC_TOOL_SLUGS = [
   "character-swap",
   "recraft-crisp-upscale",
+  // ── New Apr 2026 ──
+  "auto-captions",
+  "auto-clip",
+  "auto-reframe",
+  "voice-clone",
+  "talking-avatar",
 ];
 
 export default async function WorkshopPage() {
