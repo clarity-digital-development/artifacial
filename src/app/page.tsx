@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { StepTimeline } from "@/components/step-timeline";
+import { MobileReel } from "@/components/home/mobile-reel";
 
 // ─── SEO ───
 
@@ -219,12 +220,8 @@ export default async function LandingPage({
           className="animate-fade-in-up mx-auto mt-14 max-w-[1240px] md:mt-20"
           style={{ animationDelay: "380ms" }}
         >
-          {/* Mobile: scroll-snap horizontal */}
-          <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 showcase-scroll md:hidden">
-            {REEL.map((item) => (
-              <ReelCard key={item.title} {...item} className="w-[72%] flex-shrink-0 snap-start" />
-            ))}
-          </div>
+          {/* Mobile: center-snap carousel with edge fades */}
+          <MobileReel items={REEL} />
 
           {/* Desktop: 3-up grid */}
           <div className="hidden gap-4 md:grid md:grid-cols-3 md:gap-5">
