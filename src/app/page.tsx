@@ -307,6 +307,63 @@ export default async function LandingPage({
         </div>
       </section>
 
+      {/* ─────────────────────────────── BUILT RESPONSIBLY ─────────────────────────────── */}
+      <section className="relative z-10 border-t border-[var(--border-subtle)] px-5 py-16 md:px-16 md:py-28">
+        <div className="mx-auto max-w-[1240px]">
+          {/* Eyebrow */}
+          <div className="flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+            <span className="inline-block h-[1px] w-6 bg-[var(--accent-amber)]/60" />
+            Built responsibly
+          </div>
+
+          {/* Headline */}
+          <h2 className="mt-4 max-w-[760px] font-display text-[32px] leading-[1.02] text-[var(--text-primary)] sm:text-[44px] md:text-[60px]">
+            Power.
+            <br />
+            <span className="italic text-[var(--accent-amber)]">With principles.</span>
+          </h2>
+
+          {/* Lead paragraph */}
+          <p className="mt-5 max-w-[660px] text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">
+            AI is reshaping creative work — and we&apos;re choosing how to build it. Three commitments we don&apos;t compromise on: a footprint that doesn&apos;t keep growing, an industry that doesn&apos;t concentrate further, and a platform that can&apos;t be used to cause harm.
+          </p>
+
+          {/* Pillars */}
+          <div className="mt-12 grid grid-cols-1 gap-5 md:mt-16 md:grid-cols-3 md:gap-6">
+            <Pillar
+              icon={<DropletIcon />}
+              title="Closed-loop infrastructure"
+              body="Our compute runs on closed-loop water cooling — recirculated, not consumed. As demand scales, our water footprint stays flat."
+              items={[
+                "Closed-loop liquid cooling — zero net water draw",
+                "Heat reclaim and carbon-conscious siting",
+                "Footprint that doesn't grow with demand",
+              ]}
+            />
+            <Pillar
+              icon={<NetworkIcon />}
+              title="Independent infrastructure"
+              body="We self-host the heavy lifting on our own hardware — not on hyperscaler cloud rent. Your subscription funds an independent tool, not Big Tech's bottom line."
+              items={[
+                "Self-hosted GPU clusters for generation",
+                "Less reliance on hyperscaler datacenters",
+                "Power back to creators, not concentrated giants",
+              ]}
+            />
+            <Pillar
+              icon={<ShieldIcon />}
+              title="Multi-layer trust system"
+              body="Stricter guardrails than the average AI platform. Verified faces, filtered prompts, automatic reporting on harmful activity — no warnings, no exceptions."
+              items={[
+                "AI-powered identity verification on every face",
+                "Hard-blocked keyword and prompt filtering at submission",
+                "Automatic NCMEC + FBI reports on any CSAM-related signal",
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ─────────────────────────────── FINAL CTA ─────────────────────────────── */}
       <section className="relative z-10 overflow-hidden px-5 py-20 md:px-16 md:py-32">
         {/* Large amber wash */}
@@ -432,5 +489,93 @@ function Stat({ value, label }: { value: string; label: string }) {
         {label}
       </p>
     </div>
+  );
+}
+
+// ─── Pillar (Built Responsibly section) ───
+
+function Pillar({
+  icon,
+  title,
+  body,
+  items,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  items: string[];
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-6 backdrop-blur-sm transition-all duration-500 hover:border-[var(--accent-amber)]/30 md:p-8">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-amber)]/10">
+        {icon}
+      </div>
+      <h3 className="mt-5 font-display text-xl text-[var(--text-primary)] md:text-[22px]">
+        {title}
+      </h3>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+        {body}
+      </p>
+      <ul className="mt-5 space-y-2.5 border-t border-[var(--border-subtle)] pt-5">
+        {items.map((item) => (
+          <li
+            key={item}
+            className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]"
+          >
+            <svg
+              className="mt-[5px] flex-shrink-0 text-[var(--accent-amber)]"
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Subtle corner glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--accent-amber)] opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-[0.06]"
+      />
+    </div>
+  );
+}
+
+function DropletIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2.5c-3.5 4-7 7.5-7 11.5a7 7 0 0 0 14 0c0-4-3.5-7.5-7-11.5z" />
+      <path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" />
+    </svg>
+  );
+}
+
+function NetworkIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <circle cx="18" cy="18" r="2.5" />
+      <line x1="12" y1="8.5" x2="6.7" y2="15.7" />
+      <line x1="12" y1="8.5" x2="17.3" y2="15.7" />
+      <line x1="8.4" y1="18" x2="15.6" y2="18" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
   );
 }
