@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     const errorMsg = (taskData?.failMsg ?? taskData?.errorMsg ?? taskData?.error ?? "KIE.AI generation failed") as string;
     console.error(`[kieai-webhook] Failed gen=${generation.id} error="${errorMsg}"`);
 
-    await refundCredits(generation.userId, generation.creditsCost, `Refund: KIE.AI generation failed (${generation.modelId})`);
+    await refundCredits(generation.userId, generation.creditsCost, `Refund: Generation failed (${generation.modelId})`);
     await prisma.generation.update({
       where: { id: generation.id },
       data: { status: "FAILED", errorMessage: errorMsg, completedAt: new Date() },

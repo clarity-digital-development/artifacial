@@ -311,7 +311,7 @@ export async function GET(
           await refundCredits(
             session.user.id,
             generation.creditsCost,
-            `Refund: Venice generation failed (${generation.modelId})`
+            `Refund: Generation failed (${generation.modelId})`
           );
         }
 
@@ -344,7 +344,7 @@ export async function GET(
           await refundCredits(
             session.user.id,
             generation.creditsCost,
-            `Refund: Venice generation timed out (${generation.modelId})`
+            `Refund: Generation timed out (${generation.modelId})`
           );
         }
         await prisma.generation.update({
@@ -457,7 +457,7 @@ export async function GET(
       if (kieState === "fail") {
         const errorMsg = kieStatus.errorMessage || "KIE.AI generation failed";
         console.error(`[status] KIEAI FAILED gen=${generation.id} task=${kieAiTaskId} error="${errorMsg}"`);
-        await refundCredits(session.user.id, generation.creditsCost, `Refund: KIE.AI generation failed (${generation.modelId})`);
+        await refundCredits(session.user.id, generation.creditsCost, `Refund: Generation failed (${generation.modelId})`);
         await prisma.generation.update({
           where: { id: generation.id },
           data: { status: "FAILED", errorMessage: errorMsg, completedAt: new Date() },
@@ -690,7 +690,7 @@ export async function GET(
         await refundCredits(
           session.user.id,
           generation.creditsCost,
-          `Refund: PiAPI generation failed (${generation.modelId})`
+          `Refund: Generation failed (${generation.modelId})`
         );
       }
 
