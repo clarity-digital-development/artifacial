@@ -535,11 +535,13 @@ function ImageInput({
   onChange,
   disabled,
   label,
+  hint,
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
   disabled?: boolean;
   label?: string;
+  hint?: string;
 }) {
   const [tab, setTab] = useState<"device" | "characters">("device");
   const [characters, setCharacters] = useState<LibraryImage[]>([]);
@@ -680,6 +682,7 @@ function ImageInput({
           )}
         </div>
       )}
+      {hint && <FieldHint>{hint}</FieldHint>}
     </div>
   );
 }

@@ -163,10 +163,40 @@ export async function classifyPrompt(
       realPersonReference: false,
     };
   } catch (error) {
-    // CRITICAL: Fail safe — never let an unclassified prompt through
     const errMsg = error instanceof Error ? error.message : String(error);
     const errName = error instanceof Error ? error.constructor.name : "Unknown";
     console.error(`[prompt-classifier] FAILED: type=${errName}, message=${errMsg}, hasApiKey=${!!process.env.VENICE_API_KEY}`);
+
+    // Distinguish provider-side billing/auth failures from prompt issues.
+    // 402 = insufficient credits on Venice account, 401 = bad/missing key.
+    // These are NOT signals about the user's prompt — they're our infra problem.
+    const isProviderBillingError =
+      errMsg.includes("402") ||
+      errMsg.includes("401") ||
+      /insufficient/i.test(errMsg);
+
+    // For SFW prompts that already passed the hard keyword filter, fall back
+    // to allow when the upstream classifier is unavailable for billing reasons.
+    // Keyword filter still catches CSAM, real-person references, and other
+    // hard-block patterns. NSFW prompts still require successful classification.
+    if (isProviderBillingError && contentMode === "SFW") {
+      console.warn(
+        `[prompt-classifier] Provider billing error — falling back to keyword-only allow (SFW, kw filter passed). FIX: top up VENICE_API_KEY account.`,
+      );
+      return {
+        allowed: true,
+        contentMode,
+        sexualContent: false,
+        minorContent: false,
+        minorTerms: [],
+        violenceLevel: "none",
+        realPersonReference: false,
+        reason: "FALLBACK: classifier unavailable, keyword filter passed",
+      };
+    }
+
+    // CRITICAL: Fail safe — for NSFW or non-billing errors, never let an
+    // unclassified prompt through.
     return {
       allowed: false,
       contentMode,
