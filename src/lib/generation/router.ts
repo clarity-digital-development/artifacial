@@ -22,6 +22,7 @@ import { submitKieAiMotionControl } from "@/lib/kieai";
 import type {
   ContentMode,
   WorkflowType,
+  Prisma,
 } from "@/generated/prisma/client";
 
 // ─── Types ───
@@ -116,7 +117,12 @@ async function submitToPiAPI(
     modelId: string;
     motionDirection?: "image" | "video";
   },
-): Promise<{ taskId: string; piApiModel: string }> {
+): Promise<{
+  taskId: string;
+  piApiModel: string;
+  piApiTaskType: string;
+  piApiInput: Record<string, unknown>;
+}> {
   const piApiModel = model.pipiConfig.model;
   const taskType = getPiApiTaskType(params.modelId, mode);
 
@@ -152,7 +158,12 @@ async function submitToPiAPI(
   }
 
   const result = await submitTask(piApiModel, taskType, input);
-  return { taskId: result.taskId, piApiModel };
+  return {
+    taskId: result.taskId,
+    piApiModel,
+    piApiTaskType: taskType,
+    piApiInput: input,
+  };
 }
 
 // ─── WebP → JPEG conversion ───
@@ -511,8 +522,10 @@ export async function routeGeneration(
             withAudio: audioEnabled,
             piApiTaskId: result.taskId,
             piApiModel: result.piApiModel,
+            piApiTaskType: result.piApiTaskType,
+            piApiInput: result.piApiInput as Prisma.InputJsonValue,
             submissionPath: "piapi",
-          },
+          } as Prisma.InputJsonValue,
         },
       });
 

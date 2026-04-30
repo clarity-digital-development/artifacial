@@ -336,7 +336,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
   const [credits, setCredits] = useState(totalCredits);
 
   // Refs for polling intervals
-  const pollRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  const pollRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const timerRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   // ─── Derived ───
@@ -488,9 +488,23 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
 
   const stopPollingFor = useCallback((itemId: string) => {
     const poll = pollRefs.current.get(itemId);
-    if (poll) { clearInterval(poll); pollRefs.current.delete(itemId); }
+    if (poll) { clearTimeout(poll); pollRefs.current.delete(itemId); }
     const timer = timerRefs.current.get(itemId);
     if (timer) { clearInterval(timer); timerRefs.current.delete(itemId); }
+  }, []);
+
+  /**
+   * Poll cadence (exponential backoff to reduce server + provider load):
+   *   polls 1–5    : 3s    (first 15s — fast feedback for quick generations)
+   *   polls 6–15   : 6s    (next 60s — most generations finish here)
+   *   polls 16–30  : 10s   (next 150s — long video models)
+   *   polls 31+    : 15s   (>5min — rare, very heavy models)
+   */
+  const nextPollDelay = useCallback((pollCount: number): number => {
+    if (pollCount < 5) return 3000;
+    if (pollCount < 15) return 6000;
+    if (pollCount < 30) return 10000;
+    return 15000;
   }, []);
 
   const startPollingFor = useCallback((itemId: string, generationId: string) => {
@@ -507,7 +521,11 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
       }, 1000)
     );
 
+    let pollCount = 0;
+    let stopped = false;
+
     const poll = async () => {
+      pollCount += 1;
       try {
         const res = await fetch(`/api/generate/${generationId}/status`);
         if (!res.ok) return;
@@ -534,6 +552,7 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
             };
 
             if (newStatus === "completed" || newStatus === "failed") {
+              stopped = true;
               stopPollingFor(itemId);
               // Refresh credits from server so balance is accurate after completion/refund
               fetch("/api/usage").then((r) => r.json()).then((d) => {
@@ -549,12 +568,17 @@ export function GenerateClient({ totalCredits, tier, characters = [], contentMod
         );
       } catch {
         // Retry silently
+      } finally {
+        if (!stopped) {
+          const delay = nextPollDelay(pollCount);
+          pollRefs.current.set(itemId, setTimeout(poll, delay));
+        }
       }
     };
 
+    // Kick off — first poll runs immediately, subsequent polls schedule themselves
     poll();
-    pollRefs.current.set(itemId, setInterval(poll, 3000));
-  }, [stopPollingFor]);
+  }, [stopPollingFor, nextPollDelay]);
 
   // Persist generations to sessionStorage on every change
   useEffect(() => {

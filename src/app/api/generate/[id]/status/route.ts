@@ -163,6 +163,7 @@ export async function GET(
       creditsCost: true,
       contentMode: true,
       parentGenerationId: true,
+      retryCount: true,
     },
   });
 
@@ -624,6 +625,56 @@ export async function GET(
       console.error(`[status] FAILED gen=${generation.id} task=${piApiTaskId} model=${generation.modelId} type=${failureType} error="${errorMsg}" errorCode=${errorCode} rawMessage="${rawMessage}" logs="${logs}" durationMs=${durationMs} usage=${JSON.stringify(usage)} contentMode=${generation.contentMode}`);
       const submissionPath = inputParams?.submissionPath as string | undefined;
       const alreadyRetried = submissionPath === "piapi-retry-abstract";
+
+      // ─── Rate-limit auto-retry ───
+      // PiAPI returns errorCode=10001 / "too many requests" when their upstream
+      // (e.g. OpenAI Sora) rate-limits them. The condition is transient — retry
+      // the same submission silently up to MAX_RATE_LIMIT_RETRIES with backoff.
+      const isRateLimit =
+        errorCode === 10001 ||
+        /\btoo many requests\b/i.test(errorMsg) ||
+        /\btoo many requests\b/i.test(logs);
+      const MAX_RATE_LIMIT_RETRIES = 3;
+      if (isRateLimit && (generation.retryCount ?? 0) < MAX_RATE_LIMIT_RETRIES) {
+        const piApiModel = inputParams?.piApiModel as string | undefined;
+        const piApiTaskType = inputParams?.piApiTaskType as string | undefined;
+        const piApiInput = inputParams?.piApiInput as Record<string, unknown> | undefined;
+        if (piApiModel && piApiTaskType && piApiInput) {
+          console.warn(`[status] Rate-limit detected, auto-retrying gen=${generation.id} attempt=${(generation.retryCount ?? 0) + 1}/${MAX_RATE_LIMIT_RETRIES}`);
+          try {
+            const retryResult = await submitTask(piApiModel, piApiTaskType, piApiInput);
+            await prisma.generation.update({
+              where: { id: generation.id },
+              data: {
+                status: "PROCESSING",
+                progress: 10,
+                startedAt: new Date(),
+                errorMessage: null,
+                retryCount: { increment: 1 },
+                inputParams: {
+                  ...inputParams,
+                  piApiTaskId: retryResult.taskId,
+                  submissionPath: "piapi-retry-ratelimit",
+                },
+              },
+            });
+            console.log(`[status] Rate-limit retry submitted gen=${generation.id} newTask=${retryResult.taskId}`);
+            return NextResponse.json({
+              id: generation.id,
+              status: "PROCESSING",
+              progress: 10,
+              queuedAt: generation.queuedAt,
+              startedAt: new Date(),
+            });
+          } catch (retryErr) {
+            const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+            console.error(`[status] Rate-limit retry failed gen=${generation.id}: ${msg}`);
+            // Fall through to normal failure handling
+          }
+        } else {
+          console.warn(`[status] Rate-limit detected but missing replay params for gen=${generation.id} — falling through to failure`);
+        }
+      }
 
       // Retry on moderation blocks OR inference failures for NSFW (DashScope may
       // catch content at inference time via a secondary classifier)
