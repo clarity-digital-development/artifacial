@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getTaskStatus } from "@/lib/piapi-client";
 import { getKieAiTaskStatus } from "@/lib/kieai";
+import { sanitizeClientError } from "@/lib/errors";
 
 /**
  * GET /api/workshop/poll?taskId=xxx
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json({
         status: kieStatus,
-        errorMessage: kieStatus === "failed" ? (kieResult.errorMessage ?? "Generation failed") : null,
+        errorMessage: kieStatus === "failed" ? sanitizeClientError(kieResult.errorMessage, "workshop-poll:kieai") : null,
         videoUrl: !isImage && resultUrls.length > 0 ? resultUrls[0] : null,
         imageUrl: isImage && resultUrls.length > 0 ? resultUrls[0] : null,
         imageUrls: isImage && resultUrls.length > 0 ? resultUrls : null,
@@ -124,7 +125,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: result.status,
-      errorMessage: result.errorMessage ?? null,
+      errorMessage: result.status === "failed"
+        ? sanitizeClientError(result.errorMessage, "workshop-poll:piapi")
+        : null,
       // Standard media
       videoUrl: result.videoUrl ?? null,
       imageUrl: result.imageUrl ?? null,

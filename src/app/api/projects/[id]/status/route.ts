@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSignedR2Url } from "@/lib/r2";
+import { sanitizeClientError } from "@/lib/errors";
 
 export async function GET(
   _req: NextRequest,
@@ -48,7 +49,9 @@ export async function GET(
   return NextResponse.json({
     status: project.status,
     videoUrl: signedVideoUrl,
-    error: latestGeneration?.status === "FAILED" ? latestGeneration.errorMessage : null,
+    error: latestGeneration?.status === "FAILED"
+      ? sanitizeClientError(latestGeneration.errorMessage, "project-status")
+      : null,
     generationId: latestGeneration?.id ?? null,
     progress: latestGeneration?.progress ?? 0,
   });

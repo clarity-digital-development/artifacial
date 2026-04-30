@@ -11,6 +11,7 @@ import { isValidModelId, getModelById, getPiApiTaskType } from "@/lib/models/reg
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 import { submitTask, buildVideoInput, buildImageInput } from "@/lib/piapi-client";
+import { sanitizeClientError, FALLBACK_GENERIC } from "@/lib/errors";
 
 // ─── Helpers ───
 
@@ -196,7 +197,9 @@ export async function GET(
       outputUrl,
       outputR2Key: rawOutputKey && !rawOutputKey.startsWith("http") ? rawOutputKey : null,
       thumbnailUrl,
-      errorMessage: generation.errorMessage,
+      errorMessage: generation.errorMessage
+        ? sanitizeClientError(generation.errorMessage, "status:db-read")
+        : null,
       queuedAt: generation.queuedAt,
       startedAt: generation.startedAt,
       completedAt: generation.completedAt,
@@ -319,7 +322,7 @@ export async function GET(
           where: { id: generation.id },
           data: {
             status: "FAILED",
-            errorMessage: veniceStatus.errorMessage || "Venice generation failed",
+            errorMessage: sanitizeClientError(veniceStatus.errorMessage, "status:venice-fail"),
             completedAt: new Date(),
           },
         });
@@ -409,7 +412,7 @@ export async function GET(
         if (!kieStatus.videoUrl) {
           await prisma.generation.update({
             where: { id: generation.id },
-            data: { status: "FAILED", errorMessage: "KIE.AI succeeded but returned no video URL", completedAt: new Date() },
+            data: { status: "FAILED", errorMessage: "Generation completed but no output received", completedAt: new Date() },
           });
           return NextResponse.json({ id: generation.id, status: "FAILED", progress: 0, errorMessage: "Generation completed but no output received." });
         }
@@ -455,12 +458,12 @@ export async function GET(
       }
 
       if (kieState === "fail") {
-        const errorMsg = kieStatus.errorMessage || "KIE.AI generation failed";
-        console.error(`[status] KIEAI FAILED gen=${generation.id} task=${kieAiTaskId} error="${errorMsg}"`);
+        const rawErr = kieStatus.errorMessage || "Generation failed";
+        console.error(`[status] KIEAI FAILED gen=${generation.id} task=${kieAiTaskId} error="${rawErr}"`);
         await refundCredits(session.user.id, generation.creditsCost, `Refund: Generation failed (${generation.modelId})`);
         await prisma.generation.update({
           where: { id: generation.id },
-          data: { status: "FAILED", errorMessage: errorMsg, completedAt: new Date() },
+          data: { status: "FAILED", errorMessage: sanitizeClientError(rawErr, "status:kieai-fail"), completedAt: new Date() },
         });
         return NextResponse.json({ id: generation.id, status: "FAILED", progress: 0, errorMessage: "Generation failed. Credits have been refunded." });
       }
@@ -698,7 +701,7 @@ export async function GET(
         where: { id: generation.id },
         data: {
           status: "FAILED",
-          errorMessage: errorMsg,
+          errorMessage: sanitizeClientError(errorMsg, "status:piapi-fail"),
           completedAt: new Date(),
         },
       });

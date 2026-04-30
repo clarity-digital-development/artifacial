@@ -10,6 +10,7 @@ import {
   submitRecraftCrispUpscale,
   submitGrokVideoUpscale,
 } from "@/lib/kieai";
+import { sanitizeClientError } from "@/lib/errors";
 
 // ─── R2 upload helper ─────────────────────────────────────────────────────────
 
@@ -471,7 +472,7 @@ export async function POST(
       await refundCredits(userId, credits, `Refund: ${slug} submission failed`);
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[workshop/${slug}] Nano Banana submission failed:`, msg);
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return NextResponse.json({ error: sanitizeClientError(msg, `workshop/${slug}`) }, { status: 500 });
     }
 
     return NextResponse.json({ taskId, credits });
@@ -524,7 +525,7 @@ export async function POST(
       await refundCredits(userId, credits, `Refund: ${slug} submission failed`);
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[workshop/${slug}] KIE.AI submission failed:`, msg);
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return NextResponse.json({ error: sanitizeClientError(msg, `workshop/${slug}`) }, { status: 500 });
     }
 
     const prefix = isImageOutput ? "kieai:image:" : "kieai:video:";
@@ -541,7 +542,7 @@ export async function POST(
     await refundCredits(userId, credits, `Workshop refund: ${tool.name}`);
     const message = err instanceof Error ? err.message : "Submission failed";
     console.error(`[workshop/${slug}] error:`, err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: sanitizeClientError(message, `workshop/${slug}`) }, { status: 500 });
   }
 
   return NextResponse.json({ taskId, credits });

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { routeGeneration } from "@/lib/generation/router";
 import { isValidModelId, getModelById } from "@/lib/models/registry";
 import { prisma } from "@/lib/db";
+import { sanitizeClientError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -120,7 +121,11 @@ export async function POST(req: NextRequest) {
     console.error(`[generate] FAILED: code=${result.errorCode}, error=${result.error}`);
 
     return NextResponse.json(
-      { error: result.error, errorCode: result.errorCode, generationId: result.generationId },
+      {
+        error: sanitizeClientError(result.error, `generate:${result.errorCode}`),
+        errorCode: result.errorCode,
+        generationId: result.generationId,
+      },
       { status: statusCode }
     );
   }

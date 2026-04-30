@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { refundCredits } from "@/lib/credits";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
+import { sanitizeClientError } from "@/lib/errors";
 
 function r2KeyForGeneration(userId: string, generationId: string, ext: string) {
   return `users/${userId}/generations/${generationId}/output.${ext}`;
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
       console.error(`[kieai-webhook] success but no videoUrl found in payload`);
       await prisma.generation.update({
         where: { id: generation.id },
-        data: { status: "FAILED", errorMessage: "KIE.AI succeeded but returned no video URL", completedAt: new Date() },
+        data: { status: "FAILED", errorMessage: "Generation completed but no output received", completedAt: new Date() },
       });
       return NextResponse.json({ ok: true });
     }
@@ -187,13 +188,13 @@ export async function POST(req: NextRequest) {
 
     console.log(`[kieai-webhook] Completed gen=${generation.id} r2Key=${r2Key}`);
   } else if (state === "fail" || state === "failed") {
-    const errorMsg = (taskData?.failMsg ?? taskData?.errorMsg ?? taskData?.error ?? "KIE.AI generation failed") as string;
-    console.error(`[kieai-webhook] Failed gen=${generation.id} error="${errorMsg}"`);
+    const rawErr = (taskData?.failMsg ?? taskData?.errorMsg ?? taskData?.error ?? "Generation failed") as string;
+    console.error(`[kieai-webhook] Failed gen=${generation.id} error="${rawErr}"`);
 
     await refundCredits(generation.userId, generation.creditsCost, `Refund: Generation failed (${generation.modelId})`);
     await prisma.generation.update({
       where: { id: generation.id },
-      data: { status: "FAILED", errorMessage: errorMsg, completedAt: new Date() },
+      data: { status: "FAILED", errorMessage: sanitizeClientError(rawErr, "kieai-webhook"), completedAt: new Date() },
     });
   } else {
     // In-progress state — update status

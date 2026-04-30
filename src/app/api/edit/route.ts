@@ -99,17 +99,18 @@ export async function POST(req: NextRequest) {
     });
     kieAiTaskId = result.taskId;
   } catch (err) {
+    const rawErr = err instanceof Error ? err.message : String(err);
+    console.error("[edit] KIE.AI submission failed:", rawErr);
     await prisma.generation.update({
       where: { id: generation.id },
       data: {
         status: "FAILED",
-        errorMessage: String(err),
+        errorMessage: "Image edit failed due to a temporary provider issue. Credits refunded.",
         completedAt: new Date(),
       },
     });
     await refundCredits(session.user.id, CREDIT_COST, "Refund: Image edit submission failed");
-    console.error("[edit] KIE.AI submission failed:", err);
-    return NextResponse.json({ error: "Failed to submit image edit" }, { status: 500 });
+    return NextResponse.json({ error: "Image edit failed due to a temporary provider issue. Credits refunded." }, { status: 500 });
   }
 
   // Update Generation with task ID and mark as processing
