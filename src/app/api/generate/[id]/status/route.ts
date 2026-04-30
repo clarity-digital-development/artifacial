@@ -714,6 +714,36 @@ export async function GET(
       });
     }
 
+    // Stuck-pending timeout — if PiAPI never moves the task off "pending"
+    // (typically rate-limited or backed-up internally), force-fail and
+    // refund after a generous wait so the user isn't watching a perpetual spinner.
+    const PIAPI_PENDING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+    const elapsedMs = Date.now() - generation.queuedAt.getTime();
+    if (piStatus.status === "pending" && elapsedMs > PIAPI_PENDING_TIMEOUT_MS) {
+      console.error(`[status] PIAPI STUCK-PENDING gen=${generation.id} task=${piApiTaskId} elapsed=${elapsedMs}ms model=${generation.modelId}`);
+      if (generation.errorMessage !== "ACCOUNT_DELETED") {
+        await refundCredits(
+          session.user.id,
+          generation.creditsCost,
+          `Refund: Generation stuck pending (${generation.modelId})`
+        );
+      }
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "FAILED",
+          errorMessage: "Generation timed out before the provider could start. Credits refunded.",
+          completedAt: new Date(),
+        },
+      });
+      return NextResponse.json({
+        id: generation.id,
+        status: "FAILED",
+        progress: 0,
+        errorMessage: "Generation timed out before the provider could start. Credits refunded.",
+      });
+    }
+
     // Still in progress — update progress
     const progress = piStatus.progress ?? (piStatus.status === "processing" ? 50 : 10);
     const dbStatus = piStatus.status === "processing" ? "PROCESSING" : "QUEUED";

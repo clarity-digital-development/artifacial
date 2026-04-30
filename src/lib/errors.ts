@@ -14,6 +14,25 @@
 export const FALLBACK_GENERIC =
   "Generation failed due to a temporary provider issue. Credits refunded.";
 
+export const FALLBACK_RATE_LIMIT =
+  "We're being rate-limited by the provider. Please try again in a few minutes. Credits refunded.";
+
+export const FALLBACK_TIMEOUT =
+  "Generation timed out before the provider could start. Credits refunded.";
+
+const RATE_LIMIT_HINTS: RegExp[] = [
+  /\btoo many requests\b/i,
+  /\brate limit/i,
+  /\b429\b/,
+  /\berrorCode\s*=?\s*10001\b/,
+];
+
+const TIMEOUT_HINTS: RegExp[] = [
+  /\btimed?\s*out\b/i,
+  /\btimeout\b/i,
+  /\btask\s+timed\s+out\b/i,
+];
+
 const RAW_HEURISTICS: RegExp[] = [
   /\{[\s\S]*"(task_id|task_type|queue_id|webhook_config|model_router)"/i,
   /\{[\s\S]*"code"\s*:\s*\d{3,}/i,
@@ -69,6 +88,10 @@ export function sanitizeClientError(
 
   // Preserve full raw error in Railway deploy logs
   console.error(`[client-error:${context}] raw=${JSON.stringify(raw)}`);
+
+  // Specific friendly variants for common upstream conditions
+  if (RATE_LIMIT_HINTS.some((re) => re.test(raw))) return FALLBACK_RATE_LIMIT;
+  if (TIMEOUT_HINTS.some((re) => re.test(raw))) return FALLBACK_TIMEOUT;
 
   // Raw provider blob? Always replace.
   if (RAW_HEURISTICS.some((re) => re.test(raw))) {
