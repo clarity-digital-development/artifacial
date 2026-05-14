@@ -83,3 +83,91 @@ export function filterPromptKeywords(prompt: string): KeywordFilterResult {
 
   return { blocked: false };
 }
+
+// ─── Deterministic proper-noun name detector ────────────────────────────────
+//
+// Replaces the noisy LLM realPersonReference flag. We only block when a real
+// proper-noun name appears in the prompt — generic descriptions like
+// "tall blonde woman in a red dress" are NOT a match. Allows creators to
+// generate real-person-likeness content as long as no specific name is used.
+
+// Common two-word concept/place names that look like person names but aren't.
+// These pass straight through.
+const NON_PERSON_PAIRS = new Set([
+  "New York", "New Orleans", "New Jersey", "New Mexico", "New Hampshire",
+  "Los Angeles", "San Francisco", "San Diego", "San Antonio", "San Jose",
+  "Las Vegas", "South Beach", "South Africa", "South Korea", "North Korea",
+  "Hong Kong", "United States", "United Kingdom",
+  "Lake Tahoe", "Lake Como", "Mount Everest", "Mount Rushmore",
+  "Wall Street", "Times Square", "Central Park", "Hyde Park",
+  "Mona Lisa", "Eiffel Tower", "Statue Liberty",
+  "Big Apple", "Big Sur", "Big Ben",
+  "Bay Area", "Silicon Valley", "Death Valley",
+  "Studio Ghibli", "Pixar Studios", "Marvel Studios",
+]);
+
+// Title prefixes that very reliably introduce a real-person reference.
+const TITLE_NAME_RE =
+  /\b(?:President|Vice\s*President|Prime\s*Minister|Senator|Congressman|Congresswoman|Mayor|Governor|Prince|Princess|King|Queen|Pope|Sir|Lord|Lady|Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Miss)\s+[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+)?/g;
+
+// A short curated list of high-risk celebrity/public-figure names that
+// likeness-generation attempts most commonly target. Matched case-insensitively.
+const CELEBRITY_NAMES = [
+  // Music
+  "Taylor Swift", "Selena Gomez", "Ariana Grande", "Beyonce", "Beyoncé",
+  "Rihanna", "Lady Gaga", "Billie Eilish", "Olivia Rodrigo", "Dua Lipa",
+  "Justin Bieber", "Drake", "Kanye West", "Ye Ye", "Travis Scott",
+  "Sabrina Carpenter", "Doja Cat", "SZA", "Megan Thee Stallion", "Cardi B",
+  "Nicki Minaj", "Bad Bunny", "The Weeknd", "Post Malone", "Ed Sheeran",
+  // Film/TV
+  "Scarlett Johansson", "Margot Robbie", "Emma Watson", "Emma Stone",
+  "Jennifer Lawrence", "Gal Gadot", "Zendaya", "Sydney Sweeney",
+  "Anya Taylor", "Florence Pugh", "Millie Bobby", "Jenna Ortega",
+  "Tom Cruise", "Brad Pitt", "Leonardo DiCaprio", "Ryan Reynolds",
+  "Ryan Gosling", "Timothée Chalamet", "Timothee Chalamet", "Chris Evans",
+  "Chris Hemsworth", "Tom Holland", "Robert Downey", "Henry Cavill",
+  // Reality / social
+  "Kim Kardashian", "Kylie Jenner", "Kendall Jenner", "Khloe Kardashian",
+  "Kourtney Kardashian", "Bella Hadid", "Gigi Hadid", "Hailey Bieber",
+  "Addison Rae", "Charli D'Amelio", "Bhad Bhabie",
+  // Tech / politics
+  "Elon Musk", "Mark Zuckerberg", "Jeff Bezos", "Bill Gates", "Steve Jobs",
+  "Sam Altman", "Sundar Pichai", "Tim Cook",
+  "Donald Trump", "Joe Biden", "Barack Obama", "Michelle Obama",
+  "Kamala Harris", "Hillary Clinton", "Bernie Sanders", "Ron DeSantis",
+  "Vladimir Putin", "Xi Jinping",
+  // Sports
+  "LeBron James", "Michael Jordan", "Stephen Curry", "Lionel Messi",
+  "Cristiano Ronaldo", "Serena Williams", "Tom Brady", "Patrick Mahomes",
+];
+
+const CELEBRITY_RE = new RegExp(
+  "\\b(?:" + CELEBRITY_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b",
+  "i"
+);
+
+export function detectExplicitPersonName(prompt: string): {
+  found: boolean;
+  matches: string[];
+} {
+  const matches: string[] = [];
+
+  // 1. Celebrity allow-list — high precision
+  const celebMatch = prompt.match(CELEBRITY_RE);
+  if (celebMatch) matches.push(celebMatch[0]);
+
+  // 2. Title + capitalized name (high precision)
+  const titleMatches = prompt.match(TITLE_NAME_RE);
+  if (titleMatches) matches.push(...titleMatches);
+
+  // 3. Two-or-more consecutive capitalized words (likely FirstName LastName)
+  //    Filtered against the NON_PERSON_PAIRS set so places/brands don't trip.
+  const properPairs = prompt.match(/\b[A-Z][a-zA-Z'\-]+\s+[A-Z][a-zA-Z'\-]+\b/g) ?? [];
+  for (const pair of properPairs) {
+    if (!NON_PERSON_PAIRS.has(pair) && !matches.some((m) => m.includes(pair))) {
+      matches.push(pair);
+    }
+  }
+
+  return { found: matches.length > 0, matches };
+}

@@ -1,5 +1,5 @@
 import { getVeniceClient, VENICE_MODEL, withVeniceRetry } from "@/lib/venice";
-import { filterPromptKeywords } from "./keyword-filter";
+import { filterPromptKeywords, detectExplicitPersonName } from "./keyword-filter";
 import type { ContentMode } from "@/generated/prisma/client";
 
 export type PromptClassification = {
@@ -27,7 +27,7 @@ Classification rules:
 - "teen", "teenage", "young" are NOT inherently problematic in non-sexual contexts
 - ONLY flag minorContent=true for: explicit ages under 18 (e.g. "15 year old"), words like "child", "kid", "toddler", "baby", "preteen", "underage", "loli", OR phrases like "barely legal", "innocent schoolgirl" combined with sexual context
 - Age descriptors like "18 year old" in sexual contexts are suspicious — flag but allow in NSFW mode
-- References to real people by name (celebrities, politicians, public figures) = block (deepfake prevention)
+- realPersonReference: ONLY flag true when an EXPLICIT proper-noun name of a real person appears in the prompt (e.g. "Taylor Swift", "President Biden"). Generic descriptions like "famous actress", "tall blonde woman", "looks like a model", "celebrity-style", "K-pop idol" are NOT references — flag false. Descriptions of hair color, body type, clothing, age, ethnicity, profession, vibe, or "type" are NEVER a real-person reference on their own. When in doubt, flag false — a downstream deterministic name check is the source of truth.
 - Standard creative/cinematic descriptions of adults = allow
 - Extreme violence, gore, torture, or snuff = hard block
 - Illegal activity (drug manufacturing, weapons construction, terrorism) = hard block
@@ -58,6 +58,25 @@ export async function classifyPrompt(
       violenceLevel: "none",
       realPersonReference: false,
       reason: `HARD_BLOCK: ${keywordResult.reason}`,
+    };
+  }
+
+  // Layer 1.5: Deterministic proper-noun name check. Authoritative for the
+  // real-person likeness rule — replaces the noisy LLM signal. Blocks only
+  // when an explicit name is present (celebrity allow-list, title+name, or
+  // FirstName-LastName proper-noun pair). Generic descriptions pass through.
+  const nameCheck = detectExplicitPersonName(prompt);
+  if (nameCheck.found) {
+    console.warn(`[prompt-classifier] Real-person name detected: ${nameCheck.matches.join(", ")}`);
+    return {
+      allowed: false,
+      contentMode,
+      sexualContent: false,
+      minorContent: false,
+      minorTerms: [],
+      violenceLevel: "none",
+      realPersonReference: true,
+      reason: "BLOCK: Prompts that name a specific real person aren't allowed. Describe the look instead (hair, build, vibe).",
     };
   }
 
@@ -97,20 +116,9 @@ export async function classifyPrompt(
       };
     }
 
-    // Real person deepfake prevention — only enforced in NSFW mode.
-    // SFW real-person references (stylistic/cinematic) are allowed.
-    if (result.realPersonReference && contentMode === "NSFW") {
-      return {
-        allowed: false,
-        contentMode,
-        minorContent: result.minorContent || false,
-        minorTerms: result.minorTerms || [],
-        sexualContent: result.sexualContent || false,
-        violenceLevel: result.violenceLevel || "none",
-        realPersonReference: true,
-        reason: "BLOCK: Real person likeness generation not permitted on NSFW models",
-      };
-    }
+    // (Real-person likeness is enforced deterministically at Layer 1.5 above.
+    // The LLM's realPersonReference signal is intentionally NOT used to block
+    // here — it produced too many false positives on generic descriptions.)
 
     if (result.violenceLevel === "extreme") {
       return {
