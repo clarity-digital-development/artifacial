@@ -11,6 +11,12 @@ export const metadata = {
 const PUBLIC_TOOL_SLUGS = [
   "character-swap",
   "recraft-crisp-upscale",
+  // Viral Presets
+  "preset-ugc-hook",
+  "preset-paparazzi-flash",
+  "preset-slow-mo",
+  "preset-magazine-cover",
+  "preset-red-carpet",
 ];
 
 export default async function WorkshopPage() {

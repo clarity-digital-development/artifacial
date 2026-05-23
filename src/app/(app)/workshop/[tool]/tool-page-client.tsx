@@ -1619,6 +1619,143 @@ function SubmitButton({
   );
 }
 
+// ─── Viral Preset forms ──────────────────────────────────────────────────────
+// Shared shape: character image + optional one-line customization variable.
+
+function PresetForm({
+  onSubmit,
+  loading,
+  credits,
+  imageHint,
+  variable,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+  credits: number;
+  imageHint: string;
+  variable?: {
+    key: string;
+    label: string;
+    placeholder: string;
+    hint?: string;
+    default?: string;
+    optional?: boolean;
+  };
+}) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [value, setValue] = useState(variable?.default ?? "");
+
+  const valueOk = !variable || variable.optional || value.trim().length > 0;
+  const valid = !!characterImage && valueOk;
+
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Character / source"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint={imageHint}
+      />
+      {variable && (
+        <TextInput
+          label={variable.label}
+          value={value}
+          onChange={setValue}
+          placeholder={variable.placeholder}
+          hint={variable.hint}
+        />
+      )}
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={credits}
+        onClick={() => onSubmit({
+          characterImage,
+          ...(variable ? { [variable.key]: value.trim() } : {}),
+        })}
+      />
+    </div>
+  );
+}
+
+function UgcHookPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={3850}
+      imageHint="Pick the character or product holder for your UGC hook."
+      variable={{
+        key: "description",
+        label: "Hook description",
+        placeholder: "trying out a new skincare product on the bathroom counter",
+        hint: "Describe what they're doing in the opener. Keep it natural and creator-style.",
+      }}
+    />
+  );
+}
+
+function PaparazziFlashPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={1300}
+      imageHint="A clear front-facing shot of your character works best."
+      variable={{
+        key: "outfit",
+        label: "Outfit (optional)",
+        placeholder: "black evening dress and sunglasses",
+        hint: "What are they wearing? Leave blank for default stylish evening attire.",
+        default: "stylish evening attire",
+        optional: true,
+      }}
+    />
+  );
+}
+
+function SlowMoActionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Character or subject performing the action."
+      variable={{
+        key: "action",
+        label: "Action",
+        placeholder: "throwing a punch / kicking a soccer ball / hair flip",
+        hint: "What action is being slowed down? Be specific.",
+      }}
+    />
+  );
+}
+
+function MagazineCoverPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={450}
+      imageHint="Headshot or upper-body shot of your character."
+      variable={{
+        key: "style",
+        label: "Cover style",
+        placeholder: "high-fashion / streetwear / wellness / business / artsy",
+        hint: "Pick a vibe. Defaults to high-fashion if left blank.",
+        default: "high-fashion",
+        optional: true,
+      }}
+    />
+  );
+}
+
+function RedCarpetPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Character image. Full-body works best for the walking shot."
+    />
+  );
+}
+
 // ─── Form router ─────────────────────────────────────────────────────────────
 
 
@@ -1655,6 +1792,12 @@ function ToolForm({
     case "character-swap-remix": return <IdeogramCharacterRemixForm {...props} />;
     case "recraft-crisp-upscale":   return <RecraftCrispUpscaleForm {...props} />;
     case "grok-video-upscale":      return <GrokVideoUpscaleForm {...props} />;
+    // ── Viral Presets ──
+    case "preset-ugc-hook":         return <UgcHookPreset {...props} />;
+    case "preset-paparazzi-flash":  return <PaparazziFlashPreset {...props} />;
+    case "preset-slow-mo":          return <SlowMoActionPreset {...props} />;
+    case "preset-magazine-cover":   return <MagazineCoverPreset {...props} />;
+    case "preset-red-carpet":       return <RedCarpetPreset {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }

@@ -82,6 +82,12 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
       return 60;
     case "grok-video-upscale":
       return 600;
+    // ── Viral Presets ──
+    case "preset-ugc-hook":         return 3850;
+    case "preset-paparazzi-flash":  return 1300;
+    case "preset-slow-mo":          return 2000;
+    case "preset-magazine-cover":   return 450;
+    case "preset-red-carpet":       return 2000;
     default:                  return 100;
   }
 }
@@ -333,6 +339,103 @@ async function buildTask(
         model: "diffrhythm",
         taskType: String(body.taskType || "txt2audio-base"),
         input,
+      };
+    }
+
+    // ── Viral Presets ──────────────────────────────────────────────────────
+    // Each preset is a curated configuration of an existing video/image model.
+    // Templates have a single {description}/{outfit}/{action}/{style} slot
+    // when the form provides one; otherwise the prompt is fully baked.
+
+    case "preset-ugc-hook": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const description = (typeof body.description === "string" ? body.description.trim() : "") || "discovering a new product";
+      const prompt = `Authentic UGC-style phone video of the person ${description}. Natural handheld phone camera with subtle shake, soft window lighting, casual home or office setting, genuine emotional reaction. Direct-to-camera framing typical of viral TikTok creator content. Phone-quality realism, not cinematic.`;
+      return {
+        model: "veo3.1",
+        taskType: "veo3.1-video",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 8,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+        },
+      };
+    }
+
+    case "preset-paparazzi-flash": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const outfit = (typeof body.outfit === "string" ? body.outfit.trim() : "") || "stylish evening attire";
+      const prompt = `Candid paparazzi-style video of the person walking quickly through a crowd at night, wearing ${outfit}. Multiple bright camera flashes firing rapidly from both sides, heavy motion blur on the flashes, grainy 2000s celebrity tabloid film aesthetic, raw urban street energy, photographers calling out. Handheld documentary feel.`;
+      return {
+        model: "kling",
+        taskType: "video_generation",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 5,
+          aspect_ratio: "9:16",
+          version: "2.6",
+          mode: "pro",
+        },
+      };
+    }
+
+    case "preset-slow-mo": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const action = (typeof body.action === "string" ? body.action.trim() : "");
+      if (!action) throw new Error("Action description is required");
+      const prompt = `@image_1 Hyper-realistic slow-motion shot of the person ${action}. 1000fps cinematic capture, extreme motion detail, dramatic side-lit composition, shallow depth of field, fluid motion physics. Sweat droplets, hair, and clothing movement visible. Action-movie quality.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-magazine-cover": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const style = (typeof body.style === "string" ? body.style.trim() : "") || "high-fashion";
+      const prompt = `Premium ${style} editorial magazine cover photograph of the person from the reference image. Dramatic studio lighting with a single key light, glossy production quality, sharp focus on the face, soft seamless background, magazine-cover composition with negative space at the top for masthead text. Vogue / GQ-level quality, color-graded for print.`;
+      return {
+        model: "gemini",
+        taskType: "nano-banana-pro",
+        input: {
+          prompt,
+          image_urls: [img],
+          output_format: "png",
+          aspect_ratio: "3:4",
+        },
+      };
+    }
+
+    case "preset-red-carpet": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person walking confidently on a glamorous red carpet at a film premiere. Rapid paparazzi camera flashes firing from both sides of frame, elegant formal evening wear, slow confident walk toward camera, warm golden cinematic key lighting, Hollywood premiere atmosphere, slight motion blur on each flash burst. Smooth dolly tracking shot.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
       };
     }
 

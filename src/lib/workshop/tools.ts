@@ -280,6 +280,71 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "audio",
   },
 
+  // ── Viral Presets (one-click templates) ────────────────────────────────────
+  // Each preset is a curated configuration of an existing video/image model
+  // with a pre-baked prompt and locked-in parameters. Users only supply their
+  // character image + (optionally) one short customization.
+
+  {
+    slug: "preset-ugc-hook",
+    name: "Cinematic UGC Hook",
+    tagline: "Pro-quality product/UGC opener with hook framing",
+    description:
+      "Generates an authentic phone-style UGC video starring your character — perfect for ad hooks, product demos, and viral openers. Built on Veo 3.1 at cinematic 720p, 8 seconds.",
+    category: "video",
+    credits: 3850,
+    creditLabel: "3,850 cr · 8s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-paparazzi-flash",
+    name: "Paparazzi Flash",
+    tagline: "2000s candid paparazzi shot — your character",
+    description:
+      "Vintage-era candid paparazzi-style clip with bright flash bursts, motion blur, and tabloid grit. Pair your character with a quick outfit description.",
+    category: "video",
+    credits: 1300,
+    creditLabel: "1,300 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-slow-mo",
+    name: "Slow-Mo Action",
+    tagline: "Hyper-detailed slow-motion of any action",
+    description:
+      "Cinematic 1000fps-style slow-motion of your character performing an action. Dramatic lighting, soft depth of field, action-movie quality. Powered by Kling 3.0.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-magazine-cover",
+    name: "Magazine Cover",
+    tagline: "Editorial-grade magazine cover still",
+    description:
+      "Single editorial magazine cover image of your character with dramatic studio lighting, glossy production quality, and space for masthead text. Pick a style or use high-fashion default.",
+    category: "image",
+    credits: 450,
+    creditLabel: "450 cr",
+    status: "available",
+    outputType: "image",
+  },
+  {
+    slug: "preset-red-carpet",
+    name: "Red Carpet",
+    tagline: "Glamorous premiere walk with flash bursts",
+    description:
+      "Hollywood-premiere style red carpet walk with rapid paparazzi flashes, golden lighting, and a confident tracking shot. Built on Kling 3.0.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
