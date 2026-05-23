@@ -1760,7 +1760,7 @@ function DriftRacingPreset(p: { onSubmit: (d: Record<string, unknown>) => void; 
   return (
     <PresetForm
       {...p}
-      credits={1800}
+      credits={2400}
       imageHint="Character image. Front-facing or upper-body works best for the driver shot."
       variable={{
         key: "car",
@@ -1804,7 +1804,7 @@ function ThreeDRenderPreset(p: { onSubmit: (d: Record<string, unknown>) => void;
   return (
     <PresetForm
       {...p}
-      credits={2400}
+      credits={1800}
       imageHint="Headshot or upper-body works best. We'll restyle in 3D-render form."
     />
   );

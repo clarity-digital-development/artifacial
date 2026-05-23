@@ -88,10 +88,10 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-slow-mo":          return 2000;
     case "preset-magazine-cover":   return 450;
     case "preset-red-carpet":       return 2000;
-    case "preset-drift-racing":     return 1800;
+    case "preset-drift-racing":     return 2400;
     case "preset-cctv":             return 1600;
     case "preset-neon-city":        return 2000;
-    case "preset-3d-render":        return 2400;
+    case "preset-3d-render":        return 1800;
     case "preset-anime":            return 2000;
     default:                  return 100;
   }
