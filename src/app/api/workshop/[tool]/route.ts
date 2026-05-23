@@ -88,10 +88,10 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-slow-mo":          return 2000;
     case "preset-magazine-cover":   return 450;
     case "preset-red-carpet":       return 2000;
-    case "preset-drift-racing":     return 2400;
+    case "preset-drift-racing":     return 4000; // seedance-2-preview-vip 720p, $0.20/s × 5 = $1.00 → 4000 cr (75%)
     case "preset-cctv":             return 1600;
     case "preset-neon-city":        return 2000;
-    case "preset-3d-render":        return 1800;
+    case "preset-3d-render":        return 3200; // seedance-2-fast-preview-vip 720p, $0.16/s × 5 = $0.80 → 3200 cr (75%)
     case "preset-anime":            return 2000;
     default:                  return 100;
   }
@@ -449,12 +449,13 @@ async function buildTask(
       if (!img) throw new Error("Missing character image");
       const car = (typeof body.car === "string" ? body.car.trim() : "") || "matte-black tuned sports car";
       const prompt = `High-energy cinematic drift sequence of the person from the reference image driving a ${car} at night on a wet city street. Aggressive controlled slide with thick tire smoke billowing, intense motion blur, dramatic low-angle and over-the-shoulder camera angles, neon street reflections, action-film color grading, shaky-cam energy. The driver is visible through the windshield, focused and intense.`;
+      // VIP variant needed for true 720p output (non-VIP locks to 480p).
       return {
         model: "seedance",
-        taskType: "seedance-2-preview",
+        taskType: "seedance-2-preview-vip",
         input: {
           prompt,
-          image_url: img,
+          image_urls: [img],
           duration: 5,
           aspect_ratio: "9:16",
           resolution: "720p",
@@ -503,12 +504,13 @@ async function buildTask(
       const img = await resolveImg(userId, body.characterImage);
       if (!img) throw new Error("Missing character image");
       const prompt = `Stylized 3D-animated character render of the person from the reference image — Pixar/DreamWorks/Disney-style. Soft subsurface skin shading, expressive proportions with slightly enlarged eyes, polished animated-film quality, warm cinematic key light, soft background bokeh. Subtle idle animation: gentle smile, slight head tilt, blinking. Polished animation-studio finish.`;
+      // VIP variant needed for true 720p output (non-VIP locks to 480p).
       return {
         model: "seedance",
-        taskType: "seedance-2-fast-preview",
+        taskType: "seedance-2-fast-preview-vip",
         input: {
           prompt,
-          image_url: img,
+          image_urls: [img],
           duration: 5,
           aspect_ratio: "1:1",
           resolution: "720p",

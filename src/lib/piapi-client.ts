@@ -580,9 +580,14 @@ const COST_ESTIMATES: Record<string, {
   // Video — Sora
   "sora-2": { perSecond: 0.08 },
   "sora-2-pro": { perSecond: 0.24 },
-  // Video — Seedance
-  "seedance-2": { perSecond: 0.12 },
-  "seedance-2-fast": { perSecond: 0.09 },
+  // Video — Seedance (verified vs PiAPI docs 2026/04/22)
+  // Non-VIP variants generate at 480p regardless of resolution param.
+  // VIP variants honor the resolution param (720p / 1080p).
+  "seedance-2":          { perSecond: 0.10 }, // seedance-2-preview, 480p (Pro standard)
+  "seedance-2-fast":     { perSecond: 0.08 }, // seedance-2-fast-preview, 480p (Fast standard)
+  "seedance-2-vip":      { perSecond: 0.20 }, // seedance-2-preview-vip, 720p (Pro VIP)
+  "seedance-2-vip-1080": { perSecond: 0.50 }, // seedance-2-preview-vip, 1080p (Pro VIP)
+  "seedance-2-fast-vip": { perSecond: 0.16 }, // seedance-2-fast-preview-vip, 720p (Fast VIP)
   // Video — Hailuo v2.3
   "hailuo-v23-6s-768p": { perRequest: 0.23 },
   "hailuo-v23-10s-768p": { perRequest: 0.45 },
