@@ -1756,6 +1756,70 @@ function RedCarpetPreset(p: { onSubmit: (d: Record<string, unknown>) => void; lo
   );
 }
 
+function DriftRacingPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={1800}
+      imageHint="Character image. Front-facing or upper-body works best for the driver shot."
+      variable={{
+        key: "car",
+        label: "Car (optional)",
+        placeholder: "matte-black sports coupe / vintage muscle car / neon-painted drift car",
+        hint: "Describe the car. Leave blank for a generic black sports car.",
+        default: "matte-black tuned sports car",
+        optional: true,
+      }}
+    />
+  );
+}
+
+function CctvPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={1600}
+      imageHint="Character image. Full-body works best for the surveillance angle."
+      variable={{
+        key: "scene",
+        label: "Scene",
+        placeholder: "alone in an empty office hallway at 2:47 AM",
+        hint: "Describe the setting and what they're doing.",
+      }}
+    />
+  );
+}
+
+function NeonCityPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Character image. Full-body works best for the walking shot."
+    />
+  );
+}
+
+function ThreeDRenderPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2400}
+      imageHint="Headshot or upper-body works best. We'll restyle in 3D-render form."
+    />
+  );
+}
+
+function AnimePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Character image. Works with portrait or full-body."
+    />
+  );
+}
+
 // ─── Form router ─────────────────────────────────────────────────────────────
 
 
@@ -1798,6 +1862,11 @@ function ToolForm({
     case "preset-slow-mo":          return <SlowMoActionPreset {...props} />;
     case "preset-magazine-cover":   return <MagazineCoverPreset {...props} />;
     case "preset-red-carpet":       return <RedCarpetPreset {...props} />;
+    case "preset-drift-racing":     return <DriftRacingPreset {...props} />;
+    case "preset-cctv":             return <CctvPreset {...props} />;
+    case "preset-neon-city":        return <NeonCityPreset {...props} />;
+    case "preset-3d-render":        return <ThreeDRenderPreset {...props} />;
+    case "preset-anime":            return <AnimePreset {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }

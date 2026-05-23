@@ -88,6 +88,11 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-slow-mo":          return 2000;
     case "preset-magazine-cover":   return 450;
     case "preset-red-carpet":       return 2000;
+    case "preset-drift-racing":     return 1800;
+    case "preset-cctv":             return 1600;
+    case "preset-neon-city":        return 2000;
+    case "preset-3d-render":        return 2400;
+    case "preset-anime":            return 2000;
     default:                  return 100;
   }
 }
@@ -425,6 +430,96 @@ async function buildTask(
       const img = await resolveImg(userId, body.characterImage);
       if (!img) throw new Error("Missing character image");
       const prompt = `@image_1 The person walking confidently on a glamorous red carpet at a film premiere. Rapid paparazzi camera flashes firing from both sides of frame, elegant formal evening wear, slow confident walk toward camera, warm golden cinematic key lighting, Hollywood premiere atmosphere, slight motion blur on each flash burst. Smooth dolly tracking shot.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-drift-racing": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const car = (typeof body.car === "string" ? body.car.trim() : "") || "matte-black tuned sports car";
+      const prompt = `High-energy cinematic drift sequence of the person from the reference image driving a ${car} at night on a wet city street. Aggressive controlled slide with thick tire smoke billowing, intense motion blur, dramatic low-angle and over-the-shoulder camera angles, neon street reflections, action-film color grading, shaky-cam energy. The driver is visible through the windshield, focused and intense.`;
+      return {
+        model: "seedance",
+        taskType: "seedance-2-preview",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+        },
+      };
+    }
+
+    case "preset-cctv": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const scene = (typeof body.scene === "string" ? body.scene.trim() : "");
+      if (!scene) throw new Error("Scene description is required");
+      const prompt = `Grainy black-and-white surveillance CCTV camera footage. The person is ${scene}. Fixed high-angle camera mount, slight fisheye distortion, low frame rate stutter, timestamp burned into the top-right corner reading "CAM 04 — 02:47:13", dim ambient lighting, vignette in the corners, slight tape-noise grain. Uncanny found-footage feel.`;
+      return {
+        model: "Wan",
+        taskType: "wan26-img2video",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 5,
+          aspect_ratio: "16:9",
+          resolution: "720P",
+        },
+      };
+    }
+
+    case "preset-neon-city": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person walking slowly through a rain-soaked cyberpunk neon-lit street at night. Tall glowing pink and cyan billboards reflecting off wet pavement, atmospheric haze, gentle wind moving hair and clothing, Blade Runner-grade cinematic lighting, shallow depth of field, slow dolly tracking shot. Moody, contemplative pacing.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-3d-render": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `Stylized 3D-animated character render of the person from the reference image — Pixar/DreamWorks/Disney-style. Soft subsurface skin shading, expressive proportions with slightly enlarged eyes, polished animated-film quality, warm cinematic key light, soft background bokeh. Subtle idle animation: gentle smile, slight head tilt, blinking. Polished animation-studio finish.`;
+      return {
+        model: "seedance",
+        taskType: "seedance-2-fast-preview",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 5,
+          aspect_ratio: "1:1",
+          resolution: "720p",
+        },
+      };
+    }
+
+    case "preset-anime": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person reimagined as a high-quality anime character in the style of a modern cinematic anime film (Makoto Shinkai / Studio Trigger aesthetic). Dramatic transformation moment: dynamic pose, glowing energy particles, motion lines streaking behind them, vibrant color palette, cel-shaded lighting, sparkles. Camera pushes in slowly.`;
       return {
         model: "kling",
         taskType: "omni_video_generation",

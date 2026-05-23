@@ -345,6 +345,66 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "video",
   },
+  {
+    slug: "preset-drift-racing",
+    name: "Drift Racing",
+    tagline: "High-energy car drift with motion blur",
+    description:
+      "Your character as the driver in a high-energy drift sequence. Tire smoke, motion blur, dramatic camera angles, action-film energy. Powered by Seedance 2 Pro.",
+    category: "video",
+    credits: 1800,
+    creditLabel: "1,800 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-cctv",
+    name: "CCTV Footage",
+    tagline: "Grainy surveillance-camera POV",
+    description:
+      "Surveillance camera-style footage with timestamp overlay, grainy low-light feel, fixed angle, and that found-footage uncanny quality. Pair with a scene description.",
+    category: "video",
+    credits: 1600,
+    creditLabel: "1,600 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-neon-city",
+    name: "Neon City",
+    tagline: "Cyberpunk rain-soaked street walk",
+    description:
+      "Cinematic cyberpunk walk through a rain-soaked neon-lit street. Reflections, atmospheric haze, Blade Runner-grade lighting. Powered by Kling 3.0 Pro.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-3d-render",
+    name: "3D Render Style",
+    tagline: "Stylized Pixar/Disney 3D-animation look",
+    description:
+      "Convert your character into a polished 3D-animated render — soft shading, expressive features, animated-film quality. Built on Seedance 2.",
+    category: "video",
+    credits: 2400,
+    creditLabel: "2,400 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-anime",
+    name: "Anime Transformation",
+    tagline: "Anime-style transformation sequence",
+    description:
+      "Convert your character into anime art style with a dynamic transformation sequence — sparkles, motion lines, dramatic poses. Powered by Kling 3.0.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s",
+    status: "available",
+    outputType: "video",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {

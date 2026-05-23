@@ -13,8 +13,12 @@ dotenvConfig({ path: ".env.local" });
 
 import { generateImageWithGemini } from "../src/lib/gemini";
 import sharp from "sharp";
-import { writeFile } from "fs/promises";
+import { writeFile, access } from "fs/promises";
 import path from "path";
+
+async function fileExists(p: string): Promise<boolean> {
+  try { await access(p); return true; } catch { return false; }
+}
 
 type ThumbSpec = {
   slug: string;
@@ -47,6 +51,31 @@ const THUMBS: ThumbSpec[] = [
     prompt:
       "A glamorous young woman in an elegant black evening gown walking confidently on a glossy red carpet at a Hollywood film premiere. Multiple bright paparazzi camera flashes firing from both sides creating dramatic lens flares, warm golden cinematic key lighting on her face, slight motion blur on the flashes, premiere step-and-repeat backdrop visible behind her, sophisticated atmosphere. Cinematic wide framing.",
   },
+  {
+    slug: "preset-drift-racing",
+    prompt:
+      "High-energy cinematic action shot of a matte-black tuned sports car mid-drift at night on a wet city street. Thick white tire smoke billowing dramatically, neon street reflections on the wet pavement, intense motion blur, low-angle shot, action-film color grading, pink and cyan neon glows in the background, atmospheric haze.",
+  },
+  {
+    slug: "preset-cctv",
+    prompt:
+      "Grainy black-and-white surveillance CCTV camera still frame. A person walking alone down an empty office hallway at night, captured from a fixed high-angle camera mount. Slight fisheye distortion visible, dim emergency lighting only, vignette in the corners, heavy tape-noise grain, white timestamp text burned into the top-right corner reading 'CAM 04 — 02:47:13'. Uncanny found-footage feel.",
+  },
+  {
+    slug: "preset-neon-city",
+    prompt:
+      "A lone figure in a long coat walking slowly through a rain-soaked cyberpunk neon-lit street at night, seen from behind in a wide cinematic shot. Tall glowing pink and cyan billboards reflecting off the wet pavement, atmospheric haze, Blade Runner aesthetic, shallow depth of field, moody contemplative composition.",
+  },
+  {
+    slug: "preset-3d-render",
+    prompt:
+      "Polished Pixar/Disney-style 3D character render of a friendly young woman with slightly enlarged expressive eyes, warm soft subsurface skin shading, gentle smile. Animation-studio quality, warm cinematic key light, soft bokeh background, color-graded for theatrical release.",
+  },
+  {
+    slug: "preset-anime",
+    prompt:
+      "High-quality cinematic anime artwork in the style of Makoto Shinkai / Studio Trigger. A young woman in dynamic transformation pose, glowing magical energy particles swirling around her, dramatic motion lines streaking behind her, vibrant cel-shaded coloring, sparkles, expressive eyes, modern anime film aesthetic. Wide framing.",
+  },
 ];
 
 async function generateOne(spec: ThumbSpec): Promise<void> {
@@ -73,8 +102,14 @@ async function generateOne(spec: ThumbSpec): Promise<void> {
 }
 
 async function main() {
-  console.log("Generating 5 preset thumbnails via Nano Banana Pro (Gemini)...");
+  const force = process.argv.includes("--force");
+  console.log(`Generating preset thumbnails via Nano Banana Pro (Gemini)${force ? " [--force, regenerating all]" : " [skipping existing]"}...`);
   for (const spec of THUMBS) {
+    const outPath = path.join("public", "workshop-thumbs", `${spec.slug}.webp`);
+    if (!force && await fileExists(outPath)) {
+      console.log(`\n→ ${spec.slug}  (already exists, skipping — pass --force to regenerate)`);
+      continue;
+    }
     try {
       await generateOne(spec);
     } catch (err) {

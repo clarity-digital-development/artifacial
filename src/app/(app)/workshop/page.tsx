@@ -17,6 +17,12 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-slow-mo",
   "preset-magazine-cover",
   "preset-red-carpet",
+  // Batch 2
+  "preset-drift-racing",
+  "preset-cctv",
+  "preset-neon-city",
+  "preset-3d-render",
+  "preset-anime",
 ];
 
 export default async function WorkshopPage() {
