@@ -27,6 +27,16 @@ type ThumbSpec = {
 
 const THUMBS: ThumbSpec[] = [
   {
+    slug: "recraft-crisp-upscale",
+    prompt:
+      "Cinematic split-screen comparison thumbnail with a sharp vertical center divider. Left half: a soft, slightly blurry, lower-resolution portrait of a young woman with brown hair against a soft studio background — visible JPEG compression and softness, lower fidelity. Right half: the exact same woman in the exact same pose and lighting, but rendered in razor-sharp ultra-high-resolution detail — every eyelash, individual hair, skin pore, and fabric texture visible, pristine clarity, magazine-print sharpness. Subtle small white labels 'SOFT' on the bottom-left corner and 'CRISP' on the bottom-right corner. Tight close-up framing.",
+  },
+  {
+    slug: "character-swap",
+    prompt:
+      "Cinematic split-screen before/after thumbnail with a sharp vertical center divider. Left half: a young man with short dark hair, a trimmed beard, and a charcoal sweater standing in a softly lit modern café — natural window light, shallow depth of field. Right half: the exact same scene composition, identical pose, identical lighting, identical café background — but the subject has been swapped to a young woman with long honey-blonde hair, green eyes, and a cream knit sweater. Small subtle white labels 'BEFORE' on bottom-left and 'AFTER' on bottom-right corners. Wide cinematic framing.",
+  },
+  {
     slug: "preset-ugc-hook",
     prompt:
       "Authentic UGC-style phone selfie of a 24-year-old woman in a sunny kitchen holding a glossy cosmetics bottle toward the camera with a genuine excited expression. Natural soft window light, slight handheld camera shake aesthetic, casual home setting visible in background, phone-camera realism (NOT cinematic), warm color grade. Composition feels like a viral TikTok product reveal.",
