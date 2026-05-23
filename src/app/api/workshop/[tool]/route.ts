@@ -445,17 +445,24 @@ async function buildTask(
     }
 
     case "preset-drift-racing": {
-      const img = await resolveImg(userId, body.characterImage);
-      if (!img) throw new Error("Missing character image");
-      const car = (typeof body.car === "string" ? body.car.trim() : "") || "matte-black tuned sports car";
-      const prompt = `High-energy cinematic drift sequence of the person from the reference image driving a ${car} at night on a wet city street. Aggressive controlled slide with thick tire smoke billowing, intense motion blur, dramatic low-angle and over-the-shoulder camera angles, neon street reflections, action-film color grading, shaky-cam energy. The driver is visible through the windshield, focused and intense.`;
+      const charImg = await resolveImg(userId, body.characterImage);
+      if (!charImg) throw new Error("Missing character image");
+      const carImg = await resolveImg(userId, body.carImage);
+      const carText = (typeof body.car === "string" ? body.car.trim() : "");
+      // Reference car image wins over text description. Falls back to default
+      // copy when neither is provided.
+      const carPhrase = carImg
+        ? "the car shown in the second reference image"
+        : `a ${carText || "matte-black tuned sports car"}`;
+      const imageRefs = carImg ? [charImg, carImg] : [charImg];
+      const prompt = `High-energy cinematic drift sequence of the person from the first reference image driving ${carPhrase} at night on a wet city street. Aggressive controlled slide with thick tire smoke billowing, intense motion blur, dramatic low-angle and over-the-shoulder camera angles, neon street reflections, action-film color grading, shaky-cam energy. The driver is visible through the windshield, focused and intense.`;
       // VIP variant needed for true 720p output (non-VIP locks to 480p).
       return {
         model: "seedance",
         taskType: "seedance-2-preview-vip",
         input: {
           prompt,
-          image_urls: [img],
+          image_urls: imageRefs,
           duration: 5,
           aspect_ratio: "9:16",
           resolution: "720p",

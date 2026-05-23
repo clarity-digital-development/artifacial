@@ -1756,21 +1756,49 @@ function RedCarpetPreset(p: { onSubmit: (d: Record<string, unknown>) => void; lo
   );
 }
 
-function DriftRacingPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+function DriftRacingPreset({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [carImage, setCarImage] = useState<string | null>(null);
+  const [carDescription, setCarDescription] = useState("");
+
+  const valid = !!characterImage;
+
   return (
-    <PresetForm
-      {...p}
-      credits={4000}
-      imageHint="Character image. Front-facing or upper-body works best for the driver shot."
-      variable={{
-        key: "car",
-        label: "Car (optional)",
-        placeholder: "matte-black sports coupe / vintage muscle car / neon-painted drift car",
-        hint: "Describe the car. Leave blank for a generic black sports car.",
-        default: "matte-black tuned sports car",
-        optional: true,
-      }}
-    />
+    <div className="space-y-4">
+      <ImageInput
+        label="Your character (the driver)"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="Front-facing or upper-body works best for the driver shot."
+      />
+      <ImageUpload
+        label="Reference car (optional)"
+        value={carImage}
+        onChange={setCarImage}
+        hint="Upload a photo of the car you want — or describe it below. If both are provided, the image wins."
+      />
+      <TextInput
+        label="Car description"
+        value={carDescription}
+        onChange={setCarDescription}
+        placeholder="matte-black sports coupe / vintage muscle car / neon-painted drift car"
+        hint={
+          carImage
+            ? "Ignored while a reference car image is uploaded."
+            : "Optional — leave blank for a default matte-black tuned sports car."
+        }
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={4000}
+        onClick={() => onSubmit({
+          characterImage,
+          carImage,
+          car: carDescription.trim(),
+        })}
+      />
+    </div>
   );
 }
 
