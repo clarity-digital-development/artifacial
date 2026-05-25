@@ -1678,19 +1678,45 @@ function PresetForm({
   );
 }
 
-function UgcHookPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+function UgcHookPreset({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [productImage, setProductImage] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+
+  const valid = !!characterImage && !!productImage;
+
   return (
-    <PresetForm
-      {...p}
-      credits={3850}
-      imageHint="Pick the character or product holder for your UGC hook."
-      variable={{
-        key: "description",
-        label: "Hook description",
-        placeholder: "trying out a new skincare product on the bathroom counter",
-        hint: "Describe what they're doing in the opener. Keep it natural and creator-style.",
-      }}
-    />
+    <div className="space-y-4">
+      <ImageInput
+        label="Person (the creator)"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="Front-facing character photo. Selfie-style works best."
+      />
+      <ImageUpload
+        label="Product"
+        value={productImage}
+        onChange={setProductImage}
+        hint="Clear photo of the product being advertised — bottle, package, gadget, etc."
+      />
+      <TextInput
+        label="Hook description (optional)"
+        value={description}
+        onChange={setDescription}
+        placeholder="trying it for the first time, raving about how it changed her morning routine"
+        hint="What are they saying or doing with the product? Leave blank for a generic excited reveal."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={2000}
+        onClick={() => onSubmit({
+          characterImage,
+          productImage,
+          description: description.trim(),
+        })}
+      />
+    </div>
   );
 }
 

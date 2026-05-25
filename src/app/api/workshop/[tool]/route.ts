@@ -83,7 +83,7 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "grok-video-upscale":
       return 600;
     // ── Viral Presets ──
-    case "preset-ugc-hook":         return 3850;
+    case "preset-ugc-hook":         return 2000; // Kling 3.0 omni 720p, $0.10/s × 5 = $0.50 → 2000 cr (75%)
     case "preset-paparazzi-flash":  return 1300;
     case "preset-slow-mo":          return 2000;
     case "preset-magazine-cover":   return 450;
@@ -353,19 +353,22 @@ async function buildTask(
     // when the form provides one; otherwise the prompt is fully baked.
 
     case "preset-ugc-hook": {
-      const img = await resolveImg(userId, body.characterImage);
-      if (!img) throw new Error("Missing character image");
-      const description = (typeof body.description === "string" ? body.description.trim() : "") || "discovering a new product";
-      const prompt = `Authentic UGC-style phone video of the person ${description}. Natural handheld phone camera with subtle shake, soft window lighting, casual home or office setting, genuine emotional reaction. Direct-to-camera framing typical of viral TikTok creator content. Phone-quality realism, not cinematic.`;
+      const charImg = await resolveImg(userId, body.characterImage);
+      const productImg = await resolveImg(userId, body.productImage);
+      if (!charImg) throw new Error("Missing character image");
+      if (!productImg) throw new Error("Missing product image");
+      const description = (typeof body.description === "string" ? body.description.trim() : "") || "casually demonstrating the product with a genuine excited reveal";
+      const prompt = `@image_1 The creator from the first reference image holding and showing @image_2 (the product) — ${description}. Authentic UGC-style phone video: natural handheld phone camera with subtle shake, soft window lighting, casual home or office setting, genuine emotional reaction, phone-quality realism (NOT cinematic). Direct-to-camera framing typical of viral TikTok creator content.`;
       return {
-        model: "veo3.1",
-        taskType: "veo3.1-video",
+        model: "kling",
+        taskType: "omni_video_generation",
         input: {
           prompt,
-          image_url: img,
-          duration: 8,
+          images: [charImg, productImg],
+          duration: 5,
           aspect_ratio: "9:16",
           resolution: "720p",
+          version: "3.0",
         },
       };
     }

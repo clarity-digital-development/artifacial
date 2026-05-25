@@ -288,12 +288,12 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
   {
     slug: "preset-ugc-hook",
     name: "Cinematic UGC Hook",
-    tagline: "Pro-quality product/UGC opener with hook framing",
+    tagline: "Pro-quality UGC opener — your creator + your product",
     description:
-      "Generates an authentic phone-style UGC video starring your character — perfect for ad hooks, product demos, and viral openers. Built on Veo 3.1 at cinematic 720p, 8 seconds.",
+      "Generates an authentic phone-style UGC video of your creator holding and showing your product. Upload both — perfect for ad hooks, product demos, and viral openers. Built on Kling 3.0 with native multi-image support, 720p, 5 seconds.",
     category: "video",
-    credits: 3850,
-    creditLabel: "3,850 cr · 8s",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
     outputType: "video",
   },
