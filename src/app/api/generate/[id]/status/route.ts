@@ -13,121 +13,15 @@ import { uploadToR2, getSignedR2Url } from "@/lib/r2";
 import { submitTask, buildVideoInput, buildImageInput } from "@/lib/piapi-client";
 import { sanitizeClientError, FALLBACK_GENERIC } from "@/lib/errors";
 
-// ─── Helpers ───
+// ─── Helpers (imported from shared module) ───
 
-function r2KeyForGeneration(userId: string, generationId: string, ext: string) {
-  return `users/${userId}/generations/${generationId}/output.${ext}`;
-}
-
-function r2KeyForThumbnail(generationId: string) {
-  return `thumbnails/${generationId}.webp`;
-}
-
-/**
- * Download media from a URL and upload it to R2.
- * Returns the R2 key and the downloaded buffer (for thumbnail generation).
- * External URLs expire, so we must persist to our own storage.
- */
-async function persistMediaToR2(
-  mediaUrl: string,
-  userId: string,
-  generationId: string,
-  defaultExt: string = "mp4"
-): Promise<{ key: string; buffer: Buffer; contentType: string }> {
-  const response = await fetch(mediaUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download media: ${response.status}`);
-  }
-
-  const contentType = response.headers.get("content-type") || `video/${defaultExt}`;
-  let ext = defaultExt;
-  if (contentType.includes("webm")) ext = "webm";
-  else if (contentType.includes("webp")) ext = "webp";
-  else if (contentType.includes("png")) ext = "png";
-  else if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
-
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const key = r2KeyForGeneration(userId, generationId, ext);
-
-  await uploadToR2(key, buffer, contentType);
-  return { key, buffer, contentType };
-}
-
-/**
- * Generate a thumbnail from an image buffer using sharp.
- * Resizes to max 400px wide, quality 70, WebP format.
- * Returns the R2 key or null if thumbnail generation fails.
- */
-async function generateImageThumbnail(
-  imageBuffer: Buffer,
-  generationId: string
-): Promise<string | null> {
-  try {
-    const sharp = (await import("sharp")).default;
-    const thumbnailBuffer = await sharp(imageBuffer)
-      .resize({ width: 400, withoutEnlargement: true })
-      .webp({ quality: 70 })
-      .toBuffer();
-
-    const thumbnailKey = r2KeyForThumbnail(generationId);
-    await uploadToR2(thumbnailKey, thumbnailBuffer, "image/webp");
-    console.log(`[status] Thumbnail generated: ${thumbnailKey} (${thumbnailBuffer.length} bytes)`);
-    return thumbnailKey;
-  } catch (err) {
-    console.error(`[status] Thumbnail generation failed for gen=${generationId}:`, err);
-    return null;
-  }
-}
-
-/**
- * Extract first frame from a video buffer using ffmpeg, then resize with sharp.
- * ffmpeg reads from stdin and writes a PNG frame to stdout — no temp files.
- * Returns the R2 key or null if extraction fails.
- */
-async function generateVideoThumbnail(
-  videoBuffer: Buffer,
-  generationId: string
-): Promise<string | null> {
-  try {
-    const { execFile } = await import("child_process");
-    const sharp = (await import("sharp")).default;
-
-    // Extract first frame: ffmpeg reads from stdin, writes single PNG to stdout
-    const frameBuffer = await new Promise<Buffer>((resolve, reject) => {
-      const proc = execFile(
-        "ffmpeg",
-        [
-          "-i", "pipe:0",        // read from stdin
-          "-vframes", "1",       // one frame only
-          "-f", "image2pipe",    // output as image pipe
-          "-vcodec", "png",      // PNG format
-          "pipe:1",              // write to stdout
-        ],
-        { maxBuffer: 10 * 1024 * 1024, encoding: "buffer" as BufferEncoding },
-        (err, stdout) => {
-          if (err) reject(err);
-          else resolve(Buffer.from(stdout as unknown as ArrayBuffer));
-        }
-      );
-      proc.stdin?.write(videoBuffer);
-      proc.stdin?.end();
-    });
-
-    // Resize with sharp to 400px webp
-    const thumbnailBuffer = await sharp(frameBuffer)
-      .resize({ width: 400, withoutEnlargement: true })
-      .webp({ quality: 70 })
-      .toBuffer();
-
-    const thumbnailKey = r2KeyForThumbnail(generationId);
-    await uploadToR2(thumbnailKey, thumbnailBuffer, "image/webp");
-    console.log(`[status] Video thumbnail generated: ${thumbnailKey} (${thumbnailBuffer.length} bytes)`);
-    return thumbnailKey;
-  } catch (err) {
-    console.error(`[status] Video thumbnail generation failed for gen=${generationId}:`, err);
-    return null;
-  }
-}
+import {
+  r2KeyForGeneration,
+  r2KeyForThumbnail,
+  persistMediaToR2,
+  generateImageThumbnail,
+  generateVideoThumbnail,
+} from "@/lib/generation/persist";
 
 // ─── Route Handler ───
 

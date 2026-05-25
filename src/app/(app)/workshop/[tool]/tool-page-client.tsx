@@ -2336,15 +2336,19 @@ export function WorkshopToolPageClient({
 }) {
   const [status, setStatus] = useState<"idle" | "loading" | "polling" | "done" | "error">("idle");
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [generationId, setGenerationId] = useState<string | null>(null);
   const [result, setResult] = useState<PollResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Poll for completion
+  // Poll for completion. Passing generationId lets the server persist the
+  // output to R2 and update the Generation row so it shows up in /gallery.
   useEffect(() => {
     if (!taskId || status !== "polling") return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/workshop/poll?taskId=${taskId}`);
+        const qs = new URLSearchParams({ taskId });
+        if (generationId) qs.set("generationId", generationId);
+        const res = await fetch(`/api/workshop/poll?${qs.toString()}`);
         const data: PollResult & { status: string } = await res.json();
         if (data.status === "completed") {
           setResult(data);
@@ -2353,13 +2357,12 @@ export function WorkshopToolPageClient({
           setError(data.errorMessage || "Generation failed");
           setStatus("error");
         }
-        // pending / processing → keep polling
       } catch {
         // network hiccup — keep polling
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [taskId, status]);
+  }, [taskId, generationId, status]);
 
   const handleSubmit = async (formData: Record<string, unknown>) => {
     setStatus("loading");
@@ -2374,6 +2377,7 @@ export function WorkshopToolPageClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit");
       setTaskId(data.taskId);
+      setGenerationId(data.generationId ?? null);
       setStatus("polling");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");

@@ -419,3 +419,39 @@ export const CATEGORY_ORDER: ToolCategory[] = ["face", "video", "image", "audio"
 export function getToolBySlug(slug: string): WorkshopTool | undefined {
   return WORKSHOP_TOOLS.find((t) => t.slug === slug);
 }
+
+// ─── WorkflowType mapping (for Generation DB records) ──────────────────────
+// Workshop tools share the same Generation table as /generate, so we map each
+// tool slug to the closest WorkflowType enum value. The gallery + recent
+// generations API don't filter by workflowType, so the value just needs to
+// be sensible for display/analytics.
+import type { WorkflowType } from "@/generated/prisma/client";
+
+export function getWorkflowTypeForTool(slug: string): WorkflowType {
+  // Face & identity
+  if (slug === "photo-face-swap" || slug === "multi-face-swap" || slug === "video-face-swap") return "FACE_SWAP";
+  if (slug === "virtual-try-on") return "VIRTUAL_TRY_ON";
+  if (slug === "ai-hug") return "AI_HUG";
+
+  // Video tools
+  if (slug === "lipsync") return "LIP_SYNC";
+  if (slug === "effects" || slug === "ai-video-edit") return "IMAGE_TO_VIDEO";
+  if (slug === "video-remove-bg" || slug === "remove-bg") return "BACKGROUND_REMOVAL";
+  if (slug === "watermark-remover") return "IMAGE_EDIT";
+
+  // Image utilities
+  if (slug === "character-swap" || slug === "character-swap-remix") return "IMAGE_EDIT";
+  if (slug === "super-resolution" || slug === "recraft-crisp-upscale" || slug === "grok-video-upscale") return "UPSCALE";
+  if (slug === "joycaption" || slug === "trellis3d") return "IMAGE_EDIT";
+
+  // Audio (no AUDIO_GEN enum value — closest match is IMAGE_TO_VIDEO since
+  // these often pair audio with a video reference)
+  if (slug === "kling-sound" || slug === "add-audio" || slug === "music-gen" ||
+      slug === "song-extend" || slug === "diffrhythm") return "IMAGE_TO_VIDEO";
+
+  // Viral presets
+  if (slug === "preset-magazine-cover") return "TEXT_TO_IMAGE";
+  if (slug.startsWith("preset-")) return "IMAGE_TO_VIDEO";
+
+  return "IMAGE_EDIT";
+}

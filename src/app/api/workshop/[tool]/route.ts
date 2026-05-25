@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { getToolBySlug } from "@/lib/workshop/tools";
+import { getToolBySlug, getWorkflowTypeForTool, type WorkshopTool } from "@/lib/workshop/tools";
 import { deductCredits, refundCredits } from "@/lib/credits";
 import { submitTask } from "@/lib/piapi-client";
 import { uploadToR2, getSignedR2Url } from "@/lib/r2";
+import { prisma } from "@/lib/db";
 import { randomUUID } from "crypto";
 import {
   submitIdeogramCharacterRemix,
@@ -11,6 +12,63 @@ import {
   submitGrokVideoUpscale,
 } from "@/lib/kieai";
 import { sanitizeClientError } from "@/lib/errors";
+import type { Prisma } from "@/generated/prisma/client";
+
+// ─── Generation record helper ─────────────────────────────────────────────────
+// Creates a Generation row at workshop submission so the result shows up in
+// the user's gallery / recent generations once polling completes.
+
+function stripHeavyKeys(body: Record<string, unknown>): Record<string, unknown> {
+  // base64 data URLs are huge and bloat the inputParams JSON column
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (typeof v === "string" && v.startsWith("data:")) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+async function createWorkshopGeneration(opts: {
+  userId: string;
+  slug: string;
+  tool: WorkshopTool;
+  credits: number;
+  taskId: string;
+  provider: "PIAPI" | "KIEAI";
+  body: Record<string, unknown>;
+}): Promise<string> {
+  const { userId, slug, tool, credits, taskId, provider, body } = opts;
+  // KIE.AI doesn't have its own GenerationProvider enum value — use PIAPI as
+  // the routing umbrella since both flow through our PiAPI-style task handler.
+  const dbProvider = "PIAPI" as const;
+  const taskIdKey = provider === "KIEAI" ? "kieAiTaskId" : "piApiTaskId";
+
+  const generation = await prisma.generation.create({
+    data: {
+      userId,
+      workflowType: getWorkflowTypeForTool(slug),
+      status: "PROCESSING",
+      contentMode: "SFW",
+      provider: dbProvider,
+      modelId: slug,
+      creditsCost: credits,
+      withAudio: false,
+      inputParams: {
+        toolSlug: slug,
+        toolName: tool.name,
+        outputType: tool.outputType,
+        [taskIdKey]: taskId,
+        submissionPath: "workshop",
+        ...stripHeavyKeys(body),
+      } as Prisma.InputJsonValue,
+      startedAt: new Date(),
+      queuedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  return generation.id;
+}
 
 // ─── R2 upload helper ─────────────────────────────────────────────────────────
 
@@ -625,7 +683,10 @@ export async function POST(
       return NextResponse.json({ error: sanitizeClientError(msg, `workshop/${slug}`) }, { status: 500 });
     }
 
-    return NextResponse.json({ taskId, credits });
+    const generationId = await createWorkshopGeneration({
+      userId, slug, tool, credits, taskId, provider: "PIAPI", body,
+    });
+    return NextResponse.json({ taskId, generationId, credits });
   }
 
   // ── KIE.AI tools (ideogram-remix, recraft, grok) ──
@@ -679,7 +740,11 @@ export async function POST(
     }
 
     const prefix = isImageOutput ? "kieai:image:" : "kieai:video:";
-    return NextResponse.json({ taskId: `${prefix}${kieTaskId}`, credits });
+    const prefixedTaskId = `${prefix}${kieTaskId}`;
+    const generationId = await createWorkshopGeneration({
+      userId, slug, tool, credits, taskId: prefixedTaskId, provider: "KIEAI", body,
+    });
+    return NextResponse.json({ taskId: prefixedTaskId, generationId, credits });
   }
 
   let taskId: string;
@@ -695,5 +760,8 @@ export async function POST(
     return NextResponse.json({ error: sanitizeClientError(message, `workshop/${slug}`) }, { status: 500 });
   }
 
-  return NextResponse.json({ taskId, credits });
+  const generationId = await createWorkshopGeneration({
+    userId, slug, tool, credits, taskId, provider: "PIAPI", body,
+  });
+  return NextResponse.json({ taskId, generationId, credits });
 }

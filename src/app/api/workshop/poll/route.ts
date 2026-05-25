@@ -3,22 +3,33 @@ import { auth } from "@/lib/auth";
 import { getTaskStatus } from "@/lib/piapi-client";
 import { getKieAiTaskStatus } from "@/lib/kieai";
 import { sanitizeClientError } from "@/lib/errors";
+import { prisma } from "@/lib/db";
+import { getSignedR2Url } from "@/lib/r2";
+import {
+  persistMediaToR2,
+  generateImageThumbnail,
+  generateVideoThumbnail,
+} from "@/lib/generation/persist";
 
 /**
- * GET /api/workshop/poll?taskId=xxx
+ * GET /api/workshop/poll?taskId=xxx&generationId=yyy
  *
- * Lightweight proxy that checks a PiAPI task's status and parses all
- * workshop output types (image, video, audio, text, 3D model).
- * Does NOT modify the database — workshop tasks are fire-and-forget from
- * a persistence standpoint (credits deducted at submission).
+ * Polls the upstream provider for status. If generationId is provided AND the
+ * task is now COMPLETED, persists the output media to R2 and updates the
+ * Generation DB row so the result shows up in /gallery and recent generations.
+ *
+ * generationId is optional for backwards compatibility — older clients without
+ * it still get the same lightweight proxy behavior.
  */
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = session.user.id;
 
   const taskId = req.nextUrl.searchParams.get("taskId");
+  const generationId = req.nextUrl.searchParams.get("generationId");
   if (!taskId) {
     return NextResponse.json({ error: "taskId is required" }, { status: 400 });
   }
@@ -31,7 +42,6 @@ export async function GET(req: NextRequest) {
 
       const kieResult = await getKieAiTaskStatus(realTaskId);
 
-      // Map KIE.AI status → normalized status
       let kieStatus: "pending" | "processing" | "completed" | "failed";
       if (kieResult.status === "success") kieStatus = "completed";
       else if (kieResult.status === "fail") kieStatus = "failed";
@@ -39,12 +49,30 @@ export async function GET(req: NextRequest) {
       else kieStatus = "pending";
 
       const resultUrls = kieResult.resultUrls ?? (kieResult.videoUrl ? [kieResult.videoUrl] : []);
+      const videoUrl = !isImage && resultUrls.length > 0 ? resultUrls[0] : null;
+      const imageUrl = isImage && resultUrls.length > 0 ? resultUrls[0] : null;
+      const errorMessage = kieStatus === "failed"
+        ? sanitizeClientError(kieResult.errorMessage, "workshop-poll:kieai")
+        : null;
+
+      // Persist + update DB when finished
+      if (generationId) {
+        if (kieStatus === "completed" && (videoUrl || imageUrl)) {
+          await finalizeGeneration({
+            userId, generationId,
+            mediaUrl: (videoUrl || imageUrl)!,
+            isVideo: !!videoUrl,
+          });
+        } else if (kieStatus === "failed") {
+          await markFailed(generationId, errorMessage);
+        }
+      }
 
       return NextResponse.json({
         status: kieStatus,
-        errorMessage: kieStatus === "failed" ? sanitizeClientError(kieResult.errorMessage, "workshop-poll:kieai") : null,
-        videoUrl: !isImage && resultUrls.length > 0 ? resultUrls[0] : null,
-        imageUrl: isImage && resultUrls.length > 0 ? resultUrls[0] : null,
+        errorMessage,
+        videoUrl,
+        imageUrl,
         imageUrls: isImage && resultUrls.length > 0 ? resultUrls : null,
         audioUrl: null,
         audioUrls: null,
@@ -54,6 +82,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // ── PiAPI generic ──
     const result = await getTaskStatus(taskId);
     const raw = (result.raw ?? {}) as Record<string, unknown>;
     const output = (
@@ -69,32 +98,25 @@ export async function GET(req: NextRequest) {
     let songId: string | undefined;
 
     if (result.status === "completed") {
-      // ── Audio (music-gen, song-extend, diffrhythm, kling-sound single) ──
       audioUrl =
         (output.audio_url as string) ||
         (typeof output.audio === "string" ? output.audio : undefined) ||
         (output.music_url as string) ||
         (output.song_url as string);
 
-      // ── Udio song ID (needed for song-extend) ──
-      // Udio returns songs as an array; grab the first song's ID
       const songsRaw = output.songs ?? output.song_list;
       if (Array.isArray(songsRaw) && songsRaw.length > 0) {
         const first = songsRaw[0] as Record<string, unknown>;
         songId = (first.id ?? first.song_id) as string | undefined;
-        // Also extract audio URL from the songs array if not already found
         if (!audioUrl) {
           audioUrl = (first.audio_url ?? first.url ?? first.audio) as string | undefined;
         }
       }
-      // Fallback: top-level song_id field
       if (!songId) {
         songId = (output.song_id ?? output.id) as string | undefined;
       }
 
-      // ── Multiple audio variants (Kling Sound returns 4) ──
-      const audiosRaw =
-        output.audios ?? output.audio_urls ?? output.sounds ?? output.audio_list;
+      const audiosRaw = output.audios ?? output.audio_urls ?? output.sounds ?? output.audio_list;
       if (Array.isArray(audiosRaw) && audiosRaw.length > 0) {
         audioUrls = (audiosRaw as unknown[])
           .map((a) =>
@@ -106,15 +128,12 @@ export async function GET(req: NextRequest) {
           .filter(Boolean) as string[];
       }
 
-
-      // ── Text output (JoyCaption) ──
       text =
         (output.text as string) ||
         (output.caption as string) ||
         (output.description as string) ||
         (output.content as string);
 
-      // ── 3D model (Trellis2 — GLB / mesh URL) ──
       modelUrl =
         (output.model_url as string) ||
         (output.glb_url as string) ||
@@ -123,16 +142,50 @@ export async function GET(req: NextRequest) {
         ((output.outputs as Record<string, unknown> | undefined)?.model_url as string);
     }
 
+    const errorMessage = result.status === "failed"
+      ? sanitizeClientError(result.errorMessage, "workshop-poll:piapi")
+      : null;
+
+    // Persist + update DB when finished
+    if (generationId) {
+      if (result.status === "completed") {
+        const primaryUrl =
+          result.videoUrl || result.imageUrl ||
+          (result.imageUrls?.[0]) || audioUrl || modelUrl;
+        const isVideo = !!result.videoUrl;
+        if (primaryUrl) {
+          await finalizeGeneration({
+            userId, generationId, mediaUrl: primaryUrl, isVideo,
+            // Text-only outputs (JoyCaption) have no media URL — store the text instead
+            textOutput: text,
+          });
+        } else if (text) {
+          // Pure text output — no R2 persistence, just mark complete
+          await prisma.generation.update({
+            where: { id: generationId },
+            data: {
+              status: "COMPLETED",
+              progress: 100,
+              outputUrl: null,
+              completedAt: new Date(),
+              inputParams: {
+                ...(await readInputParams(generationId)),
+                textOutput: text,
+              },
+            },
+          });
+        }
+      } else if (result.status === "failed") {
+        await markFailed(generationId, errorMessage);
+      }
+    }
+
     return NextResponse.json({
       status: result.status,
-      errorMessage: result.status === "failed"
-        ? sanitizeClientError(result.errorMessage, "workshop-poll:piapi")
-        : null,
-      // Standard media
+      errorMessage,
       videoUrl: result.videoUrl ?? null,
       imageUrl: result.imageUrl ?? null,
       imageUrls: result.imageUrls ?? null,
-      // Workshop-specific
       audioUrl: audioUrl ?? null,
       audioUrls: audioUrls ?? null,
       text: text ?? null,
@@ -146,4 +199,92 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ─── DB persistence helpers ───────────────────────────────────────────────────
+
+async function readInputParams(generationId: string): Promise<Record<string, unknown>> {
+  const row = await prisma.generation.findUnique({
+    where: { id: generationId },
+    select: { inputParams: true },
+  });
+  return (row?.inputParams as Record<string, unknown>) ?? {};
+}
+
+async function finalizeGeneration(opts: {
+  userId: string;
+  generationId: string;
+  mediaUrl: string;
+  isVideo: boolean;
+  textOutput?: string;
+}): Promise<void> {
+  const { userId, generationId, mediaUrl, isVideo, textOutput } = opts;
+
+  // Skip if already finalized (poll may run multiple times)
+  const existing = await prisma.generation.findUnique({
+    where: { id: generationId },
+    select: { status: true, userId: true },
+  });
+  if (!existing || existing.userId !== userId) return;
+  if (existing.status === "COMPLETED" || existing.status === "FAILED") return;
+
+  let r2Key: string | null = null;
+  let thumbnailKey: string | null = null;
+
+  try {
+    const result = await persistMediaToR2(
+      mediaUrl,
+      userId,
+      generationId,
+      isVideo ? "mp4" : "png",
+    );
+    r2Key = result.key;
+
+    if (isVideo) {
+      thumbnailKey = await generateVideoThumbnail(result.buffer, generationId);
+    } else if (result.contentType.startsWith("image/")) {
+      thumbnailKey = await generateImageThumbnail(result.buffer, generationId);
+    }
+  } catch (r2Err) {
+    console.error(`[workshop/poll] R2 persist failed gen=${generationId}:`, r2Err);
+    // Fall through — we'll save the original URL on the row, output still viewable
+  }
+
+  await prisma.generation.update({
+    where: { id: generationId },
+    data: {
+      status: "COMPLETED",
+      progress: 100,
+      outputUrl: r2Key ?? mediaUrl,
+      thumbnailUrl: thumbnailKey,
+      completedAt: new Date(),
+      ...(textOutput
+        ? {
+            inputParams: {
+              ...(await readInputParams(generationId)),
+              textOutput,
+            },
+          }
+        : {}),
+    },
+  });
+
+  console.log(`[workshop/poll] FINALIZED gen=${generationId} r2Key=${r2Key} thumb=${thumbnailKey}`);
+}
+
+async function markFailed(generationId: string, errorMessage: string | null): Promise<void> {
+  const existing = await prisma.generation.findUnique({
+    where: { id: generationId },
+    select: { status: true },
+  });
+  if (!existing || existing.status === "FAILED" || existing.status === "COMPLETED") return;
+
+  await prisma.generation.update({
+    where: { id: generationId },
+    data: {
+      status: "FAILED",
+      errorMessage: errorMessage ?? "Generation failed",
+      completedAt: new Date(),
+    },
+  });
 }
