@@ -128,6 +128,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 1 Wave 3 (2026-06-06) — Photodump flagship ──
+  {
+    slug: "photodump",
+    prompt:
+      "A 3x4 grid collage thumbnail showing the same young woman across 12 different cinematic scenes — golden-hour portrait, editorial magazine cover, neon-lit Tokyo street at night, Paris café morning, beach at sunset, rain-soaked cyberpunk alley, snowy mountain peak at sunrise, fashion studio black backdrop, executive office portrait, tropical beach vacation, vintage 90s yearbook portrait, glamorous red carpet with paparazzi flashes. Identical face across all 12 panels. Thin black gutters between panels. Glossy editorial composition. Magazine photo-dump aesthetic. 16:9 framing.",
+  },
+
   // ── Sprint 1 Wave 2 (2026-06-06) — preset library expansion ──
   {
     slug: "preset-kung-fu",

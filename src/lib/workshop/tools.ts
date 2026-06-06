@@ -467,6 +467,20 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "video",
   },
+
+  // ── Sprint 1 Wave 3 (2026-06-06): Photodump flagship ──
+  {
+    slug: "photodump",
+    name: "Photodump",
+    tagline: "12 cinematic looks of your character — one click",
+    description:
+      "Upload one character photo. Get 12 photorealistic scenes back — golden-hour portrait, magazine cover, Tokyo at night, Paris café, beach sunset, cyberpunk rain, mountain peak, studio fashion, exec portrait, tropical vacation, '90s yearbook, red carpet. All identity-locked to your reference. Powered by Nano Banana Pro.",
+    category: "image",
+    credits: 5400,
+    creditLabel: "5,400 cr · 12 images",
+    status: "available",
+    outputType: "multi-image",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -514,6 +528,9 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
   // Viral presets
   if (slug === "preset-magazine-cover") return "TEXT_TO_IMAGE";
   if (slug.startsWith("preset-")) return "IMAGE_TO_VIDEO";
+
+  // Photodump — produces 12 stylized images
+  if (slug === "photodump") return "TEXT_TO_IMAGE";
 
   return "IMAGE_EDIT";
 }

@@ -13,6 +13,7 @@ import {
 } from "@/lib/kieai";
 import { sanitizeClientError } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
+import { PHOTODUMP_SCENES, type PhotodumpScene } from "@/lib/workshop/presets/photodump-scenes";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -155,7 +156,9 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-zombie-dance":     return 2000; // Kling 3.0 omni 720p 5s
     case "preset-dragon-fantasy":   return 2000; // Kling 3.0 omni 720p 5s
     case "preset-night-vision":     return 1600; // Wan 2.6 img2video 720p 5s
-    case "preset-storm-giant":      return 2000; // Kling 3.0 omni 720p 5s
+    case "preset-storm-giant":      return 2000;
+    // Photodump = 12 × Nano Banana Pro images @ ~450 cr each (75% margin on $0.105)
+    case "photodump":               return 12 * 450; // Kling 3.0 omni 720p 5s
     default:                  return 100;
   }
 }
@@ -784,6 +787,96 @@ export async function POST(
       userId, slug, tool, credits, taskId, provider: "PIAPI", body,
     });
     return NextResponse.json({ taskId, generationId, credits });
+  }
+
+  // ── Photodump (12 parallel Nano Banana Pro images) ──
+  if (slug === "photodump") {
+    const charUrl = await resolveImg(userId, body.characterImage);
+    if (!charUrl) {
+      await refundCredits(userId, credits, `Refund: photodump missing character image`);
+      return NextResponse.json({ error: "Missing character image" }, { status: 400 });
+    }
+
+    const photodumpBatchId = randomUUID();
+    const perImageCredits = 450;
+
+    // Submit all 12 scenes in parallel. Each gets its own Generation row +
+    // task ID so it's individually pollable and shows up in /gallery
+    // independently of the batch.
+    const results = await Promise.all(
+      PHOTODUMP_SCENES.map(async (scene: PhotodumpScene, idx: number) => {
+        try {
+          const result = await submitTask("gemini", "nano-banana-pro", {
+            prompt: scene.prompt,
+            image_urls: [charUrl],
+            aspect_ratio: scene.aspectRatio,
+            resolution: "1K",
+            output_format: "png",
+          });
+
+          const gen = await prisma.generation.create({
+            data: {
+              userId,
+              workflowType: "TEXT_TO_IMAGE",
+              status: "PROCESSING",
+              contentMode: "SFW",
+              provider: "PIAPI",
+              modelId: "photodump",
+              creditsCost: perImageCredits,
+              withAudio: false,
+              inputParams: {
+                toolSlug: "photodump",
+                toolName: tool.name,
+                outputType: "image",
+                photodumpBatchId,
+                photodumpSceneSlug: scene.slug,
+                photodumpSceneLabel: scene.label,
+                photodumpSceneIndex: idx,
+                aspectRatio: scene.aspectRatio,
+                piApiTaskId: result.taskId,
+                submissionPath: "workshop-photodump",
+                prompt: scene.prompt,
+              } as Prisma.InputJsonValue,
+              startedAt: new Date(),
+              queuedAt: new Date(),
+            },
+            select: { id: true },
+          });
+
+          return { ok: true as const, sceneSlug: scene.slug, sceneLabel: scene.label, sceneIndex: idx, taskId: result.taskId, generationId: gen.id };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`[workshop/photodump] scene=${scene.slug} submission failed:`, msg);
+          return { ok: false as const, sceneSlug: scene.slug, sceneLabel: scene.label, sceneIndex: idx, error: msg };
+        }
+      })
+    );
+
+    const succeeded = results.filter((r) => r.ok);
+    const failed = results.filter((r) => !r.ok);
+
+    // Refund credits for any failed submissions so users only pay for what shipped.
+    if (failed.length > 0) {
+      await refundCredits(userId, failed.length * perImageCredits, `Refund: photodump ${failed.length}/${PHOTODUMP_SCENES.length} scenes failed to submit`);
+    }
+
+    // If everything failed up front, return an error response (credits already refunded above).
+    if (succeeded.length === 0) {
+      return NextResponse.json({ error: sanitizeClientError(failed[0]?.error ?? "Photodump submission failed", "workshop/photodump") }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      photodumpBatchId,
+      items: succeeded.map((s) => ({
+        sceneSlug: s.sceneSlug,
+        sceneLabel: s.sceneLabel,
+        sceneIndex: s.sceneIndex,
+        taskId: s.taskId,
+        generationId: s.generationId,
+      })),
+      failedCount: failed.length,
+      creditsCharged: succeeded.length * perImageCredits,
+    });
   }
 
   // ── KIE.AI tools (ideogram-remix, recraft, grok) ──

@@ -58,6 +58,9 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-dragon-fantasy",
   "preset-night-vision",
   "preset-storm-giant",
+
+  // Sprint 1 Wave 3 (2026-06-06): Photodump flagship
+  "photodump",
 ];
 
 export default async function WorkshopPage() {

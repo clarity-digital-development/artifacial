@@ -1938,6 +1938,31 @@ function StormGiantPreset(p: { onSubmit: (d: Record<string, unknown>) => void; l
   );
 }
 
+function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const valid = !!characterImage;
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Your character"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="One clear photo. We'll generate 12 photorealistic scenes preserving the same face."
+      />
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <p className="mb-2 font-semibold text-[var(--text-primary)]">12 scenes you&apos;ll get:</p>
+        <p>Golden Hour Portrait · Editorial Cover · Tokyo Night · Paris Café · Beach Sunset · Cyberpunk Rain · Mountain Sunrise · Studio Fashion · Executive Portrait · Tropical Vacation · Vintage Yearbook · Red Carpet</p>
+      </div>
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={5400}
+        onClick={() => onSubmit({ characterImage })}
+      />
+    </div>
+  );
+}
+
 // ─── Form router ─────────────────────────────────────────────────────────────
 
 
@@ -1990,6 +2015,7 @@ function ToolForm({
     case "preset-dragon-fantasy":   return <DragonFantasyPreset {...props} />;
     case "preset-night-vision":     return <NightVisionPreset {...props} />;
     case "preset-storm-giant":      return <StormGiantPreset {...props} />;
+    case "photodump":               return <PhotodumpForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }
@@ -2396,6 +2422,17 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // ─── Main page shell ─────────────────────────────────────────────────────────
 
+type PhotodumpItem = {
+  sceneSlug: string;
+  sceneLabel: string;
+  sceneIndex: number;
+  taskId: string;
+  generationId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  imageUrl?: string | null;
+  errorMessage?: string | null;
+};
+
 export function WorkshopToolPageClient({
   tool,
   totalCredits,
@@ -2409,8 +2446,10 @@ export function WorkshopToolPageClient({
   const [result, setResult] = useState<PollResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Poll for completion. Passing generationId lets the server persist the
-  // output to R2 and update the Generation row so it shows up in /gallery.
+  // Photodump batch state (used only for tool.slug === "photodump")
+  const [photodumpItems, setPhotodumpItems] = useState<PhotodumpItem[] | null>(null);
+
+  // Single-task polling (existing flow)
   useEffect(() => {
     if (!taskId || status !== "polling") return;
     const interval = setInterval(async () => {
@@ -2433,10 +2472,42 @@ export function WorkshopToolPageClient({
     return () => clearInterval(interval);
   }, [taskId, generationId, status]);
 
+  // Photodump batch polling — poll each item independently in parallel
+  useEffect(() => {
+    if (!photodumpItems || status !== "polling") return;
+    const interval = setInterval(async () => {
+      const updated = await Promise.all(
+        photodumpItems.map(async (item) => {
+          if (item.status === "completed" || item.status === "failed") return item;
+          try {
+            const qs = new URLSearchParams({ taskId: item.taskId, generationId: item.generationId });
+            const res = await fetch(`/api/workshop/poll?${qs.toString()}`);
+            const data = await res.json();
+            if (data.status === "completed") {
+              return { ...item, status: "completed" as const, imageUrl: data.imageUrl ?? null };
+            }
+            if (data.status === "failed") {
+              return { ...item, status: "failed" as const, errorMessage: data.errorMessage ?? "Failed" };
+            }
+            return { ...item, status: (data.status as PhotodumpItem["status"]) ?? item.status };
+          } catch {
+            return item;
+          }
+        }),
+      );
+      setPhotodumpItems(updated);
+      // Batch is "done" when every item is in a terminal state
+      const allDone = updated.every((i) => i.status === "completed" || i.status === "failed");
+      if (allDone) setStatus("done");
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [photodumpItems, status]);
+
   const handleSubmit = async (formData: Record<string, unknown>) => {
     setStatus("loading");
     setError(null);
     setResult(null);
+    setPhotodumpItems(null);
     try {
       const res = await fetch(`/api/workshop/${tool.slug}`, {
         method: "POST",
@@ -2445,6 +2516,17 @@ export function WorkshopToolPageClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit");
+
+      // Photodump batch response shape
+      if (Array.isArray(data.items) && data.photodumpBatchId) {
+        setPhotodumpItems(
+          (data.items as PhotodumpItem[]).map((it) => ({ ...it, status: "pending" })),
+        );
+        setStatus("polling");
+        return;
+      }
+
+      // Single-task response shape (existing tools)
       setTaskId(data.taskId);
       setGenerationId(data.generationId ?? null);
       setStatus("polling");
@@ -2505,20 +2587,89 @@ export function WorkshopToolPageClient({
         <div className="self-start rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 lg:sticky lg:top-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Result
+              {photodumpItems ? "Photodump" : "Result"}
             </h2>
             {status === "done" && (
               <button
-                onClick={() => { setStatus("idle"); setResult(null); setTaskId(null); }}
+                onClick={() => { setStatus("idle"); setResult(null); setTaskId(null); setPhotodumpItems(null); }}
                 className="text-[10px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-secondary)]"
               >
                 Clear
               </button>
             )}
           </div>
-          <ResultDisplay status={status} result={result} error={error} outputType={tool.outputType} />
+          {photodumpItems ? (
+            <PhotodumpGrid items={photodumpItems} />
+          ) : (
+            <ResultDisplay status={status} result={result} error={error} outputType={tool.outputType} />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Photodump Grid (multi-image batch result) ──────────────────────────────
+
+function PhotodumpGrid({ items }: { items: PhotodumpItem[] }) {
+  const completed = items.filter((i) => i.status === "completed").length;
+  const failed = items.filter((i) => i.status === "failed").length;
+  const total = items.length;
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+        <span>{completed} / {total} ready{failed > 0 ? ` · ${failed} failed` : ""}</span>
+        {completed < total - failed && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent-amber)]" />
+            generating…
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {items
+          .slice()
+          .sort((a, b) => a.sceneIndex - b.sceneIndex)
+          .map((item) => (
+            <PhotodumpCell key={item.sceneSlug} item={item} />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function PhotodumpCell({ item }: { item: PhotodumpItem }) {
+  return (
+    <div className="group relative aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+      {item.imageUrl ? (
+        <img src={item.imageUrl} alt={item.sceneLabel} className="h-full w-full object-cover" />
+      ) : item.status === "failed" ? (
+        <div className="flex h-full w-full items-center justify-center p-2 text-center">
+          <span className="text-[10px] text-[var(--error)]">failed</span>
+        </div>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
+        </div>
+      )}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-4">
+        <p className="text-[9px] font-medium uppercase tracking-wider text-white/90">{item.sceneLabel}</p>
+      </div>
+      {item.imageUrl && (
+        <a
+          href={item.imageUrl}
+          download={`photodump-${item.sceneSlug}.png`}
+          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label="Download"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </a>
+      )}
     </div>
   );
 }
