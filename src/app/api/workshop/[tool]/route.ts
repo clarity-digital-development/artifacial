@@ -17,6 +17,7 @@ import { PHOTODUMP_SCENES } from "@/lib/workshop/presets/photodump-scenes";
 import { HEADSHOT_SCENES } from "@/lib/workshop/presets/headshot-scenes";
 import type { SceneTemplate } from "@/lib/workshop/presets/types";
 import { analyzeVirality } from "@/lib/analysis/virality";
+import { safeFetchUserUrl } from "@/lib/security/safe-fetch";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -951,9 +952,10 @@ export async function POST(
     });
 
     try {
-      const res = await fetch(videoUrl);
-      if (!res.ok) throw new Error(`Failed to download video: ${res.status}`);
-      const videoBuffer = Buffer.from(await res.arrayBuffer());
+      // SSRF-hardened fetch: rejects private/loopback/link-local targets
+      // (incl. cloud-metadata 169.254.169.254 and Railway internal hosts),
+      // re-validates redirects, caps payload at 100 MB to prevent OOM.
+      const videoBuffer = await safeFetchUserUrl(videoUrl, { maxBytes: 100 * 1024 * 1024 });
 
       const score = await analyzeVirality(videoBuffer);
 
