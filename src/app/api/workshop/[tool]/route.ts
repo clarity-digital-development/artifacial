@@ -265,7 +265,8 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-storm-giant":      return 2000;
     // Photodump = 12 × Nano Banana Pro images @ ~450 cr each (75% margin on $0.105)
     case "photodump":               return 12 * 450;
-    case "headshot-generator":      return 6 * 450; // 6 studio headshots @ 75% margin on Nano Banana Pro // Kling 3.0 omni 720p 5s
+    case "headshot-generator":      return 6 * 450; // 6 studio headshots @ 75% margin on Nano Banana Pro
+    case "outfit-swap":             return 450;     // Single Nano Banana Pro image edit, 75% margin // Kling 3.0 omni 720p 5s
     default:                  return 100;
   }
 }
@@ -596,6 +597,26 @@ async function buildTask(
         input: {
           prompt,
           image_urls: [img],
+          output_format: "png",
+          aspect_ratio: "3:4",
+        },
+      };
+    }
+
+    case "outfit-swap": {
+      const charImg = await resolveImg(userId, body.characterImage);
+      const outfitImg = await resolveImg(userId, body.outfitImage);
+      if (!charImg) throw new Error("Missing character image");
+      if (!outfitImg) throw new Error("Missing outfit image");
+      const notes = (typeof body.notes === "string" ? body.notes.trim() : "");
+      const stylingClause = notes ? ` Styling notes: ${notes}.` : "";
+      const prompt = `The first reference image is the person. The second reference image shows the outfit. Replace the clothing on the person from the first image with the exact outfit shown in the second image — same garments, same colors, same style, same fabric details. Keep the person's face, hair, skin tone, body shape, pose, and entire background exactly as they appear in the first image. The outfit should look naturally fitted to their body, with realistic fabric drape, seams, and shadows. Photorealistic editorial quality.${stylingClause}`;
+      return {
+        model: "gemini",
+        taskType: "nano-banana-pro",
+        input: {
+          prompt,
+          image_urls: [charImg, outfitImg],
           output_format: "png",
           aspect_ratio: "3:4",
         },

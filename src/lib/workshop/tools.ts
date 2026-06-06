@@ -495,6 +495,20 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "multi-image",
   },
+
+  // ── Sprint 1 Wave 5 (2026-06-06): Outfit Swap ──
+  {
+    slug: "outfit-swap",
+    name: "Outfit Swap",
+    tagline: "Try any outfit on yourself — one click",
+    description:
+      "Upload a photo of yourself and a photo of any outfit. We swap the clothing onto you while keeping your face, hair, body, pose, and background exactly as in the original. Powered by Nano Banana Pro.",
+    category: "image",
+    credits: 450,
+    creditLabel: "450 cr",
+    status: "available",
+    outputType: "image",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -545,6 +559,9 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
 
   // Multi-image batch presets
   if (slug === "photodump" || slug === "headshot-generator") return "TEXT_TO_IMAGE";
+
+  // Outfit Swap is an image edit (garment replacement)
+  if (slug === "outfit-swap") return "IMAGE_EDIT";
 
   return "IMAGE_EDIT";
 }

@@ -128,6 +128,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 1 Wave 5 (2026-06-06) — Outfit Swap ──
+  {
+    slug: "outfit-swap",
+    prompt:
+      "Cinematic three-panel composition demonstrating outfit swap. Left panel: a young woman in a plain grey hoodie standing in a clean white studio. Center panel: a flat-lay photograph of a stylish black leather jacket on a marble surface (the outfit to swap in). Right panel: the SAME woman in the EXACT same pose and studio background but now wearing the black leather jacket from the center panel — same face, same hair, same body, same pose, only the clothing changed. Thin vertical white dividers between the three panels. Subtle small labels 'YOU', 'OUTFIT', 'RESULT'. Editorial fashion photography quality. 16:9 framing.",
+  },
+
   // ── Sprint 1 Wave 4 (2026-06-06) — Headshot Generator ──
   {
     slug: "headshot-generator",

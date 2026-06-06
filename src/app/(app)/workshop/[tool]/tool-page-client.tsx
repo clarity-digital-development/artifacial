@@ -1963,6 +1963,42 @@ function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unk
   );
 }
 
+function OutfitSwapForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [outfitImage, setOutfitImage] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const valid = !!characterImage && !!outfitImage;
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="You (the wearer)"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="Full-body or upper-body photo. Make sure your face + pose are clearly visible."
+      />
+      <ImageUpload
+        label="Outfit (the clothing to try on)"
+        value={outfitImage}
+        onChange={setOutfitImage}
+        hint="Clear photo of the outfit or garment you want to wear — flat-lay, model wearing it, or product page screenshot."
+      />
+      <TextInput
+        label="Notes (optional)"
+        value={notes}
+        onChange={setNotes}
+        placeholder="tuck shirt in / sleeves rolled up / open jacket"
+        hint="Optional styling notes — leave blank for an automatic natural fit."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={450}
+        onClick={() => onSubmit({ characterImage, outfitImage, notes: notes.trim() })}
+      />
+    </div>
+  );
+}
+
 function HeadshotGeneratorForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const valid = !!characterImage;
@@ -2042,6 +2078,7 @@ function ToolForm({
     case "preset-storm-giant":      return <StormGiantPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
+    case "outfit-swap":             return <OutfitSwapForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }
