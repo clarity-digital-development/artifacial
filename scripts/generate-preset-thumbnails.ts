@@ -26,6 +26,109 @@ type ThumbSpec = {
 };
 
 const THUMBS: ThumbSpec[] = [
+  // ── Sprint 1 (2026-06-05) — newly unhidden tools ──
+  {
+    slug: "photo-face-swap",
+    prompt:
+      "Cinematic split-screen before/after thumbnail with sharp vertical divider. Left: a young woman with brunette hair smiling in a natural outdoor setting, golden hour lighting. Right: the exact same scene composition, same hair color, same outdoor background and lighting — but the face has been swapped to a different woman with green eyes and freckles. Identical pose, identical clothing. Subtle small white labels 'BEFORE' and 'AFTER' in opposite bottom corners. Demonstration of one-shot face swap.",
+  },
+  {
+    slug: "multi-face-swap",
+    prompt:
+      "Group portrait photograph of four young adults at an outdoor café table, candid laughing. Subtle numbered translucent badges hovering over each person — '1', '2', '3', '4' in clean white sans-serif circles. Natural daylight, sharp focus, professional photography aesthetic. Demonstrates face-index control for swapping specific people in a group photo.",
+  },
+  {
+    slug: "video-face-swap",
+    prompt:
+      "Filmstrip-style horizontal layout showing 4 consecutive frames from a short video clip of a person speaking to camera — each frame slightly different facial expression (smiling, laughing, thoughtful, confident). All four frames show the SAME swapped face on a consistent body / clothing / background. Cinematic warm color grading, looks like a TikTok creator video. Thin black filmstrip borders between frames.",
+  },
+  {
+    slug: "virtual-try-on",
+    prompt:
+      "Editorial split-screen fashion shot. Left: a young woman in a casual gray hoodie and jeans against a clean white studio background, full-body shot. Right: same woman in same pose and lighting but now wearing an elegant red evening dress instead. The transformation is the only difference. Glossy fashion-magazine quality. Subtle small labels 'BEFORE' and 'AFTER'.",
+  },
+  {
+    slug: "ai-hug",
+    prompt:
+      "Heartwarming photograph of two young adults — a man and a woman — sharing a warm tight embrace, eyes closed, gentle smiles. Soft golden hour backlight, blurred park background, intimate emotional moment. Cinematic depth of field, warm color grade. Captures the feeling of reunion. Demonstrates AI Hug video generation.",
+  },
+  {
+    slug: "lipsync",
+    prompt:
+      "Tight close-up portrait of a young woman mid-speech, mouth slightly open showing realistic lip motion, eyes focused at the camera, expressive face. Subtle audio-waveform graphic visible as a faint translucent overlay near her mouth, suggesting lip-sync audio sync. Cinematic studio lighting, magazine-quality realism. Modern minimalist composition.",
+  },
+  {
+    slug: "effects",
+    prompt:
+      "Bold viral-effect grid thumbnail: 2x2 collage of four small action stills — top-left a person dramatically spinning with motion blur, top-right hearts floating in pink, bottom-left jumping with explosive water splash, bottom-right kung-fu kick with smoke trail. Each panel has slightly different color treatment. Thin black dividers between panels. TikTok creator-effects aesthetic, energetic, eye-catching.",
+  },
+  {
+    slug: "kling-sound",
+    prompt:
+      "Dramatic video still of an action scene — a sports car at night with neon reflections — paired with a glowing translucent sound waveform graphic overlaying the lower third of the frame. Bold orange and white waveform lines pulsing across the image. Demonstrates AI sound generation for video. Cinematic, high-energy composition.",
+  },
+  {
+    slug: "ai-video-edit",
+    prompt:
+      "Dark video editing software interface mockup, clean modern aesthetic. A horizontal video timeline at the bottom with multiple clip thumbnails. Above the timeline, a glowing AI prompt chat bubble: 'Make this scene cinematic.' A preview window in the center shows a high-quality video frame being transformed. Sharp UI, amber/orange accents, professional video editor feel.",
+  },
+  {
+    slug: "video-remove-bg",
+    prompt:
+      "A young woman standing in athletic pose, perfectly isolated from any background — clean alpha channel cutout. The background is a tasteful soft checkerboard pattern (transparent-style) indicating no background. Sharp edge separation on her hair, professional rotoscoping quality. Demonstrates clean background removal from video.",
+  },
+  {
+    slug: "watermark-remover",
+    prompt:
+      "Cinematic split-screen before/after of a video frame. Left: a beautiful landscape shot with a large translucent watermark text 'SAMPLE FOOTAGE' overlaid in the corner and a faint diagonal repeating watermark pattern. Right: the exact same landscape shot with all watermarks cleanly removed, pristine. Subtle 'BEFORE' / 'AFTER' labels.",
+  },
+  {
+    slug: "character-swap-remix",
+    prompt:
+      "Cinematic split image of a single young woman placed in two completely different scenes. Left: the woman in a snowy alpine mountain village at sunrise. Right: the same woman in the exact same outfit and pose but now standing on a rooftop overlooking Tokyo at night, with neon city lights. Identical character, different scenes. Demonstrates scene-remix capability.",
+  },
+  {
+    slug: "remove-bg",
+    prompt:
+      "A young woman with brunette hair in a stylish denim jacket, isolated cleanly from any background — clean alpha cutout. Background is a tasteful soft transparency checkerboard pattern. Sharp edge details on her hair, professional cutout quality. Studio portrait look.",
+  },
+  {
+    slug: "super-resolution",
+    prompt:
+      "Cinematic split-screen demonstrating image upscaling. Left half: a small, low-resolution, pixelated thumbnail-style image of a young woman with visible blockiness and JPEG artifacts. Right half: the same woman blown up to ultra-high resolution with razor-sharp detail — every eyelash, hair strand, and pore visible, magazine-quality clarity. Small labels '512px' and '4K' in opposite corners.",
+  },
+  {
+    slug: "grok-video-upscale",
+    prompt:
+      "Cinematic split-screen of a video frame. Left: a soft, slightly blurry video frame of a person walking through a busy urban street, low-resolution feel, slight motion blur and softness. Right: the exact same frame but in ultra-high-resolution crisp 4K detail — sharp clothing texture, visible facial detail, every leaf on background trees. Subtle small labels '720p' and '4K'.",
+  },
+  {
+    slug: "joycaption",
+    prompt:
+      "Modern minimalist composition: a glossy photograph of a young woman with red hair smiling on the left half, and on the right half a clean dark panel with white text in a typewriter font reading 'A young woman with shoulder-length red hair smiles confidently at the camera, wearing a green knit sweater. Soft natural window light…'. The text suggests structured AI-generated image captioning. Sharp typography, editorial layout.",
+  },
+  {
+    slug: "trellis3d",
+    prompt:
+      "Cinematic composition showing a photograph of a person on the left side, and on the right side a glowing 3D wireframe mesh model of the same person emerging from the photo — translucent triangular mesh facets, slight blue-cyan glow lines on the wireframe edges, suggesting image-to-3D conversion. Dark background, technical-magic aesthetic. Demonstrates the Trellis 3D model generation.",
+  },
+  {
+    slug: "music-gen",
+    prompt:
+      "Stylized album-cover aesthetic — a glowing musical waveform shaped abstractly to look like a soundwave through the frame, with translucent musical notes floating around it. Rich purple-and-orange gradient background, cinematic studio lighting feel. No text. Suggests AI music generation. Polished editorial album art quality.",
+  },
+  {
+    slug: "add-audio",
+    prompt:
+      "A movie-poster-style video frame showing dramatic outdoor action — a stunt jumping over rocks at sunset — paired with a bold translucent stylized audio waveform graphic overlaying the lower portion of the frame. The waveform suggests added sound effects perfectly matching the visual action. Cinematic warm color grade.",
+  },
+  {
+    slug: "diffrhythm",
+    prompt:
+      "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
+  },
+
+  // ── Existing thumbnails (skipped if already present) ──
   {
     slug: "recraft-crisp-upscale",
     prompt:

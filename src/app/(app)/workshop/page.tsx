@@ -7,17 +7,46 @@ export const metadata = {
   title: "Workshop — Artifacial",
 };
 
-// Slugs visible to all users on the public workshop page
+// Slugs visible to all users on the public workshop page.
+// Sprint 1 (2026-06-05): unhide every built tool — 12 → 32 tools.
+// Roadmap: docs/higgsfield-roadmap.md §5, Day-30 target ~45 tools.
 const PUBLIC_TOOL_SLUGS = [
+  // ── Face & Identity ──
+  "photo-face-swap",
+  "multi-face-swap",
+  "video-face-swap",
+  "virtual-try-on",
+  "ai-hug",
+
+  // ── Video Tools ──
+  "lipsync",
+  "effects",
+  "kling-sound",
+  "ai-video-edit",
+  "video-remove-bg",
+  "watermark-remover",
+
+  // ── Image Utilities ──
   "character-swap",
+  "character-swap-remix",
+  "remove-bg",
+  "super-resolution",
   "recraft-crisp-upscale",
-  // Viral Presets
+  "grok-video-upscale",
+  "joycaption",
+  "trellis3d",
+
+  // ── Audio & Music ──
+  "music-gen",
+  "add-audio",
+  "diffrhythm",
+
+  // ── Viral Presets ──
   "preset-ugc-hook",
   "preset-paparazzi-flash",
   "preset-slow-mo",
   "preset-magazine-cover",
   "preset-red-carpet",
-  // Batch 2
   "preset-drift-racing",
   "preset-cctv",
   "preset-neon-city",
