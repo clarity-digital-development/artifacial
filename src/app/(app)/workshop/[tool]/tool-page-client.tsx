@@ -1963,6 +1963,31 @@ function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unk
   );
 }
 
+function HeadshotGeneratorForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const valid = !!characterImage;
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Your selfie"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="One clear front-facing photo. We'll generate 6 polished studio headshots in different styles."
+      />
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <p className="mb-2 font-semibold text-[var(--text-primary)]">6 headshots you&apos;ll get:</p>
+        <p>Corporate · Actor Headshot · LinkedIn Profile · Fashion Editorial · Creative Casual · Fitness Athletic</p>
+      </div>
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={2700}
+        onClick={() => onSubmit({ characterImage })}
+      />
+    </div>
+  );
+}
+
 // ─── Form router ─────────────────────────────────────────────────────────────
 
 
@@ -2016,6 +2041,7 @@ function ToolForm({
     case "preset-night-vision":     return <NightVisionPreset {...props} />;
     case "preset-storm-giant":      return <StormGiantPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
+    case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }
@@ -2517,8 +2543,8 @@ export function WorkshopToolPageClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to submit");
 
-      // Photodump batch response shape
-      if (Array.isArray(data.items) && data.photodumpBatchId) {
+      // Multi-image batch response shape (Photodump, Headshot Generator, etc.)
+      if (Array.isArray(data.items) && (data.batchId || data.photodumpBatchId)) {
         setPhotodumpItems(
           (data.items as PhotodumpItem[]).map((it) => ({ ...it, status: "pending" })),
         );

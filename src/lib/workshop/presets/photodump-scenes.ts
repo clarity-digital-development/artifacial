@@ -9,16 +9,10 @@
  * tail enforces consistent identity capture from the reference.
  */
 
-export interface PhotodumpScene {
-  /** Stable identifier — used as the photodump item index */
-  slug: string;
-  /** Short display label for the result grid */
-  label: string;
-  /** Aspect ratio for this specific scene (3:4 portrait, 4:3 landscape, 1:1) */
-  aspectRatio: "3:4" | "4:3" | "1:1";
-  /** The prompt sent to Nano Banana Pro (character image is image_urls[0]) */
-  prompt: string;
-}
+import type { SceneTemplate } from "./types";
+
+/** @deprecated Use `SceneTemplate` from "./types" — kept for back-compat. */
+export type PhotodumpScene = SceneTemplate;
 
 /**
  * Identity-locking suffix appended to every scene prompt so the generation
@@ -27,7 +21,7 @@ export interface PhotodumpScene {
 const IDENTITY_SUFFIX =
   "The person must be identical to the reference image — same face, same hair, same skin tone, same identifying features. Photorealistic studio-grade quality.";
 
-export const PHOTODUMP_SCENES: PhotodumpScene[] = [
+export const PHOTODUMP_SCENES: SceneTemplate[] = [
   {
     slug: "golden-hour-portrait",
     label: "Golden Hour Portrait",
@@ -115,7 +109,7 @@ export const PHOTODUMP_SCENES: PhotodumpScene[] = [
 ];
 
 /** Convenience: get scene by slug for poll/result wiring */
-export function getPhotodumpScene(slug: string): PhotodumpScene | undefined {
+export function getPhotodumpScene(slug: string): SceneTemplate | undefined {
   return PHOTODUMP_SCENES.find((s) => s.slug === slug);
 }
 

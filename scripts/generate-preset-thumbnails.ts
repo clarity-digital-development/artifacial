@@ -128,6 +128,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 1 Wave 4 (2026-06-06) — Headshot Generator ──
+  {
+    slug: "headshot-generator",
+    prompt:
+      "A 2x3 grid collage thumbnail showing the same young professional woman across 6 different polished studio headshots: corporate boardroom portrait in a navy blazer (top-left), theatrical actor headshot on dark seamless backdrop with dramatic Rembrandt lighting (top-middle), warm LinkedIn-profile portrait with blurred office background (top-right), high-fashion editorial portrait in dramatic side-light (bottom-left), creative-casual lifestyle portrait in a warm modern interior (bottom-middle), athletic fitness portrait in a modern gym (bottom-right). Identical face across all 6 panels. Thin black gutters between panels. Print-magazine quality. 16:9 framing.",
+  },
+
   // ── Sprint 1 Wave 3 (2026-06-06) — Photodump flagship ──
   {
     slug: "photodump",

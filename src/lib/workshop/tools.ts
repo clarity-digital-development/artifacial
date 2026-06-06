@@ -481,6 +481,20 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "multi-image",
   },
+
+  // ── Sprint 1 Wave 4 (2026-06-06): Headshot Generator ──
+  {
+    slug: "headshot-generator",
+    name: "Headshot Generator",
+    tagline: "6 polished studio headshots from one selfie",
+    description:
+      "Upload one photo. Get 6 professional headshots back — Corporate, Actor Headshot, LinkedIn Profile, Fashion Editorial, Creative Casual, and Fitness Athletic. Identity-locked, print-ready, powered by Nano Banana Pro.",
+    category: "image",
+    credits: 2700,
+    creditLabel: "2,700 cr · 6 images",
+    status: "available",
+    outputType: "multi-image",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -529,8 +543,8 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
   if (slug === "preset-magazine-cover") return "TEXT_TO_IMAGE";
   if (slug.startsWith("preset-")) return "IMAGE_TO_VIDEO";
 
-  // Photodump — produces 12 stylized images
-  if (slug === "photodump") return "TEXT_TO_IMAGE";
+  // Multi-image batch presets
+  if (slug === "photodump" || slug === "headshot-generator") return "TEXT_TO_IMAGE";
 
   return "IMAGE_EDIT";
 }

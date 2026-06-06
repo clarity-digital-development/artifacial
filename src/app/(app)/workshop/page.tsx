@@ -61,6 +61,8 @@ const PUBLIC_TOOL_SLUGS = [
 
   // Sprint 1 Wave 3 (2026-06-06): Photodump flagship
   "photodump",
+  // Sprint 1 Wave 4 (2026-06-06): Headshot Generator
+  "headshot-generator",
 ];
 
 export default async function WorkshopPage() {
