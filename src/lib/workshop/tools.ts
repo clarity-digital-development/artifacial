@@ -405,6 +405,68 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "video",
   },
+
+  // ── Sprint 1 Wave 2 (2026-06-06): viral preset expansion ──
+  {
+    slug: "preset-kung-fu",
+    name: "Kung Fu Hit",
+    tagline: "Explosive martial-arts action shot",
+    description:
+      "Your character executing a cinematic kung-fu attack — explosive kicks, lightning combos, dramatic motion blur. Action-film aesthetic powered by Kling 3.0.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-zombie-dance",
+    name: "Zombie Dance",
+    tagline: "Halloween-viral choreographed zombie routine",
+    description:
+      "Your character reimagined as a stylized zombie performing a Thriller-style dance routine. Fog-shrouded graveyard, glowing eyes, cinematic Halloween aesthetic.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-dragon-fantasy",
+    name: "Dragon Fantasy",
+    tagline: "Epic fantasy scene with a towering dragon",
+    description:
+      "Your character standing heroically before a massive ancient dragon. Misty mountains at dawn, fantasy-film quality cinematic lighting, mythic scale.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-night-vision",
+    name: "Night Vision",
+    tagline: "Tactical green-tint night surveillance",
+    description:
+      "Military-grade night-vision footage of your character moving through darkness. Monochromatic green tint, slight scanlines, low-light tactical aesthetic.",
+    category: "video",
+    credits: 1600,
+    creditLabel: "1,600 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-storm-giant",
+    name: "Storm Giant",
+    tagline: "Mythological colossus transformation",
+    description:
+      "Your character transforming into a colossal storm giant — towering above clouds, lightning crackling, epic god-of-thunder mythological aesthetic.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {

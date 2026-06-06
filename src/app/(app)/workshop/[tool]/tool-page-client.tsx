@@ -1874,6 +1874,70 @@ function AnimePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loadin
   );
 }
 
+function KungFuPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Full-body or upper-body photo of your character. The fighter."
+      variable={{
+        key: "action",
+        label: "Move (optional)",
+        placeholder: "spin kick / lightning combo / flying punch",
+        hint: "Describe the move. Leave blank for a dramatic combo sequence.",
+        default: "explosive spin kick combo",
+        optional: true,
+      }}
+    />
+  );
+}
+
+function ZombieDancePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Front-facing or full-body character. We'll restyle them as a zombie dancer."
+    />
+  );
+}
+
+function DragonFantasyPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Full-body or upper-body character — the hero standing before the dragon."
+    />
+  );
+}
+
+function NightVisionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={1600}
+      imageHint="Full-body character — the subject under surveillance."
+      variable={{
+        key: "scene",
+        label: "Scene",
+        placeholder: "moving silently through a dark forest at night",
+        hint: "Describe the setting and what they're doing.",
+      }}
+    />
+  );
+}
+
+function StormGiantPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <PresetForm
+      {...p}
+      credits={2000}
+      imageHint="Full-body character — they'll transform into the storm giant."
+    />
+  );
+}
+
 // ─── Form router ─────────────────────────────────────────────────────────────
 
 
@@ -1921,6 +1985,11 @@ function ToolForm({
     case "preset-neon-city":        return <NeonCityPreset {...props} />;
     case "preset-3d-render":        return <ThreeDRenderPreset {...props} />;
     case "preset-anime":            return <AnimePreset {...props} />;
+    case "preset-kung-fu":          return <KungFuPreset {...props} />;
+    case "preset-zombie-dance":     return <ZombieDancePreset {...props} />;
+    case "preset-dragon-fantasy":   return <DragonFantasyPreset {...props} />;
+    case "preset-night-vision":     return <NightVisionPreset {...props} />;
+    case "preset-storm-giant":      return <StormGiantPreset {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }

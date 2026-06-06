@@ -151,6 +151,11 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-neon-city":        return 2000;
     case "preset-3d-render":        return 3200; // seedance-2-fast-preview-vip 720p, $0.16/s × 5 = $0.80 → 3200 cr (75%)
     case "preset-anime":            return 2000;
+    case "preset-kung-fu":          return 2000; // Kling 3.0 omni 720p 5s
+    case "preset-zombie-dance":     return 2000; // Kling 3.0 omni 720p 5s
+    case "preset-dragon-fantasy":   return 2000; // Kling 3.0 omni 720p 5s
+    case "preset-night-vision":     return 1600; // Wan 2.6 img2video 720p 5s
+    case "preset-storm-giant":      return 2000; // Kling 3.0 omni 720p 5s
     default:                  return 100;
   }
 }
@@ -590,6 +595,98 @@ async function buildTask(
       const img = await resolveImg(userId, body.characterImage);
       if (!img) throw new Error("Missing character image");
       const prompt = `@image_1 The person reimagined as a high-quality anime character in the style of a modern cinematic anime film (Makoto Shinkai / Studio Trigger aesthetic). Dramatic transformation moment: dynamic pose, glowing energy particles, motion lines streaking behind them, vibrant color palette, cel-shaded lighting, sparkles. Camera pushes in slowly.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-kung-fu": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const action = (typeof body.action === "string" ? body.action.trim() : "") || "an explosive spin kick combo";
+      const prompt = `@image_1 The fighter from the reference image executing ${action} — dynamic martial-arts action shot. Dramatic motion blur on the limbs, swirling dust and sparks on impact, low-angle hero shot, action-film color grading, cinematic golden-hour key light, tight choreography energy. Wu xia / shonen sensibility.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-zombie-dance": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person reimagined as a stylized zombie performing a Thriller-style choreographed dance routine. Pale grey-green skin, tattered formal clothing, glowing yellow-amber eyes, fog-shrouded graveyard at night, gravestones and bare trees in the background, dramatic moonlight from above, fluid synchronized horror-pop choreography. Cinematic Halloween viral aesthetic.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "9:16",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-dragon-fantasy": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person standing heroically before a massive ancient dragon. Misty mountain valley at dawn, the dragon's scaled body coiled behind them with glowing embers drifting from its nostrils, cloak gently blowing in the wind, sword or staff in hand, sweeping cinematic camera move that reveals the dragon's full scale. Epic fantasy-film quality, deep cinematic color grading, mythic atmospheric haze.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: {
+          prompt,
+          images: [img],
+          duration: 5,
+          aspect_ratio: "16:9",
+          resolution: "720p",
+          version: "3.0",
+        },
+      };
+    }
+
+    case "preset-night-vision": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const scene = (typeof body.scene === "string" ? body.scene.trim() : "");
+      if (!scene) throw new Error("Scene description is required");
+      const prompt = `Grainy military-grade night-vision surveillance footage. The person from the reference image ${scene}. Monochromatic green tint throughout, slight image noise and scanlines, low-light tactical aesthetic, faint white reticle / corner HUD elements, occasional distant heat-blob silhouettes, surveillance camera POV with slight handheld jitter.`;
+      return {
+        model: "Wan",
+        taskType: "wan26-img2video",
+        input: {
+          prompt,
+          image_url: img,
+          duration: 5,
+          aspect_ratio: "16:9",
+          resolution: "720P",
+        },
+      };
+    }
+
+    case "preset-storm-giant": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person transforming into a colossal storm giant — towering above swirling stormy clouds. Their body composed of dense storm clouds and crackling blue-white lightning, eyes glowing electric, arms outstretched commanding the elements, dramatic wind and torrential rain streaming around them, cinematic mythological scale, epic god-of-thunder aesthetic. Camera pulls back to reveal their massive size.`;
       return {
         model: "kling",
         taskType: "omni_video_generation",

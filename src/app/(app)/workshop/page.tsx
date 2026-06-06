@@ -52,6 +52,12 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-neon-city",
   "preset-3d-render",
   "preset-anime",
+  // Sprint 1 Wave 2 (2026-06-06): preset library expansion
+  "preset-kung-fu",
+  "preset-zombie-dance",
+  "preset-dragon-fantasy",
+  "preset-night-vision",
+  "preset-storm-giant",
 ];
 
 export default async function WorkshopPage() {

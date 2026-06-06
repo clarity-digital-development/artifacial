@@ -128,6 +128,33 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 1 Wave 2 (2026-06-06) — preset library expansion ──
+  {
+    slug: "preset-kung-fu",
+    prompt:
+      "Cinematic action shot of a young woman mid-spin-kick — extreme dynamic pose at the apex of motion, dramatic motion blur trailing her leg, swirling dust and golden sparks on impact, low-angle hero shot, golden-hour cinematic key lighting from behind, wu-xia / shonen anime martial-arts aesthetic. Dark moody background. Action-film color grading.",
+  },
+  {
+    slug: "preset-zombie-dance",
+    prompt:
+      "Stylized horror-pop video still: a young woman reimagined as a Thriller-style choreographed zombie — pale grey-green skin, tattered formal black evening dress, glowing yellow-amber eyes, mid-dance pose with arms outstretched in synchronized horror choreography. Fog-shrouded misty graveyard at night, weathered gravestones and bare gnarled trees behind her, dramatic shaft of cold moonlight from above. Cinematic Halloween viral aesthetic.",
+  },
+  {
+    slug: "preset-dragon-fantasy",
+    prompt:
+      "Epic fantasy film still: a young hero in a flowing dark hooded cloak standing heroically on a windswept cliff at dawn. Behind them coils a massive ancient dragon — emerald-green scales, towering silhouette, glowing amber embers drifting from its nostrils, breath visible in the cold morning air. Misty mountain valley vista, dramatic atmospheric haze, mythic cinematic scale. Lord-of-the-Rings cinematography quality.",
+  },
+  {
+    slug: "preset-night-vision",
+    prompt:
+      "Grainy military-grade night-vision surveillance still. Monochromatic green tint throughout, slight image noise and faint scanlines. A lone figure walking silently through a dark forest at night, just barely visible. Faint white reticle / HUD elements in the top-right corner reading 'NV-04  03:14:22  IR ON'. Low-light tactical aesthetic, slight handheld jitter feel, surveillance-camera POV.",
+  },
+  {
+    slug: "preset-storm-giant",
+    prompt:
+      "Epic mythological cinematic painting: a colossal storm giant towering above swirling dark stormy clouds, his vast body composed of dense storm clouds and crackling blue-white lightning, electric-glowing eyes, arms outstretched commanding the heavens, torrential rain streaming around him, dramatic god-of-thunder aesthetic. Tiny silhouettes of mountains visible far below for scale. Cinematic mythic color grading, Norse/Greek pantheon energy.",
+  },
+
   // ── Existing thumbnails (skipped if already present) ──
   {
     slug: "recraft-crisp-upscale",
