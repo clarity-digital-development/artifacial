@@ -16,6 +16,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { PHOTODUMP_SCENES } from "@/lib/workshop/presets/photodump-scenes";
 import { HEADSHOT_SCENES } from "@/lib/workshop/presets/headshot-scenes";
 import type { SceneTemplate } from "@/lib/workshop/presets/types";
+import { analyzeVirality } from "@/lib/analysis/virality";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -266,7 +267,8 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     // Photodump = 12 × Nano Banana Pro images @ ~450 cr each (75% margin on $0.105)
     case "photodump":               return 12 * 450;
     case "headshot-generator":      return 6 * 450; // 6 studio headshots @ 75% margin on Nano Banana Pro
-    case "outfit-swap":             return 450;     // Single Nano Banana Pro image edit, 75% margin // Kling 3.0 omni 720p 5s
+    case "outfit-swap":             return 450;     // Single Nano Banana Pro image edit, 75% margin
+    case "virality-predictor":      return 200;     // Claude Sonnet 4.6 multimodal video analysis // Kling 3.0 omni 720p 5s
     default:                  return 100;
   }
 }
@@ -915,6 +917,84 @@ export async function POST(
       userId, slug, tool, credits, taskId, provider: "PIAPI", body,
     });
     return NextResponse.json({ taskId, generationId, credits });
+  }
+
+  // ── Virality Predictor (synchronous Claude analysis) ──
+  if (slug === "virality-predictor") {
+    const videoUrl = typeof body.videoUrl === "string" ? body.videoUrl.trim() : "";
+    if (!videoUrl) {
+      await refundCredits(userId, credits, `Refund: virality-predictor missing video`);
+      return NextResponse.json({ error: "Missing video" }, { status: 400 });
+    }
+
+    const generation = await prisma.generation.create({
+      data: {
+        userId,
+        workflowType: "IMAGE_EDIT",
+        status: "PROCESSING",
+        contentMode: "SFW",
+        provider: "PIAPI", // No enum value for Anthropic — PIAPI as catch-all
+        modelId: "virality-predictor",
+        creditsCost: credits,
+        withAudio: false,
+        inputParams: {
+          toolSlug: slug,
+          toolName: tool.name,
+          outputType: "text",
+          videoUrl,
+          submissionPath: "workshop-virality",
+        } as Prisma.InputJsonValue,
+        startedAt: new Date(),
+        queuedAt: new Date(),
+      },
+      select: { id: true },
+    });
+
+    try {
+      const res = await fetch(videoUrl);
+      if (!res.ok) throw new Error(`Failed to download video: ${res.status}`);
+      const videoBuffer = Buffer.from(await res.arrayBuffer());
+
+      const score = await analyzeVirality(videoBuffer);
+
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "COMPLETED",
+          progress: 100,
+          completedAt: new Date(),
+          inputParams: {
+            toolSlug: slug,
+            toolName: tool.name,
+            outputType: "text",
+            videoUrl,
+            submissionPath: "workshop-virality",
+            textOutput: JSON.stringify(score),
+            viralityScore: score as unknown as Prisma.InputJsonValue,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return NextResponse.json({
+        sync: true,
+        generationId: generation.id,
+        credits,
+        result: score,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[workshop/virality-predictor] analysis failed:`, msg);
+      await refundCredits(userId, credits, `Refund: virality-predictor analysis failed`);
+      await prisma.generation.update({
+        where: { id: generation.id },
+        data: {
+          status: "FAILED",
+          completedAt: new Date(),
+          errorMessage: sanitizeClientError(msg, "workshop/virality-predictor"),
+        },
+      }).catch(() => {});
+      return NextResponse.json({ error: sanitizeClientError(msg, "workshop/virality-predictor") }, { status: 500 });
+    }
   }
 
   // ── Multi-image batch presets (Photodump, Headshot Generator) ──

@@ -65,6 +65,8 @@ const PUBLIC_TOOL_SLUGS = [
   "headshot-generator",
   // Sprint 1 Wave 5 (2026-06-06): Outfit Swap
   "outfit-swap",
+  // Sprint 1 Wave 6 (2026-06-06): Virality Predictor
+  "virality-predictor",
 ];
 
 export default async function WorkshopPage() {

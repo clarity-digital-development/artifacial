@@ -128,6 +128,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 1 Wave 6 (2026-06-06) — Virality Predictor ──
+  {
+    slug: "virality-predictor",
+    prompt:
+      "Cinematic UI mockup of an AI viral-score analytics dashboard. Dark moody background. Center: a giant glowing amber score number '87' in bold display typography with the label 'OVERALL VIRALITY' below it in clean white sans-serif uppercase. To the left, a row of three smaller score cards labeled 'HOOK 92', 'RETENTION 78', 'SCROLL-STOP 91'. To the right, a subtle critique text snippet in small white type. Below, three small thumbnail keyframes from a TikTok-style video preview. Modern dark dashboard aesthetic with amber accent color, sharp typography. 16:9 framing.",
+  },
+
   // ── Sprint 1 Wave 5 (2026-06-06) — Outfit Swap ──
   {
     slug: "outfit-swap",

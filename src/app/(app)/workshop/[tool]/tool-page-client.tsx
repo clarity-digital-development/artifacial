@@ -1963,6 +1963,31 @@ function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unk
   );
 }
 
+function ViralityPredictorForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [videoUrl, setVideoUrl] = useState("");
+  const valid = !!videoUrl;
+  return (
+    <div className="space-y-4">
+      <VideoInput
+        label="Your video"
+        value={videoUrl}
+        onChange={setVideoUrl}
+        hint="Upload a short-form clip (TikTok, Reels, Shorts). We sample 6 keyframes and run them through a strict viral-content analyst."
+      />
+      <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+        <p className="mb-2 font-semibold text-[var(--text-primary)]">You&apos;ll get:</p>
+        <p>Overall score · Hook score · Retention score · Scroll-stop score · honest hook + content critique · 3-5 concrete recommendations · a one-line verdict</p>
+      </div>
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={200}
+        onClick={() => onSubmit({ videoUrl })}
+      />
+    </div>
+  );
+}
+
 function OutfitSwapForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [outfitImage, setOutfitImage] = useState<string | null>(null);
@@ -2079,6 +2104,7 @@ function ToolForm({
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     case "outfit-swap":             return <OutfitSwapForm {...props} />;
+    case "virality-predictor":      return <ViralityPredictorForm {...props} />;
     default:                        return <p className="text-sm text-[var(--text-muted)]">Coming soon.</p>;
   }
 }
@@ -2512,6 +2538,9 @@ export function WorkshopToolPageClient({
   // Photodump batch state (used only for tool.slug === "photodump")
   const [photodumpItems, setPhotodumpItems] = useState<PhotodumpItem[] | null>(null);
 
+  // Synchronous-analysis result (Virality Predictor)
+  const [viralityResult, setViralityResult] = useState<ViralityScoreResult | null>(null);
+
   // Single-task polling (existing flow)
   useEffect(() => {
     if (!taskId || status !== "polling") return;
@@ -2571,6 +2600,7 @@ export function WorkshopToolPageClient({
     setError(null);
     setResult(null);
     setPhotodumpItems(null);
+    setViralityResult(null);
     try {
       const res = await fetch(`/api/workshop/${tool.slug}`, {
         method: "POST",
@@ -2586,6 +2616,13 @@ export function WorkshopToolPageClient({
           (data.items as PhotodumpItem[]).map((it) => ({ ...it, status: "pending" })),
         );
         setStatus("polling");
+        return;
+      }
+
+      // Synchronous-analysis response (Virality Predictor — result returned inline)
+      if (data.sync && data.result) {
+        setViralityResult(data.result as ViralityScoreResult);
+        setStatus("done");
         return;
       }
 
@@ -2650,18 +2687,20 @@ export function WorkshopToolPageClient({
         <div className="self-start rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 lg:sticky lg:top-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              {photodumpItems ? "Photodump" : "Result"}
+              {photodumpItems ? "Photodump" : viralityResult ? "Virality Score" : "Result"}
             </h2>
             {status === "done" && (
               <button
-                onClick={() => { setStatus("idle"); setResult(null); setTaskId(null); setPhotodumpItems(null); }}
+                onClick={() => { setStatus("idle"); setResult(null); setTaskId(null); setPhotodumpItems(null); setViralityResult(null); }}
                 className="text-[10px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-secondary)]"
               >
                 Clear
               </button>
             )}
           </div>
-          {photodumpItems ? (
+          {viralityResult ? (
+            <ViralityScoreCard score={viralityResult} />
+          ) : photodumpItems ? (
             <PhotodumpGrid items={photodumpItems} />
           ) : (
             <ResultDisplay status={status} result={result} error={error} outputType={tool.outputType} />
@@ -2735,4 +2774,83 @@ function PhotodumpCell({ item }: { item: PhotodumpItem }) {
       )}
     </div>
   );
+}
+
+// ─── Virality Score Card ────────────────────────────────────────────────────
+
+type ViralityScoreResult = {
+  overallScore: number;
+  hookScore: number;
+  retentionScore: number;
+  scrollStopScore: number;
+  hookCritique: string;
+  contentCritique: string;
+  recommendations: string[];
+  verdict: string;
+};
+
+function ViralityScoreCard({ score }: { score: ViralityScoreResult }) {
+  return (
+    <div className="space-y-5">
+      {/* Overall score */}
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40 p-5 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">Overall</p>
+        <p className={`mt-1 font-display text-5xl font-bold ${scoreColor(score.overallScore)}`}>{score.overallScore}</p>
+        <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{score.verdict}</p>
+      </div>
+
+      {/* Sub-scores */}
+      <div className="grid grid-cols-3 gap-2">
+        <SubScore label="Hook" value={score.hookScore} />
+        <SubScore label="Retention" value={score.retentionScore} />
+        <SubScore label="Scroll-stop" value={score.scrollStopScore} />
+      </div>
+
+      {/* Critiques */}
+      <div className="space-y-3">
+        <CritiqueBlock label="Hook critique" text={score.hookCritique} />
+        <CritiqueBlock label="Content critique" text={score.contentCritique} />
+      </div>
+
+      {/* Recommendations */}
+      {score.recommendations.length > 0 && (
+        <div>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">Recommendations</p>
+          <ul className="space-y-1.5">
+            {score.recommendations.map((rec, i) => (
+              <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                <span className="mt-[6px] inline-block h-1 w-1 flex-shrink-0 rounded-full bg-[var(--accent-amber)]" />
+                <span>{rec}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubScore({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40 p-3 text-center">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">{label}</p>
+      <p className={`mt-0.5 font-display text-xl font-bold ${scoreColor(value)}`}>{value}</p>
+    </div>
+  );
+}
+
+function CritiqueBlock({ label, text }: { label: string; text: string }) {
+  if (!text) return null;
+  return (
+    <div>
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">{label}</p>
+      <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">{text}</p>
+    </div>
+  );
+}
+
+function scoreColor(score: number): string {
+  if (score >= 75) return "text-[var(--success)]";
+  if (score >= 55) return "text-[var(--accent-amber)]";
+  return "text-[var(--error)]";
 }

@@ -509,6 +509,20 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "image",
   },
+
+  // ── Sprint 1 Wave 6 (2026-06-06): Virality Predictor ──
+  {
+    slug: "virality-predictor",
+    name: "Virality Predictor",
+    tagline: "Brutal-honest viral score for your video",
+    description:
+      "Upload a short-form video. We sample 6 keyframes and ask Claude Sonnet 4.6 to score it like a strict viral content analyst — hook strength, retention risk, scroll-stop value, plus specific actionable critique. Honest, not nice.",
+    category: "video",
+    credits: 200,
+    creditLabel: "200 cr",
+    status: "available",
+    outputType: "text",
+  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
