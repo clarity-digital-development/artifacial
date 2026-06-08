@@ -223,14 +223,6 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "lipsync":           return 400;
     case "effects":           return body.professionalMode ? 1840 : 1040;
     case "kling-sound":       return 280;
-    case "ai-video-edit": {
-      const is1080 = body.resolution === "1080p";
-      const is10s  = Number(body.duration) === 10;
-      if (is1080 && is10s) return 4160;
-      if (is1080)          return 2080;
-      if (is10s)           return 3120;
-      return 1560;
-    }
     case "video-remove-bg":   return 240;
     case "watermark-remover": return 200;
     case "remove-bg":         return 10;
@@ -393,24 +385,6 @@ async function buildTask(
           duration: Number(body.duration) || 10,
         },
       };
-    }
-
-    case "ai-video-edit": {
-      if (!body.prompt) throw new Error("Missing prompt");
-      const input: Record<string, unknown> = {
-        prompt: body.prompt,
-        duration: Number(body.duration) || 5,
-        aspect_ratio: body.aspectRatio || "16:9",
-      };
-      if (body.resolution) input.resolution = (body.resolution as string).toLowerCase();
-      if (Array.isArray(body.images) && body.images.length > 0) {
-        input.images = await resolveImgArray(userId, body.images);
-      }
-      if (body.videoUrl) {
-        input.video_url = body.videoUrl;
-        if (body.keepOriginalAudio) input.keep_original_audio = true;
-      }
-      return { model: "kling", taskType: "omni_video_generation", input };
     }
 
     case "video-remove-bg": {

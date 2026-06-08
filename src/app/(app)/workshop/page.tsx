@@ -22,7 +22,6 @@ const PUBLIC_TOOL_SLUGS = [
   "lipsync",
   "effects",
   "kling-sound",
-  "ai-video-edit",
   "video-remove-bg",
   "watermark-remover",
 

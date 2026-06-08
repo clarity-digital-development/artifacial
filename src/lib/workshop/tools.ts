@@ -159,18 +159,6 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "multi-audio",
   },
   {
-    slug: "ai-video-edit",
-    name: "AI Video Edit",
-    tagline: "Edit videos with plain-English prompts",
-    description:
-      "Kling o1 understands reference images and videos — describe what you want and it generates it.",
-    category: "video",
-    credits: 1560,
-    creditLabel: "1,560–4,160 credits",
-    status: "available",
-    outputType: "video",
-  },
-  {
     slug: "video-remove-bg",
     name: "Video Background Removal",
     tagline: "Remove or isolate backgrounds from video",
@@ -553,7 +541,7 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
 
   // Video tools
   if (slug === "lipsync") return "LIP_SYNC";
-  if (slug === "effects" || slug === "ai-video-edit") return "IMAGE_TO_VIDEO";
+  if (slug === "effects") return "IMAGE_TO_VIDEO";
   if (slug === "video-remove-bg" || slug === "remove-bg") return "BACKGROUND_REMOVAL";
   if (slug === "watermark-remover") return "IMAGE_EDIT";
 

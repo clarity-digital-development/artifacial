@@ -30,7 +30,7 @@ const THUMBS: ThumbSpec[] = [
   {
     slug: "photo-face-swap",
     prompt:
-      "Cinematic split-screen before/after thumbnail with sharp vertical divider. Left: a young woman with brunette hair smiling in a natural outdoor setting, golden hour lighting. Right: the exact same scene composition, same hair color, same outdoor background and lighting — but the face has been swapped to a different woman with green eyes and freckles. Identical pose, identical clothing. Subtle small white labels 'BEFORE' and 'AFTER' in opposite bottom corners. Demonstration of one-shot face swap.",
+      "Cinematic split-screen before/after face-swap demonstration with sharp vertical divider. LEFT panel labeled 'BEFORE': a young East-Asian woman with straight jet-black hair and warm dark-brown eyes, gentle smile, wearing a cream knit sweater, soft window light in a cozy modern interior. RIGHT panel labeled 'AFTER': the EXACT same scene composition — identical cream knit sweater, identical pose, identical interior lighting and background, identical body — but the face is now a COMPLETELY DIFFERENT PERSON: a freckled fair-skinned redhead with bright green eyes and shoulder-length wavy copper-auburn hair. The two faces are obviously different people: different ethnicity, different hair color, different eye color, different bone structure. Labels are crisp small white sans-serif in opposite bottom corners. The face change is the only difference between the panels and it's instantly obvious at a glance.",
   },
   {
     slug: "multi-face-swap",
@@ -40,7 +40,7 @@ const THUMBS: ThumbSpec[] = [
   {
     slug: "video-face-swap",
     prompt:
-      "Filmstrip-style horizontal layout showing 4 consecutive frames from a short video clip of a person speaking to camera — each frame slightly different facial expression (smiling, laughing, thoughtful, confident). All four frames show the SAME swapped face on a consistent body / clothing / background. Cinematic warm color grading, looks like a TikTok creator video. Thin black filmstrip borders between frames.",
+      "Two-row filmstrip composition demonstrating video face swap. TOP ROW labeled 'ORIGINAL': 4 consecutive video frames of a clean-shaven Asian man with short black hair speaking to camera in a cozy lamp-lit interior — slightly different expression in each frame (smiling, laughing, thoughtful, confident), warm cinematic color grading, TikTok-creator video aesthetic, thin black filmstrip borders between frames. BOTTOM ROW labeled 'FACE SWAPPED': 4 consecutive frames of the EXACT same scene — same olive button-up shirt, same warm lamp-lit interior, same expressions and gestures in matching order — but the face has been swapped to a COMPLETELY DIFFERENT MAN: a bearded Caucasian man with bright blue eyes, lighter skin, and dark brown hair. The two rows clearly show DIFFERENT PEOPLE: different ethnicity, different hair, different eye color, beard vs clean-shaven. Crisp small white sans-serif labels in the left margin of each row. The face change is the only difference between the two rows.",
   },
   {
     slug: "virtual-try-on",
@@ -66,11 +66,6 @@ const THUMBS: ThumbSpec[] = [
     slug: "kling-sound",
     prompt:
       "Dramatic video still of an action scene — a sports car at night with neon reflections — paired with a glowing translucent sound waveform graphic overlaying the lower third of the frame. Bold orange and white waveform lines pulsing across the image. Demonstrates AI sound generation for video. Cinematic, high-energy composition.",
-  },
-  {
-    slug: "ai-video-edit",
-    prompt:
-      "Dark video editing software interface mockup, clean modern aesthetic. A horizontal video timeline at the bottom with multiple clip thumbnails. Above the timeline, a glowing AI prompt chat bubble: 'Make this scene cinematic.' A preview window in the center shows a high-quality video frame being transformed. Sharp UI, amber/orange accents, professional video editor feel.",
   },
   {
     slug: "video-remove-bg",

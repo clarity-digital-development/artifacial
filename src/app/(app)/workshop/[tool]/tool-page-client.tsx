@@ -135,7 +135,7 @@ function SelectInput({
         </button>
 
         {open && (
-          <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+          <div className="absolute left-0 top-[calc(100%+4px)] z-50 max-h-[60vh] w-full overflow-y-auto overflow-x-hidden overscroll-contain rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
             {options.map((o) => {
               const isActive = o.value === value;
               return (
@@ -947,60 +947,6 @@ function KlingSoundForm({
       )}
       <p className="text-xs text-[var(--text-muted)]">Returns 4 audio/video variations.</p>
       <SubmitButton disabled={!valid} loading={loading} credits={280} onClick={() => onSubmit({ mode, prompt, duration, originTaskId })} />
-    </div>
-  );
-}
-
-function AIVideoEditForm({
-  onSubmit,
-  loading,
-}: {
-  onSubmit: (d: Record<string, unknown>) => void;
-  loading: boolean;
-}) {
-  const [prompt, setPrompt] = useState("");
-  const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [resolution, setResolution] = useState<"720p" | "1080p">("720p");
-  const [duration, setDuration] = useState<5 | 10>(5);
-  const [aspectRatio, setAspectRatio] = useState("16:9");
-  const [keepOriginalAudio, setKeepOriginalAudio] = useState(false);
-
-  const activeImages = images.filter(Boolean) as string[];
-  const hasAnyInput = !!videoUrl || activeImages.length > 0;
-
-  // Build prompt hint
-  const imageRefs = activeImages.map((_, i) => `@image_${i + 1}`).join(", ");
-  const videoRef = videoUrl ? "@video" : "";
-  const refHint = [imageRefs, videoRef].filter(Boolean).join(", ");
-
-  const creditsMap: Record<string, number> = {
-    "720p-5": 1560, "720p-10": 3120, "1080p-5": 2080, "1080p-10": 4160,
-  };
-  const credits = creditsMap[`${resolution}-${duration}`] ?? 1560;
-
-  return (
-    <div className="space-y-4">
-      <TextArea label="Prompt" value={prompt} onChange={setPrompt} placeholder={`Describe what you want to generate or how to transform the reference media...${refHint ? `\n\nReference: ${refHint}` : ""}`} rows={4} hint={refHint ? `Use ${refHint} in your prompt to reference the uploaded media` : "Add reference images/video below and mention them with @image_1, @video etc."} />
-      <div className="grid grid-cols-2 gap-2">
-        <SelectInput label="Resolution" value={resolution} onChange={(v) => setResolution(v as "720p" | "1080p")} options={[{ value: "720p", label: "720p" }, { value: "1080p", label: "1080p" }]} />
-        <SelectInput label="Duration" value={String(duration)} onChange={(v) => setDuration(Number(v) as 5 | 10)} options={[{ value: "5", label: "5 seconds" }, { value: "10", label: "10 seconds" }]} />
-      </div>
-      <SelectInput label="Aspect Ratio" value={aspectRatio} onChange={setAspectRatio} options={[{ value: "16:9", label: "16:9 Landscape" }, { value: "9:16", label: "9:16 Portrait" }, { value: "1:1", label: "1:1 Square" }]} />
-
-      <div>
-        <Label>Reference Images (up to 4, optional)</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <ImageUpload key={i} label={`Image ${i + 1}`} value={images[i]} onChange={(v) => setImages((prev) => { const n = [...prev]; n[i] = v; return n; })} />
-          ))}
-        </div>
-      </div>
-
-      <VideoInput label="Reference Video URL (optional)" value={videoUrl} onChange={setVideoUrl} hint="Mention with @video in your prompt" />
-      {videoUrl && <Toggle label="Keep Original Audio" checked={keepOriginalAudio} onChange={setKeepOriginalAudio} />}
-
-      <SubmitButton disabled={!prompt.trim()} loading={loading} credits={credits} onClick={() => onSubmit({ prompt, images: activeImages.length > 0 ? activeImages : undefined, videoUrl: videoUrl || undefined, resolution, duration, aspectRatio, keepOriginalAudio })} />
     </div>
   );
 }
@@ -2071,7 +2017,6 @@ function ToolForm({
     case "lipsync":            return <LipsyncForm {...props} />;
     case "effects":            return <KlingEffectsForm {...props} />;
     case "kling-sound":        return <KlingSoundForm {...props} />;
-    case "ai-video-edit":      return <AIVideoEditForm {...props} />;
     case "video-remove-bg":    return <VideoRemoveBgForm {...props} />;
     case "watermark-remover":  return <WatermarkRemoverForm {...props} />;
     case "remove-bg":          return <RemoveBgForm {...props} />;
