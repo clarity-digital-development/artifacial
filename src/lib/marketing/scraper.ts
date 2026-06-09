@@ -97,9 +97,10 @@ export async function fetchProductFromUrl(rawUrl: string): Promise<ProductInfo> 
   // Tier 3: Open Graph
   const og = parseOpenGraph(html);
   if (og.title || og.image) {
+    const rawDescription = og.description ?? extractMetaDescription(html) ?? "";
     return {
-      name: og.title ?? extractTitle(html) ?? new URL(rawUrl).hostname,
-      description: og.description ?? extractMetaDescription(html) ?? "",
+      name: og.title ? stripHtml(og.title) : extractTitle(html) ?? new URL(rawUrl).hostname,
+      description: stripHtml(rawDescription).slice(0, 600),
       imageUrl: resolveUrl(og.image, rawUrl),
       additionalImages: [],
       brand: og.siteName ?? extractSiteName(html),
@@ -110,9 +111,10 @@ export async function fetchProductFromUrl(rawUrl: string): Promise<ProductInfo> 
   }
 
   // Tier 4: fallback
+  const rawFallbackDesc = extractMetaDescription(html) ?? "";
   return {
     name: extractTitle(html) ?? new URL(rawUrl).hostname,
-    description: extractMetaDescription(html) ?? "",
+    description: stripHtml(rawFallbackDesc).slice(0, 600),
     imageUrl: resolveUrl(extractFirstMainImage(html), rawUrl),
     additionalImages: [],
     brand: extractSiteName(html),
@@ -312,13 +314,15 @@ function extractMeta(html: string, property: string): string | null {
     `<meta\\s+[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${escaped}["']`,
     "i",
   );
-  return (html.match(re)?.[1] ?? html.match(re2)?.[1] ?? null);
+  const raw = html.match(re)?.[1] ?? html.match(re2)?.[1] ?? null;
+  return raw ? decodeHtmlEntities(raw) : null;
 }
 
 // ─── Tier 4: fallback ────────────────────────────────────────────────────────
 
 function extractTitle(html: string): string | null {
-  return html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? null;
+  const raw = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? null;
+  return raw ? stripHtml(raw) : null;
 }
 
 function extractMetaDescription(html: string): string | null {
@@ -338,8 +342,42 @@ function extractSiteName(html: string): string | null {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Common HTML entities seen in OG / JSON-LD descriptions. Numeric entities
+// (&#39; &#xN;) handled separately below — character-by-character decoding.
+const NAMED_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": "\"",
+  "&apos;": "'",
+  "&nbsp;": " ",
+  "&hellip;": "…",
+  "&mdash;": "—",
+  "&ndash;": "–",
+  "&lsquo;": "‘",
+  "&rsquo;": "’",
+  "&ldquo;": "“",
+  "&rdquo;": "”",
+};
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&(amp|lt|gt|quot|apos|nbsp|hellip|mdash|ndash|lsquo|rsquo|ldquo|rdquo);/g, (m) => NAMED_ENTITIES[m] ?? m)
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = parseInt(code, 10);
+      return Number.isFinite(n) && n >= 32 && n < 0x10ffff ? String.fromCodePoint(n) : "";
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      const n = parseInt(hex, 16);
+      return Number.isFinite(n) && n >= 32 && n < 0x10ffff ? String.fromCodePoint(n) : "";
+    });
+}
+
+// Decode entities first (so encoded < becomes <), THEN strip tags, THEN
+// collapse whitespace. Order matters: if we strip first the encoded markup
+// survives, and if we decode after stripping the entities are already gone.
 function stripHtml(s: string): string {
-  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return decodeHtmlEntities(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function stringOr(v: unknown, fallback: string): string {
