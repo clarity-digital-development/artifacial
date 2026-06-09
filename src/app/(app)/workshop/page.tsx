@@ -63,6 +63,8 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-ai-kiss",
   "preset-ai-wedding",
   "preset-ai-reunion",
+  // Sprint 4 Wave 16 (2026-06-09): AI Pet Hug
+  "preset-ai-pet-hug",
   // Sprint 2 Wave 10 (2026-06-09): preset library expansion
   "preset-underwater",
   "preset-vhs-90s",

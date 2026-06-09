@@ -279,6 +279,7 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-ai-kiss":          return 2000; // Kling 3.0 omni 720p 5s — 2-person
     case "preset-ai-wedding":       return 2000;
     case "preset-ai-reunion":       return 2000;
+    case "preset-ai-pet-hug":       return 2000;
     case "preset-underwater":       return 2000; // Kling 3.0 omni 720p 5s
     case "preset-vhs-90s":          return 2000;
     case "preset-catwalk":          return 2000;
@@ -905,6 +906,20 @@ async function buildTask(
         model: "kling",
         taskType: "omni_video_generation",
         input: { prompt, images: [img1, img2], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-ai-pet-hug": {
+      const [personImg, petImg] = await Promise.all([
+        resolveImg(userId, body.person1),
+        resolveImg(userId, body.person2),
+      ]);
+      if (!personImg || !petImg) throw new Error("Missing image(s) — need both your photo and your pet's photo");
+      const prompt = `@image_1 (the person) gently embracing @image_2 (the pet/animal) in a heartwarming family-pet moment. Warm golden-hour soft window light streaming behind them, the person's hand stroking the pet's fur, peaceful contented expression on both, the pet leaning into the embrace, slow cinematic camera push-in toward their faces, gentle natural motion. Tender emotional moment, the kind of clip that goes viral on pet-tok. Keep the person's face and the pet's distinctive features (color, breed, markings) clearly recognizable from the references.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: { prompt, images: [personImg, petImg], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
       };
     }
 

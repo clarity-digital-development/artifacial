@@ -1991,6 +1991,19 @@ function AiReunionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; lo
   );
 }
 
+function AiPetHugPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <TwoPersonPreset
+      {...p}
+      credits={2000}
+      label1="You"
+      label2="Your pet"
+      hint1="Upper-body or front-facing portrait."
+      hint2="Clear photo of your pet — dog, cat, horse, rabbit, anything."
+    />
+  );
+}
+
 // ── Sprint 2 Wave 10 single-character presets ──
 function UnderwaterPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   return <PresetForm {...p} credits={2000} imageHint="Full-body works best — your character will be suspended underwater." />;
@@ -2238,6 +2251,7 @@ function ToolForm({
     case "preset-ai-kiss":          return <AiKissPreset {...props} />;
     case "preset-ai-wedding":       return <AiWeddingPreset {...props} />;
     case "preset-ai-reunion":       return <AiReunionPreset {...props} />;
+    case "preset-ai-pet-hug":       return <AiPetHugPreset {...props} />;
     case "preset-underwater":       return <UnderwaterPreset {...props} />;
     case "preset-vhs-90s":          return <Vhs90sPreset {...props} />;
     case "preset-catwalk":          return <CatwalkPreset {...props} />;

@@ -593,6 +593,18 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     status: "available",
     outputType: "video",
   },
+  {
+    slug: "preset-ai-pet-hug",
+    name: "AI Pet Hug",
+    tagline: "Your photo + your pet → cinematic embrace",
+    description:
+      "Upload a photo of yourself and a photo of your pet. We create a heartwarming embrace video — golden hour lighting, gentle slow-motion, emotional family-pet moment. Powered by Kling 3.0 Omni.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
 
   // ── Sprint 1 Wave 3 (2026-06-06): Photodump flagship ──
   {
