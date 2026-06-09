@@ -5,6 +5,7 @@ import { PLANS, type PlanKey } from "@/lib/stripe";
 import { BillingClient } from "./billing-client";
 import { ContentModeClient } from "./content-mode-client";
 import { ProfileSection, DangerZoneSection } from "./settings-client";
+import { McpKeysSection } from "./mcp-keys-client";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -67,6 +68,8 @@ export default async function SettingsPage() {
             hasDateOfBirth={!!user?.dateOfBirth}
             subscriptionTier={user?.subscriptionTier ?? "FREE"}
           />
+
+          <McpKeysSection />
 
           <DangerZoneSection />
         </div>

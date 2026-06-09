@@ -177,6 +177,24 @@ model User {
   creditTransactions  CreditTransaction[]
   moderationEvents    ModerationEvent[]
   affiliate           Affiliate?
+  apiKeys             ApiKey[]
+}
+
+// Personal access tokens for the MCP server. Only sha256(rawKey) is stored;
+// `prefix` is the human-friendly identifier shown in the UI (e.g. "afk_live_AbCd…").
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  prefix      String   @unique // "afk_live_AbCdEfGh…" — first 16 chars of the raw key, shown in UI
+  hash        String   @unique // sha256 of the full raw key (hex)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  @@index([userId])
+  @@index([hash])
 }
 
 model Character {
