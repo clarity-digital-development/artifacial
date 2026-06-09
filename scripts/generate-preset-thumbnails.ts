@@ -162,6 +162,38 @@ const THUMBS: ThumbSpec[] = [
       "Cinematic split-screen image upscale demonstration with sharp vertical divider. LEFT panel labeled '1×': a soft, slightly pixelated low-resolution close-up portrait of a young woman with visible JPEG artifacts and softness on her skin texture and hair. RIGHT panel labeled '8×': the exact same close-up portrait, identical pose and lighting, but in razor-sharp ultra-high-resolution detail — every individual eyelash, hair strand, skin pore, and fabric weave crisply visible, print-magazine quality. Crisp small amber labels '1×' and '8×' in opposite bottom corners. Demonstrates premium Topaz upscaling. 16:9 framing.",
   },
 
+  // ── Sprint 4 Wave 17 (2026-06-09) — 6 fresh presets ──
+  {
+    slug: "preset-snow-globe",
+    prompt:
+      "Whimsical magical cinematic still — a young woman in a wool sweater standing inside a glass snow globe dome, miniaturized within the snowy winter-village scene featuring tiny gingerbread houses and pine trees. Soft white snowflakes drifting around her, warm golden lantern glow from the village, the curved glass edge of the snow globe subtly visible catching highlights. Christmas-window-display magic, vivid storybook aesthetic. 16:9 framing.",
+  },
+  {
+    slug: "preset-tiny-person",
+    prompt:
+      "Whimsical tilt-shift toy-photography still — a young woman shrunk to a tiny 3-inch miniature scale standing on a wooden kitchen tabletop next to a comically oversized white ceramic coffee mug that towers above her like a building, gentle steam rising from the mug. Soft natural morning window light, shallow depth of field, viral-tiktok scale-shift composition. She's looking up at the giant mug in wide-eyed awe. 16:9 framing.",
+  },
+  {
+    slug: "preset-disco-70s",
+    prompt:
+      "Vibrant 1970s disco cinematic still — a young woman in glittering gold sequin disco wear dancing on a multicolored lit-up dance floor, a glittering mirror ball above throwing spinning rainbow light spots across the room and onto her, dramatic pink and cyan strobe lights, lens flares, vintage disco-film grain. Confident hip-swaying dance pose mid-motion, joyful expression. 16:9 framing.",
+  },
+  {
+    slug: "preset-skydiving",
+    prompt:
+      "Extreme-sports cinematic skydiving still — a young man in mid-freefall above a vast white cloud sea at sunrise, dramatic golden-orange sky, arms outstretched in classic belly-to-earth skydiving pose, hair and jumpsuit whipping in the wind, GoPro chest-camera-style perspective showing his exhilarated face and the curve of the earth far below. Bright red-and-orange parachute deploying behind him. 16:9 framing.",
+  },
+  {
+    slug: "preset-crystal-cave",
+    prompt:
+      "Fantasy-film cinematic still — a young woman in a dark hooded explorer cloak standing in a mystical underground crystal cavern, towering glowing amethyst and quartz formations everywhere bathing the scene in ethereal violet and teal light, atmospheric particulate haze catching the magical glow, her hand reaching toward a particularly bright crystal that illuminates her face. Lord-of-the-Rings mines-of-Moria aesthetic. 16:9 framing.",
+  },
+  {
+    slug: "preset-spy-mission",
+    prompt:
+      "Bond-film cinematic spy still — a young man dressed in tactical black moving stealthily through a high-tech corridor, intricate red laser security grids crisscrossing the space at multiple angles around him as he carefully ducks and weaves between them, intense focused expression, dramatic side-lit emergency lighting casting deep shadows, low-angle hero shot. Mission-impossible energy, sweat-on-brow tension. 16:9 framing.",
+  },
+
   // ── Sprint 4 Wave 16 (2026-06-09) — AI Pet Hug ──
   {
     slug: "preset-ai-pet-hug",

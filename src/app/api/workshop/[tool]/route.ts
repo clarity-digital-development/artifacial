@@ -280,6 +280,12 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-ai-wedding":       return 2000;
     case "preset-ai-reunion":       return 2000;
     case "preset-ai-pet-hug":       return 2000;
+    case "preset-snow-globe":       return 2000;
+    case "preset-tiny-person":      return 2000;
+    case "preset-disco-70s":        return 2000;
+    case "preset-skydiving":        return 2000;
+    case "preset-crystal-cave":     return 2000;
+    case "preset-spy-mission":      return 2000;
     case "preset-underwater":       return 2000; // Kling 3.0 omni 720p 5s
     case "preset-vhs-90s":          return 2000;
     case "preset-catwalk":          return 2000;
@@ -920,6 +926,66 @@ async function buildTask(
         model: "kling",
         taskType: "omni_video_generation",
         input: { prompt, images: [personImg, petImg], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-snow-globe": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image standing inside a magical glass snow globe — they're miniaturized within the dome, soft white snowflakes gently drifting around them, a tiny cozy winter-village backdrop behind them with miniature houses and pine trees, warm golden lantern glow, the curved glass of the snow globe subtly visible at the edges of frame catching highlights. Whimsical winter-wonderland aesthetic, Christmas-window-display magic, slow gentle camera move.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-tiny-person": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image shrunk down to a tiny 3-inch miniature scale standing on a wooden kitchen tabletop next to a comically oversized coffee mug that towers above them. Soft natural morning window light from the side, gentle steam rising from the coffee, tilt-shift toy-photography aesthetic with shallow depth of field, the person walking around the tabletop in slow motion looking up at the giant mug in awe. Whimsical viral-tiktok scale-shift composition.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-disco-70s": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image dancing on a 1970s disco dance floor — a glittering mirror ball overhead throws spinning rainbow light spots across the room, multicolored strobe lights flash from below, the floor itself is lit-up multicolored squares. Bell-bottoms-era styling, groovy hip-swaying dance move, lens flares from the strobes, vintage disco-film color grade. The crowd is blurred and energetic behind them.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-skydiving": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image in mid-freefall above a vast cloud sea at sunrise. Their hair and clothing whipping dramatically in the wind, arms outstretched in the classic belly-to-earth skydiving pose, GoPro-style chest-mounted action camera angle showing their face and the curve of the earth far below. Bright orange-and-red parachute deploying just behind them. Extreme-sports cinematic energy, vivid blue sky, exhilarated expression.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-crystal-cave": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image exploring a mystical underground crystal cavern. Towering amethyst and quartz formations everywhere glowing from within in ethereal violet and teal hues, atmospheric particulate haze catching the magical light, a gentle slow camera push-in revealing the awe on their face, hand reaching out to touch a glowing crystal, distant water-drip echoes. Fantasy-film cinematic quality, Lord-of-the-Rings mines-of-Moria aesthetic.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-spy-mission": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image moving stealthily through a high-tech corridor as an action-movie spy. The space is crisscrossed with red laser security grids that they're carefully ducking and weaving between, tactical black wardrobe, intense focused expression, low-angle hero shot, dramatic side-lit emergency lighting casting deep shadows, sweat-on-brow tension. Bond-film cinematic quality, slow-motion calculated movements, mission-impossible energy.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
       };
     }
 

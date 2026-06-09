@@ -606,6 +606,80 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "video",
   },
 
+  // ── Sprint 4 Wave 17 (2026-06-09): 6 fresh preset additions ──
+  {
+    slug: "preset-snow-globe",
+    name: "Snow Globe",
+    tagline: "Inside a magical snow globe",
+    description:
+      "Your character inside a magical glass snow globe with soft snowflakes drifting around them. Whimsical winter-wonderland aesthetic.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-tiny-person",
+    name: "Tiny Person",
+    tagline: "Miniature character on a giant tabletop",
+    description:
+      "Your character shrunk down to miniature size beside an oversized coffee mug or houseplant. Tilt-shift toy-photography aesthetic.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-disco-70s",
+    name: "Disco 70s",
+    tagline: "70s disco floor with sparkling lights",
+    description:
+      "Your character dancing on a 70s disco floor — sparkling mirror ball, rainbow strobe lights, bell-bottom-era styling, groovy hip-shaking energy.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-skydiving",
+    name: "Skydiving",
+    tagline: "Mid-air freefall above the clouds",
+    description:
+      "Your character mid-skydive in freefall above a vast cloud sea, GoPro-style action shot, dramatic wind, parachute deploying behind them. Extreme-sports aesthetic.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-crystal-cave",
+    name: "Crystal Cave",
+    tagline: "Glowing fantasy cavern with crystals",
+    description:
+      "Your character exploring a mystical crystal cavern — towering glowing amethyst formations, ethereal teal-and-violet light, atmospheric haze, fantasy-film quality.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-spy-mission",
+    name: "Spy Mission",
+    tagline: "Action-movie spy in a stealth scene",
+    description:
+      "Your character as an action-movie spy — moving stealthily through a high-tech corridor with red laser security grids, tactical wardrobe, intense focused expression. Bond-film cinematic quality.",
+    category: "preset",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+
   // ── Sprint 1 Wave 3 (2026-06-06): Photodump flagship ──
   {
     slug: "photodump",

@@ -2024,6 +2024,26 @@ function ActionHeroPreset(p: { onSubmit: (d: Record<string, unknown>) => void; l
   return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll walk toward camera with the explosion behind them." />;
 }
 
+// ── Sprint 4 Wave 17 single-character presets ──
+function SnowGlobePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Upper-body or full-body — they'll be placed inside the snow globe." />;
+}
+function TinyPersonPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot works best — they'll be miniaturized on a tabletop." />;
+}
+function Disco70sPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll dance on the disco floor." />;
+}
+function SkydivingPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Front-facing or full-body — they'll be mid-freefall above the clouds." />;
+}
+function CrystalCavePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll be exploring the crystal cavern." />;
+}
+function SpyMissionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll be the action-movie spy." />;
+}
+
 function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const valid = !!characterImage;
@@ -2258,6 +2278,12 @@ function ToolForm({
     case "preset-polaroid-70s":     return <Polaroid70sPreset {...props} />;
     case "preset-gym-action":       return <GymActionPreset {...props} />;
     case "preset-action-hero":      return <ActionHeroPreset {...props} />;
+    case "preset-snow-globe":       return <SnowGlobePreset {...props} />;
+    case "preset-tiny-person":      return <TinyPersonPreset {...props} />;
+    case "preset-disco-70s":        return <Disco70sPreset {...props} />;
+    case "preset-skydiving":        return <SkydivingPreset {...props} />;
+    case "preset-crystal-cave":     return <CrystalCavePreset {...props} />;
+    case "preset-spy-mission":      return <SpyMissionPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     case "outfit-swap":             return <OutfitSwapForm {...props} />;

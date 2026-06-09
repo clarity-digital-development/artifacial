@@ -65,6 +65,13 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-ai-reunion",
   // Sprint 4 Wave 16 (2026-06-09): AI Pet Hug
   "preset-ai-pet-hug",
+  // Sprint 4 Wave 17 (2026-06-09): 6 fresh presets
+  "preset-snow-globe",
+  "preset-tiny-person",
+  "preset-disco-70s",
+  "preset-skydiving",
+  "preset-crystal-cave",
+  "preset-spy-mission",
   // Sprint 2 Wave 10 (2026-06-09): preset library expansion
   "preset-underwater",
   "preset-vhs-90s",
