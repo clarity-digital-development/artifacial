@@ -132,7 +132,6 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
         </h1>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
           Paste a product URL — we&apos;ll write the script and generate the video. 2,000 cr per ad.
-          {totalCredits.toLocaleString()} credits available.
         </p>
       </div>
 

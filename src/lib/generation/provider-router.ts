@@ -57,9 +57,14 @@ export interface Kling3OmniInput {
  * poll route already knows how to dispatch.
  */
 export async function submitKling3OmniRouted(input: Kling3OmniInput): Promise<RouteResult> {
-  const kieDisabled = process.env.KIE_AI_DISABLED === "1";
+  // KIE.AI Kling 3.0 routing is OPT-IN — set KIE_AI_KLING_ROUTING="1" in env
+  // to enable. Default behavior preserves the original PiAPI-direct path so
+  // existing workshop presets + Marketing Studio keep working unchanged. The
+  // routing plumbing is in place; flip the flag when KIE.AI Kling integration
+  // has been validated against real submissions in production.
   const hasKieKey = !!process.env.KIE_AI_API_KEY;
-  const tryKieFirst = hasKieKey && !kieDisabled;
+  const optedIn = process.env.KIE_AI_KLING_ROUTING === "1";
+  const tryKieFirst = hasKieKey && optedIn;
 
   // ── Primary: KIE.AI ──
   if (tryKieFirst) {

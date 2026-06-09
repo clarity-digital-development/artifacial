@@ -11,6 +11,9 @@ export const metadata = {
 // Sprint 1 (2026-06-05): unhide every built tool — 12 → 32 tools.
 // Roadmap: docs/higgsfield-roadmap.md §5, Day-30 target ~45 tools.
 const PUBLIC_TOOL_SLUGS = [
+  // ── Featured workspace ──
+  "marketing-studio",
+
   // ── Face & Identity ──
   "photo-face-swap",
   "multi-face-swap",

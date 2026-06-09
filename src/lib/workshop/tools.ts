@@ -11,9 +11,28 @@ export interface WorkshopTool {
   creditLabel: string;
   status: "available" | "beta";
   outputType: OutputType;
+  /** Optional override — when set, ToolCard links to this URL instead of /workshop/<slug>.
+   *  Used for tools that have a bespoke multi-step UI route outside the standard
+   *  /workshop/[slug] handler (e.g. Marketing Studio at /marketing). */
+  externalHref?: string;
 }
 
 export const WORKSHOP_TOOLS: WorkshopTool[] = [
+  // ── Featured workspaces (bespoke multi-step routes) ──
+  {
+    slug: "marketing-studio",
+    name: "Marketing Studio",
+    tagline: "Paste a product URL → ad video",
+    description:
+      "Drop in any product URL. We scrape the title, image, and description, write a UGC / TV-Spot / Hyper-Motion ad script with Claude, and generate the video with Kling 3.0 Omni.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · per ad",
+    status: "available",
+    outputType: "video",
+    externalHref: "/marketing",
+  },
+
   // ── Featured: KIE.AI Tools ──
   {
     slug: "character-swap",

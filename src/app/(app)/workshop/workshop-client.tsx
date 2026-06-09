@@ -20,17 +20,18 @@ const ALL_CATEGORIES: { value: "all" | ToolCategory; label: string }[] = [
 ];
 
 // Featured cards across the top — flagship tools that get prime real estate
-const FEATURED: Array<{ slug?: string; href: string; title: string; subtitle: string; badge?: string }> = [
-  { slug: "photodump",         href: "/workshop/photodump",         title: "Photodump",          subtitle: "12 cinematic scenes — one click",        badge: "Flagship" },
-  {                             href: "/marketing",                  title: "Marketing Studio",    subtitle: "Paste a product URL → ad video",         badge: "New" },
-  { slug: "talking-avatar",    href: "/workshop/talking-avatar",    title: "Talking Avatar",      subtitle: "Photo + audio → premium speaking video", badge: "Premium" },
+const FEATURED: Array<{ slug: string; href: string; title: string; subtitle: string; badge?: string }> = [
+  { slug: "marketing-studio",   href: "/marketing",                   title: "Marketing Studio",    subtitle: "Paste a product URL → ad video",         badge: "New" },
+  { slug: "photodump",          href: "/workshop/photodump",          title: "Photodump",           subtitle: "12 cinematic scenes — one click",        badge: "Flagship" },
+  { slug: "talking-avatar",     href: "/workshop/talking-avatar",     title: "Talking Avatar",      subtitle: "Photo + audio → premium speaking video", badge: "Premium" },
   { slug: "headshot-generator", href: "/workshop/headshot-generator", title: "Headshot Generator",  subtitle: "Selfie → 6 polished studio headshots",  badge: "Pro" },
 ];
 
 function ToolCard({ tool }: { tool: WorkshopTool }) {
+  const href = tool.externalHref ?? `/workshop/${tool.slug}`;
   return (
     <Link
-      href={`/workshop/${tool.slug}`}
+      href={href}
       className="group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 hover:border-[var(--border-default)] hover:shadow-[0_0_20px_rgba(0,0,0,0.4)]"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-[var(--bg-deep)]">
@@ -83,15 +84,13 @@ function FeaturedCard({ item }: { item: (typeof FEATURED)[number] }) {
       href={item.href}
       className="group relative flex aspect-video flex-col justify-end overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 hover:border-[var(--accent-amber)]/40 hover:shadow-[0_0_24px_rgba(232,166,52,0.15)]"
     >
-      {item.slug && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/workshop-thumbs/${item.slug}.webp`}
-          alt={item.title}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/workshop-thumbs/${item.slug}.webp`}
+        alt={item.title}
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
       {item.badge && (
         <span className="absolute right-3 top-3 rounded-full bg-[var(--accent-amber)]/85 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-black">

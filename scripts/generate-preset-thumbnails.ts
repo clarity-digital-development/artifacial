@@ -162,6 +162,13 @@ const THUMBS: ThumbSpec[] = [
       "Cinematic split-screen image upscale demonstration with sharp vertical divider. LEFT panel labeled '1×': a soft, slightly pixelated low-resolution close-up portrait of a young woman with visible JPEG artifacts and softness on her skin texture and hair. RIGHT panel labeled '8×': the exact same close-up portrait, identical pose and lighting, but in razor-sharp ultra-high-resolution detail — every individual eyelash, hair strand, skin pore, and fabric weave crisply visible, print-magazine quality. Crisp small amber labels '1×' and '8×' in opposite bottom corners. Demonstrates premium Topaz upscaling. 16:9 framing.",
   },
 
+  // ── Sprint 4 Wave 18 (2026-06-09) — Marketing Studio merged into Workshop ──
+  {
+    slug: "marketing-studio",
+    prompt:
+      "Cinematic dark UI mockup of an AI marketing-ad workspace. Center-left: a glowing input field containing a product URL like 'yourstore.com/products/serum'. Below it, a single bold amber CTA button labeled 'Generate ad'. Center-right: a 9:16 phone-shaped video frame showing a polished UGC ad still of a young creator holding a beauty product. Subtle floating arrow flowing from the URL field to the phone preview. Modern dashboard with sharp typography, amber accent, deep noir background, faint product photography props around the edges. 16:9 framing.",
+  },
+
   // ── Sprint 4 Wave 17 (2026-06-09) — 6 fresh presets ──
   {
     slug: "preset-snow-globe",
