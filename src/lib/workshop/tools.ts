@@ -1,4 +1,4 @@
-export type ToolCategory = "face" | "video" | "image" | "audio";
+export type ToolCategory = "preset" | "face" | "video" | "image" | "audio";
 export type OutputType = "image" | "video" | "audio" | "text" | "3d" | "multi-audio" | "multi-image";
 
 export interface WorkshopTool {
@@ -305,7 +305,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Pro-quality UGC opener — your creator + your product",
     description:
       "Generates an authentic phone-style UGC video of your creator holding and showing your product. Upload both — perfect for ad hooks, product demos, and viral openers. Built on Kling 3.0 with native multi-image support, 720p, 5 seconds.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -317,7 +317,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "2000s candid paparazzi shot — your character",
     description:
       "Vintage-era candid paparazzi-style clip with bright flash bursts, motion blur, and tabloid grit. Pair your character with a quick outfit description.",
-    category: "video",
+    category: "preset",
     credits: 1300,
     creditLabel: "1,300 cr · 5s",
     status: "available",
@@ -329,7 +329,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Hyper-detailed slow-motion of any action",
     description:
       "Cinematic 1000fps-style slow-motion of your character performing an action. Dramatic lighting, soft depth of field, action-movie quality. Powered by Kling 3.0.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s",
     status: "available",
@@ -341,7 +341,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Editorial-grade magazine cover still",
     description:
       "Single editorial magazine cover image of your character with dramatic studio lighting, glossy production quality, and space for masthead text. Pick a style or use high-fashion default.",
-    category: "image",
+    category: "preset",
     credits: 450,
     creditLabel: "450 cr",
     status: "available",
@@ -353,7 +353,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Glamorous premiere walk with flash bursts",
     description:
       "Hollywood-premiere style red carpet walk with rapid paparazzi flashes, golden lighting, and a confident tracking shot. Built on Kling 3.0.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s",
     status: "available",
@@ -365,7 +365,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "High-energy car drift with motion blur",
     description:
       "Your character as the driver in a high-energy drift sequence. Tire smoke, motion blur, dramatic camera angles, action-film energy. Powered by Seedance 2 Pro VIP at 720p.",
-    category: "video",
+    category: "preset",
     credits: 4000,
     creditLabel: "4,000 cr · 5s · 720p",
     status: "available",
@@ -377,7 +377,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Grainy surveillance-camera POV",
     description:
       "Surveillance camera-style footage with timestamp overlay, grainy low-light feel, fixed angle, and that found-footage uncanny quality. Pair with a scene description.",
-    category: "video",
+    category: "preset",
     credits: 1600,
     creditLabel: "1,600 cr · 5s",
     status: "available",
@@ -389,7 +389,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Cyberpunk rain-soaked street walk",
     description:
       "Cinematic cyberpunk walk through a rain-soaked neon-lit street. Reflections, atmospheric haze, Blade Runner-grade lighting. Powered by Kling 3.0 Pro.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s",
     status: "available",
@@ -401,7 +401,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Stylized Pixar/Disney 3D-animation look",
     description:
       "Convert your character into a polished 3D-animated render — soft shading, expressive features, animated-film quality. Built on Seedance 2 Fast VIP at 720p.",
-    category: "video",
+    category: "preset",
     credits: 3200,
     creditLabel: "3,200 cr · 5s · 720p",
     status: "available",
@@ -413,7 +413,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Anime-style transformation sequence",
     description:
       "Convert your character into anime art style with a dynamic transformation sequence — sparkles, motion lines, dramatic poses. Powered by Kling 3.0.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s",
     status: "available",
@@ -427,7 +427,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Explosive martial-arts action shot",
     description:
       "Your character executing a cinematic kung-fu attack — explosive kicks, lightning combos, dramatic motion blur. Action-film aesthetic powered by Kling 3.0.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -439,7 +439,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Halloween-viral choreographed zombie routine",
     description:
       "Your character reimagined as a stylized zombie performing a Thriller-style dance routine. Fog-shrouded graveyard, glowing eyes, cinematic Halloween aesthetic.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -451,7 +451,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Epic fantasy scene with a towering dragon",
     description:
       "Your character standing heroically before a massive ancient dragon. Misty mountains at dawn, fantasy-film quality cinematic lighting, mythic scale.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -463,7 +463,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Tactical green-tint night surveillance",
     description:
       "Military-grade night-vision footage of your character moving through darkness. Monochromatic green tint, slight scanlines, low-light tactical aesthetic.",
-    category: "video",
+    category: "preset",
     credits: 1600,
     creditLabel: "1,600 cr · 5s · 720p",
     status: "available",
@@ -475,7 +475,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Mythological colossus transformation",
     description:
       "Your character transforming into a colossal storm giant — towering above clouds, lightning crackling, epic god-of-thunder mythological aesthetic.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -489,7 +489,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Ethereal underwater cinematic scene",
     description:
       "Your character suspended in an ethereal cinematic underwater scene. Sunlight streaming through the surface, hair gently floating, dreamy blue color palette, slow drifting motion.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -501,7 +501,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Retro VHS music-video aesthetic",
     description:
       "Your character performing in a retro 90s music-video aesthetic — VHS scan lines, slight color bleed, vintage tape grain, neon back-light, MTV camera moves.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -513,7 +513,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "High-fashion runway strut",
     description:
       "Your character on a high-fashion runway, confident slow-motion strut toward the camera, flashing photographer lights on both sides, dramatic backstage backdrop. Vogue-runway aesthetic.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -525,7 +525,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Warm vintage 70s instant-camera vibe",
     description:
       "Your character in a warm vintage 70s instant-camera aesthetic — sun-faded color palette, subtle film grain, polaroid border, retro fashion, casual candid moment captured.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -537,7 +537,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Dramatic workout / lifting shot",
     description:
       "Your character in a dramatic workout shot — heavy lift moment, dramatic side-lit gym, dust and chalk in the air, athletic technical wear, intense focus. Athlete sponsor commercial vibe.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -549,7 +549,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Movie-poster explosion-behind-hero shot",
     description:
       "Your character as the action-movie hero — walking calmly toward camera with a massive fireball explosion behind them, debris in the air, slow-motion confident swagger, summer-blockbuster poster aesthetic.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -563,7 +563,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Two photos → a cinematic sunset kiss",
     description:
       "Upload two photos. We create a tender, cinematic kiss video — sunset lighting, dreamy soft focus, slow camera push-in. Romantic, tasteful. Powered by Kling 3.0 Omni.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -575,7 +575,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Two photos → wedding-day moment",
     description:
       "Upload two photos. We create a wedding-day video — first-look reaction, garden venue, golden-hour light, magazine-cover styling. Powered by Kling 3.0 Omni.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -587,7 +587,7 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     tagline: "Two photos → airport reunion hug",
     description:
       "Upload two photos. We create an emotional reunion video — airport terminal, run-into-arms embrace, joyful tears, slow-motion movie-trailer quality. Powered by Kling 3.0 Omni.",
-    category: "video",
+    category: "preset",
     credits: 2000,
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
@@ -652,13 +652,16 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
+  preset: "Viral Presets",
   face: "Face & Identity",
   video: "Video Tools",
   image: "Image Utilities",
   audio: "Audio & Music",
 };
 
-export const CATEGORY_ORDER: ToolCategory[] = ["face", "video", "image", "audio"];
+// Presets first — they're the most engaging surface for new visitors.
+// Video utility tools (face swap, lipsync, effects) come next, then images, audio.
+export const CATEGORY_ORDER: ToolCategory[] = ["preset", "video", "face", "image", "audio"];
 
 export function getToolBySlug(slug: string): WorkshopTool | undefined {
   return WORKSHOP_TOOLS.find((t) => t.slug === slug);
