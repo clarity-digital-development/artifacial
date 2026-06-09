@@ -26,7 +26,7 @@ import { prisma } from "@/lib/db";
 import { deductCredits, refundCredits } from "@/lib/credits";
 import { sanitizeClientError } from "@/lib/errors";
 import { resolveImage } from "@/lib/uploads/resolve-image";
-import { submitTask } from "@/lib/piapi-client";
+import { submitKling3OmniRouted } from "@/lib/generation/provider-router";
 import { fetchProductFromUrl, type ProductInfo } from "@/lib/marketing/scraper";
 import { writeAdScript, type MarketingMode } from "@/lib/marketing/script-writer";
 import type { Prisma } from "@/generated/prisma/client";
@@ -117,13 +117,12 @@ export async function POST(req: NextRequest) {
         ? `@image_1 (the product) — ${script.scenePrompt}`
         : `@image_1 (the creator) holding/presenting @image_2 (the product). ${mode === "ugc" ? `The creator is saying: "${script.spokenScript}". ` : ""}${script.scenePrompt}`;
 
-    const result = await submitTask("kling", "omni_video_generation", {
+    const result = await submitKling3OmniRouted({
       prompt: klingPrompt,
       images,
-      duration: 5,
-      aspect_ratio: aspectRatio,
+      durationSeconds: 5,
+      aspectRatio: aspectRatio as "9:16" | "16:9",
       resolution: "720p",
-      version: "3.0",
     });
 
     // 6. Create Generation row
@@ -133,6 +132,10 @@ export async function POST(req: NextRequest) {
         workflowType: "IMAGE_TO_VIDEO",
         status: "PROCESSING",
         contentMode: "SFW",
+        // KIE.AI doesn't have its own GenerationProvider enum value — both
+        // routing endpoints flow through our PIAPI-style polling helpers, so
+        // we use PIAPI as the umbrella and stash the actual routed provider
+        // in inputParams.routedProvider for audit.
         provider: "PIAPI",
         modelId: "marketing-studio",
         creditsCost: CREDITS_PER_AD,
@@ -152,7 +155,10 @@ export async function POST(req: NextRequest) {
           scenePrompt: script.scenePrompt,
           klingPrompt,
           aspectRatio,
-          piApiTaskId: result.taskId,
+          piApiTaskId: result.provider === "piapi" ? result.taskId : undefined,
+          kieAiTaskId:  result.provider === "kieai" ? result.taskId : undefined,
+          routedProvider: result.provider,
+          ...(result.fallbackReason ? { fallbackReason: result.fallbackReason } : {}),
           submissionPath: "marketing-studio",
         } as Prisma.InputJsonValue,
         startedAt: new Date(),

@@ -454,6 +454,61 @@ export async function submitTopazImageUpscale(params: {
   return { taskId };
 }
 
+// ── Kling 3.0 Omni Video (routing-layer source) ──
+//
+// Verified live against docs.kie.ai/market/kling/kling-3-0 on 2026-06-09.
+// model: "kling-3.0/video"
+// input: { prompt, image_urls[], duration: "5" (string), aspect_ratio,
+//          mode: "std" | "pro" | "4K", sound: boolean, multi_shots: false }
+//
+// Pricing (KIE pricing table, 2026-06-04):
+//   std  (720p) — $0.07/s no-audio, $0.10/s w/ audio
+//   pro  (1080p) — $0.09/s no-audio, $0.135/s w/ audio
+//   4K        — $0.335/s
+// vs PiAPI Kling 3.0 omni 720p = $0.10/s. Routing here saves 30%.
+
+export async function submitKling3OmniVideo(params: {
+  prompt: string;
+  imageUrls: string[];                       // 1 or 2 references — Kling supports start/end frame
+  durationSeconds: 5 | 10;
+  aspectRatio: "9:16" | "16:9" | "1:1";
+  resolution: "720p" | "1080p" | "4K";
+  withAudio?: boolean;
+  callbackUrl: string;
+}): Promise<{ taskId: string }> {
+  const mode =
+    params.resolution === "4K" ? "4K" :
+    params.resolution === "1080p" ? "pro" : "std";
+
+  const requestBody = {
+    model: "kling-3.0/video",
+    callBackUrl: params.callbackUrl,
+    input: {
+      prompt: params.prompt,
+      image_urls: params.imageUrls,
+      duration: String(params.durationSeconds),
+      aspect_ratio: params.aspectRatio,
+      mode,
+      sound: params.withAudio ?? false,
+      multi_shots: false,
+    },
+  };
+
+  console.log(`[kieai] KLING 3.0 OMNI REQUEST: ${JSON.stringify({ ...requestBody, input: { ...requestBody.input, prompt: params.prompt.slice(0, 100) + "…" } })}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI kling-3.0/video returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+  console.log(`[kieai] Kling 3.0 omni task submitted: taskId=${taskId} mode=${mode} sound=${params.withAudio ?? false}`);
+  return { taskId };
+}
+
 // ── Grok Imagine Video Upscale ──
 
 export async function submitGrokVideoUpscale(params: {

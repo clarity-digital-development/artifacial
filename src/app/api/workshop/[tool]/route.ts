@@ -19,6 +19,7 @@ import { HEADSHOT_SCENES } from "@/lib/workshop/presets/headshot-scenes";
 import type { SceneTemplate } from "@/lib/workshop/presets/types";
 import { analyzeVirality } from "@/lib/analysis/virality";
 import { safeFetchUserUrl } from "@/lib/security/safe-fetch";
+import { detectKling3Omni, submitKling3OmniRouted } from "@/lib/generation/provider-router";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -64,6 +65,7 @@ async function createWorkshopGeneration(opts: {
         toolName: tool.name,
         outputType: tool.outputType,
         [taskIdKey]: taskId,
+        routedProvider: provider.toLowerCase(),
         submissionPath: "workshop",
         ...stripHeavyKeys(body),
       } as Prisma.InputJsonValue,
@@ -1220,10 +1222,21 @@ export async function POST(
   }
 
   let taskId: string;
+  let routedProvider: "kieai" | "piapi" | undefined;
   try {
-    const { model, taskType, input } = await buildTask(slug, body, userId);
-    const result = await submitTask(model, taskType, input);
-    taskId = result.taskId;
+    const task = await buildTask(slug, body, userId);
+
+    // Provider routing — intercept Kling 3.0 Omni requests and prefer KIE.AI
+    // (30% cheaper at 720p). Falls back to PiAPI automatically on KIE error.
+    const klingRouted = detectKling3Omni(task);
+    if (klingRouted) {
+      const routed = await submitKling3OmniRouted(klingRouted);
+      taskId = routed.taskId;
+      routedProvider = routed.provider;
+    } else {
+      const result = await submitTask(task.model, task.taskType, task.input);
+      taskId = result.taskId;
+    }
   } catch (err) {
     // Refund on failure
     await refundCredits(userId, credits, `Workshop refund: ${tool.name}`);
@@ -1233,7 +1246,9 @@ export async function POST(
   }
 
   const generationId = await createWorkshopGeneration({
-    userId, slug, tool, credits, taskId, provider: "PIAPI", body,
+    userId, slug, tool, credits, taskId,
+    provider: routedProvider === "kieai" ? "KIEAI" : "PIAPI",
+    body,
   });
   return NextResponse.json({ taskId, generationId, credits });
 }
