@@ -58,6 +58,10 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-dragon-fantasy",
   "preset-night-vision",
   "preset-storm-giant",
+  // Sprint 2 Wave 8 (2026-06-09): AI Hug variants
+  "preset-ai-kiss",
+  "preset-ai-wedding",
+  "preset-ai-reunion",
 
   // Sprint 1 Wave 3 (2026-06-06): Photodump flagship
   "photodump",

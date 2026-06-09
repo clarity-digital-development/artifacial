@@ -123,6 +123,23 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 2 Wave 8 (2026-06-09) — AI Hug variants ──
+  {
+    slug: "preset-ai-kiss",
+    prompt:
+      "Romantic cinematic film still — a young couple sharing a tender slow kiss at golden-hour sunset on a hillside, soft warm backlit glow behind them, dreamy shallow depth of field, gentle wind in their hair, lens-flare highlights, both faces visible in three-quarter profile, dramatic slow camera push-in feel. Tasteful PG-13 romance-film aesthetic. 16:9 framing.",
+  },
+  {
+    slug: "preset-ai-wedding",
+    prompt:
+      "Magazine-quality wedding photograph: a bride in a flowing white wedding dress and a groom in an elegant tailored navy suit embracing in a sun-drenched garden ceremony venue, white floral arrangements behind them, golden-hour cinematic light, both joyfully laughing mid-embrace, vintage film romance aesthetic. Wedding-cover magazine quality. 16:9 framing.",
+  },
+  {
+    slug: "preset-ai-reunion",
+    prompt:
+      "Emotional cinematic still — a young woman and a young man running into each other's arms at an airport terminal, captured mid-embrace with joyful tears and broad smiles, soft backlit floor-to-ceiling airport-window light streaming behind them, blurred travelers and rolling suitcases in the background, slow-motion movie-trailer quality, warm cinematic color grade. 16:9 framing.",
+  },
+
   // ── Sprint 2 Wave 7 (2026-06-09) — Talking Avatar (OmniHuman 1.5) ──
   {
     slug: "talking-avatar",

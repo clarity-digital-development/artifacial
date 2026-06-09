@@ -468,6 +468,44 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "video",
   },
 
+  // ── Sprint 2 Wave 8 (2026-06-09): AI Hug variants ──
+  {
+    slug: "preset-ai-kiss",
+    name: "AI Kiss",
+    tagline: "Two photos → a cinematic sunset kiss",
+    description:
+      "Upload two photos. We create a tender, cinematic kiss video — sunset lighting, dreamy soft focus, slow camera push-in. Romantic, tasteful. Powered by Kling 3.0 Omni.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-ai-wedding",
+    name: "AI Wedding",
+    tagline: "Two photos → wedding-day moment",
+    description:
+      "Upload two photos. We create a wedding-day video — first-look reaction, garden venue, golden-hour light, magazine-cover styling. Powered by Kling 3.0 Omni.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-ai-reunion",
+    name: "AI Reunion",
+    tagline: "Two photos → airport reunion hug",
+    description:
+      "Upload two photos. We create an emotional reunion video — airport terminal, run-into-arms embrace, joyful tears, slow-motion movie-trailer quality. Powered by Kling 3.0 Omni.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+
   // ── Sprint 1 Wave 3 (2026-06-06): Photodump flagship ──
   {
     slug: "photodump",

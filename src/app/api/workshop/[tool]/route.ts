@@ -265,6 +265,9 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-dragon-fantasy":   return 2000; // Kling 3.0 omni 720p 5s
     case "preset-night-vision":     return 1600; // Wan 2.6 img2video 720p 5s
     case "preset-storm-giant":      return 2000;
+    case "preset-ai-kiss":          return 2000; // Kling 3.0 omni 720p 5s — 2-person
+    case "preset-ai-wedding":       return 2000;
+    case "preset-ai-reunion":       return 2000;
     // Photodump = 12 × Nano Banana Pro images @ ~450 cr each (75% margin on $0.105)
     case "photodump":               return 12 * 450;
     case "headshot-generator":      return 6 * 450; // 6 studio headshots @ 75% margin on Nano Banana Pro
@@ -843,6 +846,48 @@ async function buildTask(
           resolution: "720p",
           version: "3.0",
         },
+      };
+    }
+
+    case "preset-ai-kiss": {
+      const [img1, img2] = await Promise.all([
+        resolveImg(userId, body.person1),
+        resolveImg(userId, body.person2),
+      ]);
+      if (!img1 || !img2) throw new Error("Missing person image(s)");
+      const prompt = `@image_1 @image_2 The two people from the reference images sharing a tender, slow cinematic kiss at sunset. Soft warm backlit golden-hour glow, gentle wind in their hair, dreamy shallow depth of field, dramatic slow camera push-in toward their faces. Romantic film aesthetic, lens-flare highlights, tasteful and sweet. Keep both faces clearly recognizable as the people from the reference images.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: { prompt, images: [img1, img2], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-ai-wedding": {
+      const [img1, img2] = await Promise.all([
+        resolveImg(userId, body.person1),
+        resolveImg(userId, body.person2),
+      ]);
+      if (!img1 || !img2) throw new Error("Missing person image(s)");
+      const prompt = `@image_1 @image_2 The two people from the reference images on their wedding day — a first-look reaction moment in a sun-drenched garden ceremony venue. One in a flowing white wedding dress, one in an elegant tailored suit, exchanging emotional eye contact then embracing. White floral arrangements behind them, golden-hour cinematic light, magazine-cover styling, slow elegant camera move. Keep both faces clearly recognizable as the people from the references.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: { prompt, images: [img1, img2], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-ai-reunion": {
+      const [img1, img2] = await Promise.all([
+        resolveImg(userId, body.person1),
+        resolveImg(userId, body.person2),
+      ]);
+      if (!img1 || !img2) throw new Error("Missing person image(s)");
+      const prompt = `@image_1 @image_2 The two people from the reference images sharing an emotional reunion embrace at an airport terminal. They run into each other's arms in slow motion, joyful happy tears, broad smiles, soft backlit airport-window light streaming behind them, blurred travelers in the background, hand luggage forgotten beside them. Movie-trailer emotional quality, cinematic slow-mo, warm color grade. Keep both faces clearly recognizable as the people from the references.`;
+      return {
+        model: "kling",
+        taskType: "omni_video_generation",
+        input: { prompt, images: [img1, img2], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
       };
     }
 

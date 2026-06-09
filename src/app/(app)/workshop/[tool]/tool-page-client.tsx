@@ -1884,6 +1884,72 @@ function StormGiantPreset(p: { onSubmit: (d: Record<string, unknown>) => void; l
   );
 }
 
+// Shared 2-person preset wrapper (AI Kiss / AI Wedding / AI Reunion)
+function TwoPersonPreset({
+  onSubmit, loading, credits, label1, label2, hint1, hint2,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+  credits: number;
+  label1: string; label2: string;
+  hint1?: string; hint2?: string;
+}) {
+  const [person1, setPerson1] = useState<string | null>(null);
+  const [person2, setPerson2] = useState<string | null>(null);
+  const valid = !!person1 && !!person2;
+  return (
+    <div className="space-y-4">
+      <ImageInput label={label1} value={person1} onChange={setPerson1} hint={hint1} />
+      <ImageInput label={label2} value={person2} onChange={setPerson2} hint={hint2} />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={credits}
+        onClick={() => onSubmit({ person1, person2 })}
+      />
+    </div>
+  );
+}
+
+function AiKissPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <TwoPersonPreset
+      {...p}
+      credits={2000}
+      label1="Person 1"
+      label2="Person 2"
+      hint1="Front-facing portrait. Their face should be clearly visible."
+      hint2="Front-facing portrait. Their face should be clearly visible."
+    />
+  );
+}
+
+function AiWeddingPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <TwoPersonPreset
+      {...p}
+      credits={2000}
+      label1="Person 1"
+      label2="Person 2"
+      hint1="Upper-body or front-facing portrait."
+      hint2="Upper-body or front-facing portrait."
+    />
+  );
+}
+
+function AiReunionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return (
+    <TwoPersonPreset
+      {...p}
+      credits={2000}
+      label1="Person 1"
+      label2="Person 2"
+      hint1="Upper-body or front-facing portrait."
+      hint2="Upper-body or front-facing portrait."
+    />
+  );
+}
+
 function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const valid = !!characterImage;
@@ -2107,6 +2173,9 @@ function ToolForm({
     case "preset-dragon-fantasy":   return <DragonFantasyPreset {...props} />;
     case "preset-night-vision":     return <NightVisionPreset {...props} />;
     case "preset-storm-giant":      return <StormGiantPreset {...props} />;
+    case "preset-ai-kiss":          return <AiKissPreset {...props} />;
+    case "preset-ai-wedding":       return <AiWeddingPreset {...props} />;
+    case "preset-ai-reunion":       return <AiReunionPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     case "outfit-swap":             return <OutfitSwapForm {...props} />;
