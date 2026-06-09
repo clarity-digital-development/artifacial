@@ -21,6 +21,7 @@ import { analyzeVirality } from "@/lib/analysis/virality";
 import { safeFetchUserUrl } from "@/lib/security/safe-fetch";
 import { detectKling3Omni, submitKling3OmniRouted } from "@/lib/generation/provider-router";
 import { submitVeniceVideo } from "@/lib/venice";
+import { compositeSideBySideToR2 } from "@/lib/uploads/composite";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -328,8 +329,12 @@ const NSFW_PRESET_PROMPTS: Record<string, string> = {
   "preset-vegas-penthouse":
     "The woman from the reference image in a glamorous Las Vegas penthouse suite at sunset, wearing a half-open black silk robe loosely tied at the waist, standing against floor-to-ceiling windows that look out over the Vegas strip glowing pink and gold. Sultry confident pose, head turned slightly toward camera, golden cinematic light catching her figure, slow camera glide. Editorial glamour aesthetic.",
   "preset-oral":
-    "The adult person from the reference image lying back on a softly lit luxury bedroom bed receiving intimate oral sex from an adult fictional partner positioned between their legs. Focus on the reclining person's face — eyes half-closed in pleasure, lips parted, head tilted back, one hand gently in their partner's hair. Bare upper body. Their partner is partially visible at the bottom of frame in soft focus. Warm tungsten lighting, slow sensual camera move along the reclined person's body, magazine-quality adult cinematic production. Both characters are clearly adults.",
+    "The reference image is a side-by-side composite — the LEFT half is one adult person, the RIGHT half is a different adult person. Animate an intimate scene where the LEFT person is lying back on a softly lit luxury bedroom bed receiving oral sex from the RIGHT person, who is positioned between their legs. Both adults from the reference image, both clearly adults. Focus on the LEFT person's facial expression — eyes half-closed in pleasure, lips parted, head tilted back, one hand gently in the RIGHT person's hair. Bare upper body on the LEFT person. The RIGHT person is partially visible at the bottom of frame in soft focus. Warm tungsten lighting, slow sensual camera move along the LEFT person's body, magazine-quality adult cinematic production.",
 };
+
+// Slugs that take TWO character images and feed Wan 2.6 NSFW a server-side
+// side-by-side composite. Add new two-image NSFW presets here as we ship them.
+const NSFW_TWO_IMAGE_SLUGS = new Set(["preset-oral"]);
 
 async function submitNsfwPreset(opts: {
   userId: string;
@@ -340,10 +345,36 @@ async function submitNsfwPreset(opts: {
 }): Promise<NextResponse> {
   const { userId, slug, tool, credits, body } = opts;
 
-  const charUrl = await resolveImg(userId, body.characterImage);
-  if (!charUrl) {
-    await refundCredits(userId, credits, `Refund: ${slug} missing character image`);
-    return NextResponse.json({ error: "Missing character image" }, { status: 400 });
+  // Resolve the reference image — single character OR composited two-character.
+  let charUrl: string | undefined;
+  if (NSFW_TWO_IMAGE_SLUGS.has(slug)) {
+    const [p1, p2] = await Promise.all([
+      resolveImg(userId, body.person1),
+      resolveImg(userId, body.person2),
+    ]);
+    if (!p1 || !p2) {
+      await refundCredits(userId, credits, `Refund: ${slug} missing character image(s)`);
+      return NextResponse.json({ error: "Need both character images" }, { status: 400 });
+    }
+    try {
+      // Composite L+R into one frame so Wan 2.6's single-image input can
+      // reason about both subjects. Prompt distinguishes by position.
+      charUrl = await compositeSideBySideToR2(userId, p1, p2);
+    } catch (err) {
+      await refundCredits(userId, credits, `Refund: ${slug} composite failed`);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[workshop/${slug}] composite failed:`, msg);
+      return NextResponse.json(
+        { error: sanitizeClientError(msg, `workshop/${slug}`) },
+        { status: 500 },
+      );
+    }
+  } else {
+    charUrl = await resolveImg(userId, body.characterImage);
+    if (!charUrl) {
+      await refundCredits(userId, credits, `Refund: ${slug} missing character image`);
+      return NextResponse.json({ error: "Missing character image" }, { status: 400 });
+    }
   }
 
   const prompt = NSFW_PRESET_PROMPTS[slug];

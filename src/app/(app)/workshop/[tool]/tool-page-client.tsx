@@ -2064,7 +2064,16 @@ function VegasPenthousePreset(p: { onSubmit: (d: Record<string, unknown>) => voi
   return <PresetForm {...p} credits={1700} imageHint="Three-quarter or full-body portrait." />;
 }
 function OralPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
-  return <PresetForm {...p} credits={1700} imageHint="Upper-body or front-facing portrait of your character (must be a fictional adult)." />;
+  return (
+    <TwoPersonPreset
+      {...p}
+      credits={1700}
+      label1="Person 1 (receiving)"
+      label2="Person 2 (giving)"
+      hint1="Upper-body or front-facing portrait. Must be a fictional adult."
+      hint2="Upper-body or front-facing portrait. Must be a fictional adult."
+    />
+  );
 }
 
 function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
