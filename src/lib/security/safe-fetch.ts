@@ -128,6 +128,9 @@ export interface SafeFetchOptions {
   timeoutMs?: number;
   /** Override user-agent. Default "Artifacial-Bot/1.0". */
   userAgent?: string;
+  /** Additional request headers — useful for browser-shape requests when WAFs
+   *  fingerprint on Accept / Accept-Language / Accept-Encoding. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -155,7 +158,7 @@ export async function safeFetchUserUrl(
       res = await fetch(current.toString(), {
         redirect: "manual",
         signal: controller.signal,
-        headers: { "User-Agent": userAgent },
+        headers: { "User-Agent": userAgent, ...(opts.headers ?? {}) },
       });
     } finally {
       clearTimeout(timer);

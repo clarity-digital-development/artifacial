@@ -30,8 +30,20 @@ const MODES: Array<{ key: Mode; title: string; tagline: string; needsCreator: bo
   { key: "hyper-motion", title: "Hyper Motion", tagline: "Pure CGI product-hero shot — no human needed", needsCreator: false, aspect: "9:16" },
 ];
 
+interface VariantItem {
+  variantIndex: number;
+  generationId: string;
+  taskId: string;
+  hook: string;
+  spokenScript: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  videoUrl?: string | null;
+  errorMessage?: string | null;
+}
+
 export function MarketingClient({ totalCredits }: { totalCredits: number }) {
-  const [step, setStep] = useState<"input" | "preview" | "generating" | "done" | "error">("input");
+  void totalCredits; // reserved
+  const [step, setStep] = useState<"input" | "manual" | "preview" | "generating" | "done" | "error">("input");
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<Mode>("ugc");
   const [notes, setNotes] = useState("");
@@ -40,12 +52,23 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
   const [product, setProduct] = useState<ScrapedProduct | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Manual-entry state (used when scrape fails)
+  const [manualName, setManualName] = useState("");
+  const [manualDescription, setManualDescription] = useState("");
+  const [manualImage, setManualImage] = useState<string | null>(null);
+
+  // A/B variant toggle
+  const [variants, setVariants] = useState(false);
+
   // Generation state
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [hook, setHook] = useState("");
   const [spokenScript, setSpokenScript] = useState("");
   const [pollResult, setPollResult] = useState<PollResult | null>(null);
+
+  // Variant batch state (used when variants=true)
+  const [variantItems, setVariantItems] = useState<VariantItem[] | null>(null);
 
   // ── Step 1: Scrape ─────────────────────────────────────────────────────────
   const handleScrape = async () => {
@@ -59,14 +82,44 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
         body: JSON.stringify({ url: url.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not load that URL");
+      if (!res.ok) {
+        // Site is blocked (Sephora, Amazon, etc.) or has no structured data —
+        // fall back to manual entry rather than dead-ending the user.
+        setStep("manual");
+        return;
+      }
       setProduct(data.product as ScrapedProduct);
       setStep("preview");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to scrape URL");
+    } catch {
+      setStep("manual");
     } finally {
       setScrapeLoading(false);
     }
+  };
+
+  const handleManualConfirm = () => {
+    const name = manualName.trim();
+    if (!name) {
+      setError("Product name is required.");
+      return;
+    }
+    if (!manualImage) {
+      setError("Upload a product photo.");
+      return;
+    }
+    const fallbackUrl = url.trim() || "manual://entry";
+    setProduct({
+      name,
+      description: manualDescription.trim(),
+      imageUrl: manualImage,
+      additionalImages: [],
+      brand: null,
+      price: null,
+      source: "manual",
+      sourceUrl: fallbackUrl,
+    });
+    setError(null);
+    setStep("preview");
   };
 
   // ── Step 2: Submit ─────────────────────────────────────────────────────────
@@ -79,14 +132,25 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
     }
     setStep("generating");
     setError(null);
+    setVariantItems(null);
     try {
       const res = await fetch("/api/marketing/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, creatorImage, mode, notes: notes.trim() || undefined }),
+        body: JSON.stringify({ product, creatorImage, mode, notes: notes.trim() || undefined, variants }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to generate ad");
+
+      // Multi-variant response
+      if (Array.isArray(data.items) && data.batchId) {
+        setVariantItems(
+          (data.items as Array<Omit<VariantItem, "status">>).map((it) => ({ ...it, status: "pending" })),
+        );
+        return;
+      }
+
+      // Single-ad response (existing v1 shape)
       setGenerationId(data.generationId);
       setTaskId(data.taskId);
       setHook(data.hook ?? "");
@@ -97,7 +161,7 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
     }
   };
 
-  // ── Step 3: Poll ────────────────────────────────────────────────────────────
+  // ── Step 3a: Single-ad poll ────────────────────────────────────────────────
   useEffect(() => {
     if (!taskId || !generationId || step !== "generating") return;
     const interval = setInterval(async () => {
@@ -119,6 +183,36 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
     return () => clearInterval(interval);
   }, [taskId, generationId, step]);
 
+  // ── Step 3b: Variant-batch poll ────────────────────────────────────────────
+  useEffect(() => {
+    if (!variantItems || step !== "generating") return;
+    const interval = setInterval(async () => {
+      const updated = await Promise.all(
+        variantItems.map(async (item) => {
+          if (item.status === "completed" || item.status === "failed") return item;
+          try {
+            const qs = new URLSearchParams({ taskId: item.taskId, generationId: item.generationId });
+            const res = await fetch(`/api/workshop/poll?${qs.toString()}`);
+            const data = await res.json();
+            if (data.status === "completed") {
+              return { ...item, status: "completed" as const, videoUrl: data.videoUrl ?? null };
+            }
+            if (data.status === "failed") {
+              return { ...item, status: "failed" as const, errorMessage: data.errorMessage ?? "Failed" };
+            }
+            return { ...item, status: (data.status as VariantItem["status"]) ?? item.status };
+          } catch {
+            return item;
+          }
+        }),
+      );
+      setVariantItems(updated);
+      const allDone = updated.every((i) => i.status === "completed" || i.status === "failed");
+      if (allDone) setStep("done");
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [variantItems, step]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto max-w-5xl">
@@ -134,6 +228,85 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
           Paste a product URL — we&apos;ll write the script and generate the video. 2,000 cr per ad.
         </p>
       </div>
+
+      {/* Step 1b — Manual entry fallback when scrape fails (Sephora etc.) */}
+      {step === "manual" && (
+        <div className="space-y-4">
+          <div className="rounded-[var(--radius-lg)] border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-amber-300">
+              Couldn&apos;t auto-load that URL
+            </p>
+            <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
+              Some retailers (Sephora, Amazon, Nike, etc.) block automated readers.
+              Fill in the product details manually below — same result.
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-4">
+            <div>
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Product name
+              </label>
+              <input
+                type="text"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                placeholder="DAE Cactus Flower 3-in-1 Styling Cream"
+                maxLength={150}
+                className="block w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Description (optional)
+              </label>
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                rows={3}
+                placeholder="3-in-1 styling cream that defines curls, adds shine, and tames frizz. Plant-based formula."
+                className="block w-full resize-none rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Product photo
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setManualImage(reader.result as string);
+                  reader.readAsDataURL(file);
+                }}
+                className="block w-full text-[12px] text-[var(--text-secondary)] file:mr-3 file:rounded-[var(--radius-md)] file:border-0 file:bg-[var(--accent-amber)] file:px-3 file:py-2 file:text-[11px] file:font-semibold file:text-black hover:file:opacity-90"
+              />
+              {manualImage && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={manualImage} alt="Product" className="mt-3 h-24 w-24 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-cover" />
+              )}
+            </div>
+            {error && <p className="text-[12px] text-red-400">{error}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setStep("input"); setError(null); }}
+                className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-4 py-2 text-sm text-[var(--text-primary)] hover:border-[var(--border-subtle)]"
+              >
+                ← Try another URL
+              </button>
+              <button
+                onClick={handleManualConfirm}
+                disabled={!manualName.trim() || !manualImage}
+                className="flex-1 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-black disabled:opacity-50 hover:opacity-90"
+              >
+                Continue with this product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Step 1 — URL */}
       {step === "input" && (
@@ -274,6 +447,26 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
             />
           </div>
 
+          {/* A/B/C variants toggle */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={variants}
+                onChange={(e) => setVariants(e.target.checked)}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-[var(--accent-amber)]"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  Generate 3 variants — 6,000 cr
+                </p>
+                <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
+                  Three distinct ad scripts in one batch: social-proof, counterintuitive, and personal-story angles. Pick the one that lands.
+                </p>
+              </div>
+            </label>
+          </div>
+
           {error && <p className="text-[12px] text-red-400">{error}</p>}
 
           {/* Generate CTA */}
@@ -281,13 +474,13 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
             onClick={handleGenerate}
             className="block w-full rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-6 py-4 text-base font-semibold text-black hover:opacity-90"
           >
-            Generate ad — 2,000 cr
+            {variants ? "Generate 3 variants — 6,000 cr" : "Generate ad — 2,000 cr"}
           </button>
         </div>
       )}
 
       {/* Step 3 — Generating */}
-      {step === "generating" && (
+      {step === "generating" && !variantItems && (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8">
           <div className="flex items-center gap-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
@@ -308,8 +501,85 @@ export function MarketingClient({ totalCredits }: { totalCredits: number }) {
         </div>
       )}
 
-      {/* Step 4 — Done */}
-      {step === "done" && pollResult?.videoUrl && (
+      {/* Step 3 variant batch — Generating + Done both render the variant grid */}
+      {variantItems && (
+        <div className="space-y-4">
+          {(() => {
+            const completed = variantItems.filter((i) => i.status === "completed").length;
+            const failed = variantItems.filter((i) => i.status === "failed").length;
+            const total = variantItems.length;
+            return (
+              <div className="flex items-center justify-between text-[12px] text-[var(--text-muted)]">
+                <span>{completed} / {total} variants ready{failed > 0 ? ` · ${failed} failed` : ""}</span>
+                {completed < total - failed && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent-amber)]" />
+                    generating…
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {variantItems
+              .slice()
+              .sort((a, b) => a.variantIndex - b.variantIndex)
+              .map((item) => (
+                <div
+                  key={item.variantIndex}
+                  className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+                >
+                  <div className="relative aspect-[9/16] bg-black sm:aspect-video lg:aspect-[9/16]">
+                    {item.videoUrl ? (
+                      <video src={item.videoUrl} controls playsInline loop className="h-full w-full object-cover" />
+                    ) : item.status === "failed" ? (
+                      <div className="flex h-full items-center justify-center p-4">
+                        <span className="text-[11px] text-red-400">failed — {item.errorMessage ?? "see logs"}</span>
+                      </div>
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent-amber)] border-t-transparent" />
+                      </div>
+                    )}
+                    <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      Variant {String.fromCharCode(65 + item.variantIndex)}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{item.hook}</p>
+                    {item.spokenScript && (
+                      <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">{item.spokenScript}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+          {step === "done" && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setStep("input"); setUrl(""); setProduct(null); setCreatorImage(null); setNotes("");
+                  setManualName(""); setManualDescription(""); setManualImage(null);
+                  setGenerationId(null); setTaskId(null); setHook(""); setSpokenScript("");
+                  setPollResult(null); setVariantItems(null); setVariants(false);
+                }}
+                className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-4 py-2 text-sm text-[var(--text-primary)] hover:border-[var(--border-subtle)]"
+              >
+                New campaign
+              </button>
+              <Link
+                href="/gallery"
+                className="rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-4 py-2 text-sm font-semibold text-black hover:opacity-90"
+              >
+                View in Gallery
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 4 — Done (single ad) */}
+      {step === "done" && !variantItems && pollResult?.videoUrl && (
         <div className="space-y-4">
           <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-amber)]">Hook</p>

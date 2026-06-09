@@ -39,11 +39,26 @@ export interface ProductInfo {
   sourceUrl: string;
 }
 
+// Use a real-browser UA — most large retailers (Sephora, Lululemon, Apple, etc.)
+// block any UA containing "bot" or an identifying URL via their WAF. We're
+// reading public marketing copy + OpenGraph tags + JSON-LD that the merchant
+// explicitly ships for crawlers (Google, OG sharers, etc.). A browser-shaped
+// UA reduces 403s dramatically without changing what we read.
 const FETCH_OPTS = {
   maxBytes: 5 * 1024 * 1024,
   maxRedirects: 3,
   timeoutMs: 10_000,
-  userAgent: "Mozilla/5.0 (compatible; ArtifacialBot/1.0; +https://artifacial.app)",
+  userAgent:
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+  headers: {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+  },
 };
 
 // ─── Entry point ─────────────────────────────────────────────────────────────

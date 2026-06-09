@@ -54,7 +54,7 @@ const MODE_PROFILES: Record<MarketingMode, { vibe: string; format: string; tail:
   },
 };
 
-const SYSTEM_PROMPT = `You are an elite short-form ad copywriter. Given a product and a mode, write a SPECIFIC, NON-GENERIC ad script that a creator can film in 12-15 seconds.
+const SYSTEM_PROMPT_SINGLE = `You are an elite short-form ad copywriter. Given a product and a mode, write a SPECIFIC, NON-GENERIC ad script that a creator can film in 12-15 seconds.
 
 Return ONLY a single JSON object — no prose, no markdown fences.
 
@@ -78,12 +78,60 @@ Return EXACTLY this JSON shape, no other keys:
   "mode": "ugc" | "tv-spot" | "hyper-motion"
 }`;
 
+const SYSTEM_PROMPT_VARIANTS = `You are an elite short-form ad copywriter writing A/B/C variants. Given a product and a mode, write THREE distinct ad scripts using fundamentally different creative angles.
+
+The three angles MUST be:
+1. **Social-proof angle** — leads with what other people are saying / the result the buyer wants.
+2. **Counterintuitive angle** — leads with a surprising or specific claim that creates curiosity (a number, a tradeoff, a contrarian take).
+3. **Personal-story angle** — leads with a specific moment / before-and-after from a user's life.
+
+Each variant must be filmable in 12-15 seconds, mention the product by name, and avoid hyperbolic claims.
+
+Return ONLY a single JSON object with a "variants" array of 3 scripts — no prose, no markdown fences.
+
+Per-variant field rules (identical to single-script rules):
+- "hook": ~6 words. Headline.
+- "spokenScript": 30-45 words spoken by the on-camera person.
+- "scenePrompt": present-progressive description of what the camera shows; don't redescribe person/product appearance, just action + lighting + energy.
+- "mode": echo input mode.
+
+For mode="hyper-motion": spokenScript is 1-3 words per variant (brand tagline or product name); the visual is the protagonist. The three variants should differ on visual treatment (close-up product reveal / floating-orbit / liquid-splash macro), not spoken script.
+
+Return EXACTLY this JSON shape:
+{
+  "variants": [
+    { "hook": string, "spokenScript": string, "scenePrompt": string, "mode": "ugc" | "tv-spot" | "hyper-motion", "angle": "social-proof" | "counterintuitive" | "personal-story" },
+    { "hook": string, "spokenScript": string, "scenePrompt": string, "mode": "ugc" | "tv-spot" | "hyper-motion", "angle": "social-proof" | "counterintuitive" | "personal-story" },
+    { "hook": string, "spokenScript": string, "scenePrompt": string, "mode": "ugc" | "tv-spot" | "hyper-motion", "angle": "social-proof" | "counterintuitive" | "personal-story" }
+  ]
+}`;
+
+/**
+ * Generate one ad script. Used for single-output Marketing Studio submissions.
+ * For A/B/C variants, use `writeAdScripts(opts, 3)` instead — it's cheaper
+ * (one Claude call producing 3 variants in parallel).
+ */
 export async function writeAdScript(opts: {
   product: ProductInfo;
   mode: MarketingMode;
-  /** Optional creator notes — what angle they want to emphasize */
   notes?: string;
 }): Promise<AdScript> {
+  const scripts = await writeAdScripts(opts, 1);
+  return scripts[0];
+}
+
+/**
+ * Generate `count` ad scripts in a single Claude call.
+ * - count=1 → one script, returns array of length 1.
+ * - count=3 → three scripts with social-proof / counterintuitive / personal-story
+ *   angles, returned in that order.
+ *
+ * Other count values aren't supported in v1.
+ */
+export async function writeAdScripts(
+  opts: { product: ProductInfo; mode: MarketingMode; notes?: string },
+  count: 1 | 3 = 1,
+): Promise<AdScript[]> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is not set");
   }
@@ -103,16 +151,20 @@ Format: ${profile.format}
 # Creator notes
 ${opts.notes?.trim() ? opts.notes.trim() : "(none — use your judgment)"}
 
-Write the ad script as a single JSON object matching the schema.`;
+${count === 3
+  ? "Write THREE distinct ad scripts using the social-proof, counterintuitive, and personal-story angles defined in the system prompt. Return the variants array."
+  : "Write the ad script as a single JSON object matching the schema."}`;
+
+  const systemText = count === 3 ? SYSTEM_PROMPT_VARIANTS : SYSTEM_PROMPT_SINGLE;
 
   const client = new Anthropic();
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1200,
+    max_tokens: count === 3 ? 2400 : 1200,
     system: [
       {
         type: "text",
-        text: SYSTEM_PROMPT,
+        text: systemText,
         cache_control: { type: "ephemeral" },
       },
     ],
@@ -124,15 +176,22 @@ Write the ad script as a single JSON object matching the schema.`;
 
   const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("Could not parse Claude response — please try again");
-  const parsed = JSON.parse(jsonMatch[0]) as Partial<AdScript>;
+  const parsed = JSON.parse(jsonMatch[0]) as { variants?: Partial<AdScript>[] } & Partial<AdScript>;
 
-  const mode = (parsed.mode as MarketingMode) || opts.mode;
-  const scenePrompt = `${String(parsed.scenePrompt ?? "")} ${profile.tail}`.trim();
+  const raw = count === 3
+    ? Array.isArray(parsed.variants) ? parsed.variants : []
+    : [parsed];
 
-  return {
-    hook: String(parsed.hook ?? "").trim() || `Discover ${opts.product.name}`,
-    spokenScript: String(parsed.spokenScript ?? "").trim(),
-    scenePrompt,
-    mode,
-  };
+  if (raw.length === 0) throw new Error("Claude returned no scripts");
+
+  return raw.slice(0, count).map((p) => {
+    const mode = (p.mode as MarketingMode) || opts.mode;
+    const scenePrompt = `${String(p.scenePrompt ?? "")} ${profile.tail}`.trim();
+    return {
+      hook: String(p.hook ?? "").trim() || `Discover ${opts.product.name}`,
+      spokenScript: String(p.spokenScript ?? "").trim(),
+      scenePrompt,
+      mode,
+    };
+  });
 }
