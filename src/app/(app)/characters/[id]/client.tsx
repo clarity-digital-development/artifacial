@@ -2,8 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
+
+// Curated quick-action presets to surface on the character detail page.
+// Each links to its workshop tool — the user picks the character via the
+// library selector inside the form (no query-param prefill needed for v1).
+const QUICK_PRESETS = [
+  { slug: "preset-ugc-hook",      label: "UGC Hook",       hint: "Phone-style creator ad" },
+  { slug: "preset-magazine-cover", label: "Magazine Cover", hint: "Editorial portrait still" },
+  { slug: "preset-red-carpet",    label: "Red Carpet",     hint: "Paparazzi-flash glamour" },
+  { slug: "preset-anime",         label: "Anime",          hint: "Anime transformation" },
+  { slug: "photodump",            label: "Photodump",      hint: "12 cinematic scenes" },
+  { slug: "headshot-generator",   label: "Headshots",      hint: "6 polished studio looks" },
+];
 
 async function downloadCharacterImage(signedUrl: string, characterId: string) {
   const fileName = `artifacial-character-${characterId}.webp`;
@@ -44,10 +57,21 @@ interface CharacterData {
   createdAt: string;
 }
 
+interface GenerationItem {
+  id: string;
+  workflowType: string;
+  modelId: string | null;
+  outputUrl: string | null;
+  thumbnailUrl: string | null;
+  completedAt: string | null;
+}
+
 export function CharacterDetailClient({
   character,
+  recentGenerations = [],
 }: {
   character: CharacterData;
+  recentGenerations?: GenerationItem[];
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -252,6 +276,83 @@ export function CharacterDetailClient({
 
         </div>
       </div>
+
+      {/* ── Try these presets — works on both mobile + desktop ── */}
+      <section className="mt-8 md:mx-auto md:max-w-3xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Try {displayName} in…
+          </h2>
+          <Link href="/workshop" className="text-[11px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-secondary)]">
+            Browse all tools
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {QUICK_PRESETS.map((p) => (
+            <Link
+              key={p.slug}
+              href={`/workshop/${p.slug}`}
+              className="group relative aspect-video overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all hover:border-[var(--accent-amber)]/40"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/workshop-thumbs/${p.slug}.webp`}
+                alt={p.label}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-2.5">
+                <p className="text-[12px] font-semibold text-white">{p.label}</p>
+                <p className="text-[10px] text-white/70">{p.hint}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Recent generations of this character ── */}
+      {recentGenerations.length > 0 && (
+        <section className="mt-8 md:mx-auto md:max-w-3xl">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Recent generations of {displayName} · <span className="text-[var(--text-secondary)]">{recentGenerations.length}</span>
+            </h2>
+            <Link href="/gallery" className="text-[11px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-secondary)]">
+              Full gallery
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {recentGenerations.map((g) => {
+              const isVideo = g.workflowType.includes("VIDEO") || g.modelId === "marketing-studio";
+              const modelLabel = g.modelId ?? "generation";
+              const previewUrl = g.thumbnailUrl ?? g.outputUrl;
+              return (
+                <Link
+                  key={g.id}
+                  href="/gallery"
+                  className="group relative aspect-[3/4] overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
+                >
+                  {previewUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={previewUrl} alt={modelLabel} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] text-[var(--text-muted)]">no preview</div>
+                  )}
+                  {isVideo && (
+                    <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-white">
+                      Video
+                    </span>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
+                    <p className="truncate text-[10px] uppercase tracking-wider text-white/85">{modelLabel}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </>
   );
 }
