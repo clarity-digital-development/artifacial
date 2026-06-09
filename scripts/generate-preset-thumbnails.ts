@@ -123,6 +123,38 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 2 Wave 10 (2026-06-09) — 6 new viral presets ──
+  {
+    slug: "preset-underwater",
+    prompt:
+      "Ethereal cinematic underwater shot — a young woman with long hair gently floating around her, suspended in deep crystal-blue ocean depths, dappled god-rays of sunlight streaming down from the surface high above, soft bubbles rising past her, casual flowing clothing billowing softly. Dreamy depth-of-field, otherworldly dream-like atmosphere, cinematic blue-cyan color palette. 16:9 framing.",
+  },
+  {
+    slug: "preset-vhs-90s",
+    prompt:
+      "Retro 90s MTV music-video still — a young woman performing in oversized neon streetwear against a graffitied urban brick backdrop, neon back-lighting in pink and cyan. Visible VHS scan lines and slight tape grain across the frame, subtle chromatic-aberration color bleed on edges, vintage CRT-screen vignette, slightly soft analog aesthetic. Confident music-video energy. 16:9 framing.",
+  },
+  {
+    slug: "preset-catwalk",
+    prompt:
+      "High-fashion runway moment — a young woman walking confidently toward camera down a sleek dark runway, mid-stride in slow motion, dramatic side-spotlight, glamorous photographer-flash lens flares firing on both sides of the frame, premium designer outfit, intense focused gaze. Vogue fashion-week aesthetic, cinematic shallow depth of field. 16:9 framing.",
+  },
+  {
+    slug: "preset-polaroid-70s",
+    prompt:
+      "Warm vintage 1970s Polaroid SX-70 photograph aesthetic — a young woman in retro 70s denim and knitwear styling, candid relaxed half-smile, sitting in a sun-drenched wood-paneled interior, sun-faded earthy color palette, subtle film grain, soft warm late-afternoon window light, slight chromatic shift. Nostalgic photo-album warmth. 16:9 framing.",
+  },
+  {
+    slug: "preset-gym-action",
+    prompt:
+      "Magazine-cover fitness photograph — a young man at the apex of a dramatic heavy barbell lift in a dim industrial gym, chalk dust suspended in the air around him catching dramatic side-rim lighting, athletic compression-top and lifting belt, intense focused expression, beads of sweat on his face. Athletic-sponsor commercial energy, cinematic teal-orange color grade. 16:9 framing.",
+  },
+  {
+    slug: "preset-action-hero",
+    prompt:
+      "Summer-blockbuster movie-poster composition — a young man as the cinematic action hero walking calmly and confidently directly toward the camera while a massive orange-and-black fireball explosion erupts behind him, debris and sparks suspended in the air, dust kicked up around his feet. Tactical wardrobe, intense focused expression, slow-motion swagger energy, cinematic teal-and-orange color grade. 16:9 framing.",
+  },
+
   // ── Sprint 2 Wave 9 (2026-06-09) — Topaz Image Upscale ──
   {
     slug: "topaz-image-upscale",

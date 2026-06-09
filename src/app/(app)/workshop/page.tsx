@@ -63,6 +63,13 @@ const PUBLIC_TOOL_SLUGS = [
   "preset-ai-kiss",
   "preset-ai-wedding",
   "preset-ai-reunion",
+  // Sprint 2 Wave 10 (2026-06-09): preset library expansion
+  "preset-underwater",
+  "preset-vhs-90s",
+  "preset-catwalk",
+  "preset-polaroid-70s",
+  "preset-gym-action",
+  "preset-action-hero",
 
   // Sprint 1 Wave 3 (2026-06-06): Photodump flagship
   "photodump",

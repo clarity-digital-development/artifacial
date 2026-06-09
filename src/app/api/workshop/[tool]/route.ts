@@ -277,6 +277,12 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-ai-kiss":          return 2000; // Kling 3.0 omni 720p 5s — 2-person
     case "preset-ai-wedding":       return 2000;
     case "preset-ai-reunion":       return 2000;
+    case "preset-underwater":       return 2000; // Kling 3.0 omni 720p 5s
+    case "preset-vhs-90s":          return 2000;
+    case "preset-catwalk":          return 2000;
+    case "preset-polaroid-70s":     return 2000;
+    case "preset-gym-action":       return 2000;
+    case "preset-action-hero":      return 2000;
     // Photodump = 12 × Nano Banana Pro images @ ~450 cr each (75% margin on $0.105)
     case "photodump":               return 12 * 450;
     case "headshot-generator":      return 6 * 450; // 6 studio headshots @ 75% margin on Nano Banana Pro
@@ -897,6 +903,66 @@ async function buildTask(
         model: "kling",
         taskType: "omni_video_generation",
         input: { prompt, images: [img1, img2], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-underwater": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image suspended in an ethereal cinematic underwater scene. Crystal-blue ocean depths, beams of sunlight streaming down from the surface above creating dappled god-rays, their hair gently floating around them, dreamy slow drifting motion, soft bubbles rising past them, casual flowing clothing billowing slightly. Cinematic blue-cyan color palette, depth-of-field shallow focus, otherworldly dream-like atmosphere.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-vhs-90s": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image performing in a retro 90s music-video aesthetic. Visible VHS scan lines and slight tape grain across the frame, subtle chromatic-aberration color bleed on edges, neon back-light (pink and cyan), MTV-style fast cuts and camera moves, oversized 90s streetwear styling, confident music-video energy. Slight vintage CRT-screen vignette.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-catwalk": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image walking confidently down a high-fashion runway, slow-motion strut directly toward the camera. Glamorous flashing photographer lights firing on both sides creating dramatic lens flares, sleek dark backstage backdrop, dramatic side-key spotlight on them, premium designer wardrobe styling, intense focused gaze, Vogue-fashion-week aesthetic. Cinematic shallow depth of field.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-polaroid-70s": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image in a warm vintage 1970s instant-camera aesthetic — sun-faded earthy color palette, subtle film grain, soft warm sunlight from a low window, retro 70s casual styling (denim, knitwear, vintage accessories), candid relaxed half-smile in a warm wood-paneled interior. Polaroid SX-70 photo-album look, slight chromatic shift, nostalgic warmth.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-gym-action": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image at the apex of a dramatic heavy lift in a dimly-lit industrial gym. Dramatic side-rim lighting carving out their silhouette, chalk dust suspended in the air around them, athletic technical wear (compression top, lifting belt), focused intense expression, beads of sweat catching the light, slow-motion controlled effort. Athletic-sponsor commercial energy, magazine-cover fitness photography quality.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
+      };
+    }
+
+    case "preset-action-hero": {
+      const img = await resolveImg(userId, body.characterImage);
+      if (!img) throw new Error("Missing character image");
+      const prompt = `@image_1 The person from the reference image as the cinematic action-movie hero — walking calmly and confidently directly toward the camera while a massive orange-and-black fireball explosion erupts behind them, debris and sparks suspended in the air, dust kicked up around their feet. Slow-motion confident swagger, intense focused expression, tactical wardrobe, summer-blockbuster movie-poster composition, cinematic teal-and-orange color grade.`;
+      return {
+        model: "kling", taskType: "omni_video_generation",
+        input: { prompt, images: [img], duration: 5, aspect_ratio: "9:16", resolution: "720p", version: "3.0" },
       };
     }
 

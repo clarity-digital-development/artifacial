@@ -482,6 +482,80 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "video",
   },
 
+  // ── Sprint 2 Wave 10 (2026-06-09): 6-preset library expansion ──
+  {
+    slug: "preset-underwater",
+    name: "Underwater Dream",
+    tagline: "Ethereal underwater cinematic scene",
+    description:
+      "Your character suspended in an ethereal cinematic underwater scene. Sunlight streaming through the surface, hair gently floating, dreamy blue color palette, slow drifting motion.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-vhs-90s",
+    name: "VHS 90s",
+    tagline: "Retro VHS music-video aesthetic",
+    description:
+      "Your character performing in a retro 90s music-video aesthetic — VHS scan lines, slight color bleed, vintage tape grain, neon back-light, MTV camera moves.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-catwalk",
+    name: "Catwalk Runway",
+    tagline: "High-fashion runway strut",
+    description:
+      "Your character on a high-fashion runway, confident slow-motion strut toward the camera, flashing photographer lights on both sides, dramatic backstage backdrop. Vogue-runway aesthetic.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-polaroid-70s",
+    name: "Polaroid 70s",
+    tagline: "Warm vintage 70s instant-camera vibe",
+    description:
+      "Your character in a warm vintage 70s instant-camera aesthetic — sun-faded color palette, subtle film grain, polaroid border, retro fashion, casual candid moment captured.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-gym-action",
+    name: "Gym Action",
+    tagline: "Dramatic workout / lifting shot",
+    description:
+      "Your character in a dramatic workout shot — heavy lift moment, dramatic side-lit gym, dust and chalk in the air, athletic technical wear, intense focus. Athlete sponsor commercial vibe.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+  {
+    slug: "preset-action-hero",
+    name: "Action Hero",
+    tagline: "Movie-poster explosion-behind-hero shot",
+    description:
+      "Your character as the action-movie hero — walking calmly toward camera with a massive fireball explosion behind them, debris in the air, slow-motion confident swagger, summer-blockbuster poster aesthetic.",
+    category: "video",
+    credits: 2000,
+    creditLabel: "2,000 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+  },
+
   // ── Sprint 2 Wave 8 (2026-06-09): AI Hug variants ──
   {
     slug: "preset-ai-kiss",

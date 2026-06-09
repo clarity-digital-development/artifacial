@@ -1991,6 +1991,26 @@ function AiReunionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; lo
   );
 }
 
+// ── Sprint 2 Wave 10 single-character presets ──
+function UnderwaterPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body works best — your character will be suspended underwater." />;
+}
+function Vhs90sPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Upper-body or full-body — they'll perform in a 90s music-video scene." />;
+}
+function CatwalkPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll strut down the runway." />;
+}
+function Polaroid70sPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Front-facing portrait — they'll be re-styled in warm 70s vintage." />;
+}
+function GymActionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Upper-body shot — they'll be mid-lift in a dramatic gym." />;
+}
+function ActionHeroPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll walk toward camera with the explosion behind them." />;
+}
+
 function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const valid = !!characterImage;
@@ -2218,6 +2238,12 @@ function ToolForm({
     case "preset-ai-kiss":          return <AiKissPreset {...props} />;
     case "preset-ai-wedding":       return <AiWeddingPreset {...props} />;
     case "preset-ai-reunion":       return <AiReunionPreset {...props} />;
+    case "preset-underwater":       return <UnderwaterPreset {...props} />;
+    case "preset-vhs-90s":          return <Vhs90sPreset {...props} />;
+    case "preset-catwalk":          return <CatwalkPreset {...props} />;
+    case "preset-polaroid-70s":     return <Polaroid70sPreset {...props} />;
+    case "preset-gym-action":       return <GymActionPreset {...props} />;
+    case "preset-action-hero":      return <ActionHeroPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     case "outfit-swap":             return <OutfitSwapForm {...props} />;
