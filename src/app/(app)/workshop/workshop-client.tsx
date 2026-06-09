@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   WORKSHOP_TOOLS,
@@ -9,6 +9,41 @@ import {
   type WorkshopTool,
   type ToolCategory,
 } from "@/lib/workshop/tools";
+
+// ─── Favorites hook (localStorage-backed, per-device) ────────────────────────
+
+const FAVORITES_KEY = "artifacial:workshop-favorites";
+
+function useFavorites() {
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FAVORITES_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) setFavorites(new Set(arr.filter((s): s is string => typeof s === "string")));
+      }
+    } catch {
+      // localStorage disabled / malformed — start empty
+    }
+    setHydrated(true);
+  }, []);
+
+  const toggle = useCallback((slug: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
+      try {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(next)));
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  return { favorites, toggle, hydrated };
+}
 
 const ALL_CATEGORIES: { value: "all" | ToolCategory; label: string }[] = [
   { value: "all", label: "All tools" },
@@ -27,12 +62,20 @@ const FEATURED: Array<{ slug: string; href: string; title: string; subtitle: str
   { slug: "headshot-generator", href: "/workshop/headshot-generator", title: "Headshot Generator",  subtitle: "Selfie → 6 polished studio headshots",  badge: "Pro" },
 ];
 
-function ToolCard({ tool }: { tool: WorkshopTool }) {
+function ToolCard({
+  tool,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  tool: WorkshopTool;
+  isFavorite: boolean;
+  onToggleFavorite: (slug: string) => void;
+}) {
   const href = tool.externalHref ?? `/workshop/${tool.slug}`;
   return (
     <Link
       href={href}
-      className="group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 hover:border-[var(--border-default)] hover:shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+      className="group relative flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-200 hover:border-[var(--border-default)] hover:shadow-[0_0_20px_rgba(0,0,0,0.4)]"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-[var(--bg-deep)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -56,6 +99,25 @@ function ToolCard({ tool }: { tool: WorkshopTool }) {
             Beta
           </span>
         )}
+        {/* Star — top-left, visible on hover and when already favorited */}
+        <button
+          type="button"
+          aria-label={isFavorite ? "Unpin from favorites" : "Pin to favorites"}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFavorite(tool.slug);
+          }}
+          className={`absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-sm transition-all ${
+            isFavorite
+              ? "bg-[var(--accent-amber)] text-black opacity-100"
+              : "bg-black/40 text-white opacity-0 group-hover:opacity-100"
+          }`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </button>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="mb-2 flex items-start justify-between gap-2">
@@ -156,8 +218,13 @@ export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredit
   const tools = toolsProp ?? WORKSHOP_TOOLS;
   const [category, setCategory] = useState<"all" | ToolCategory>("all");
   const [query, setQuery] = useState("");
+  const { favorites, toggle: toggleFavorite, hydrated: favoritesHydrated } = useFavorites();
 
   const searchActive = query.trim().length > 0;
+  const pinnedTools = useMemo(
+    () => tools.filter((t) => favorites.has(t.slug)),
+    [tools, favorites],
+  );
 
   const filtered = useMemo(() => {
     let list = tools;
@@ -224,6 +291,25 @@ export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredit
         </div>
       </div>
 
+      {/* Pinned (favorites) — appears above Featured when user has pinned tools */}
+      {favoritesHydrated && pinnedTools.length > 0 && !searchActive && category === "all" && (
+        <section className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent-amber)]">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Pinned · <span className="text-[var(--text-secondary)]">{pinnedTools.length}</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {pinnedTools.map((tool) => (
+              <ToolCard key={tool.slug} tool={tool} isFavorite={favorites.has(tool.slug)} onToggleFavorite={toggleFavorite} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Featured row — hidden while filtering or searching */}
       {showFeatured && (
         <section className="mb-8">
@@ -248,7 +334,7 @@ export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredit
           <>
             <p className="mb-3 text-[11px] text-[var(--text-muted)]">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((tool) => <ToolCard key={tool.slug} tool={tool} />)}
+              {filtered.map((tool) => <ToolCard key={tool.slug} tool={tool} isFavorite={favorites.has(tool.slug)} onToggleFavorite={toggleFavorite} />)}
             </div>
           </>
         )
@@ -263,7 +349,7 @@ export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredit
                   {CATEGORY_LABELS[cat]} · <span className="text-[var(--text-secondary)]">{catTools.length}</span>
                 </h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {catTools.map((tool) => <ToolCard key={tool.slug} tool={tool} />)}
+                  {catTools.map((tool) => <ToolCard key={tool.slug} tool={tool} isFavorite={favorites.has(tool.slug)} onToggleFavorite={toggleFavorite} />)}
                 </div>
               </section>
             );
@@ -271,7 +357,7 @@ export function WorkshopClient({ totalCredits, tools: toolsProp }: { totalCredit
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((tool) => <ToolCard key={tool.slug} tool={tool} />)}
+          {filtered.map((tool) => <ToolCard key={tool.slug} tool={tool} isFavorite={favorites.has(tool.slug)} onToggleFavorite={toggleFavorite} />)}
         </div>
       )}
     </div>
