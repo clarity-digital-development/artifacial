@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getCharactersWithSignedUrls } from "@/lib/characters";
+import { FoundingCharactersSection } from "./founding-section";
 
 export default async function CharactersPage() {
   const session = await auth();
@@ -50,38 +51,31 @@ export default async function CharactersPage() {
       </div>
 
       {characters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <div className="relative mb-8">
-            <div className="absolute -inset-4 rounded-full bg-[var(--accent-amber)] opacity-[0.03] blur-[40px]" />
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)]">
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-[var(--text-muted)]"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
+        <>
+          {/* Featured founding characters as the primary onboarding surface */}
+          <FoundingCharactersSection compact={false} />
+
+          {/* Secondary CTA — create your own */}
+          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] p-8 text-center">
+            <h2 className="font-display text-lg font-bold text-[var(--text-primary)]">
+              Or cast your own character
+            </h2>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+              Upload a selfie or describe who you want to be. Your character will star in every video you create.
+            </p>
+            <Link
+              href="/characters/new"
+              className="mt-4 inline-block rounded-[var(--radius-md)] border border-[var(--accent-amber)]/50 px-5 py-2.5 text-sm font-semibold text-[var(--accent-amber)] transition-colors hover:bg-[var(--accent-amber-glow)]"
+            >
+              Create from scratch
+            </Link>
           </div>
-          <h2 className="font-display text-xl font-bold text-[var(--text-primary)]">
-            Cast your first character
-          </h2>
-          <p className="mt-3 max-w-sm text-center text-sm leading-relaxed text-[var(--text-secondary)]">
-            Upload a selfie or describe who you want to be. Your character will star in every video you create.
-          </p>
-          <Link
-            href="/characters/new"
-            className="mt-8 rounded-[var(--radius-md)] bg-[var(--accent-amber)] px-6 py-3 font-semibold text-[var(--bg-deep)] shadow-[0_0_24px_rgba(232,166,52,0.12)] transition-all duration-200 hover:bg-[var(--accent-amber-dim)]"
-          >
-            Create Character
-          </Link>
-        </div>
+        </>
       ) : (
+        <>
+        {/* Compact CTA to browse founding pool for users who already have characters */}
+        <FoundingCharactersSection compact={true} />
+
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           <Link href="/characters/new">
             <div className="group flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--accent-amber)]/40 hover:bg-[var(--bg-elevated)]">
@@ -134,6 +128,7 @@ export default async function CharactersPage() {
             </Link>
           ))}
         </div>
+        </>
       )}
     </div>
   );
