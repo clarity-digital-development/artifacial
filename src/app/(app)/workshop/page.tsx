@@ -32,6 +32,7 @@ const PUBLIC_TOOL_SLUGS = [
   "remove-bg",
   "super-resolution",
   "recraft-crisp-upscale",
+  "topaz-image-upscale",
   "grok-video-upscale",
   "joycaption",
   "trellis3d",

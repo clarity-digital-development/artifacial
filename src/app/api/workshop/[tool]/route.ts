@@ -10,6 +10,7 @@ import {
   submitIdeogramCharacterRemix,
   submitRecraftCrispUpscale,
   submitGrokVideoUpscale,
+  submitTopazImageUpscale,
 } from "@/lib/kieai";
 import { sanitizeClientError } from "@/lib/errors";
 import type { Prisma } from "@/generated/prisma/client";
@@ -249,6 +250,14 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
       return 60;
     case "grok-video-upscale":
       return 600;
+    case "topaz-image-upscale": {
+      // KIE.AI Topaz Image Upscale: $0.05 / $0.10 / $0.20 per image for 2x / 4x / 8x.
+      // 75% margin → 800 / 1,600 / 3,200 cr.
+      const factor = Number(body.upscaleFactor ?? 2);
+      if (factor === 8) return 3200;
+      if (factor === 4) return 1600;
+      return 800;
+    }
     // ── Viral Presets ──
     case "preset-ugc-hook":         return 2000; // Kling 3.0 omni 720p, $0.10/s × 5 = $0.50 → 2000 cr (75%)
     case "preset-paparazzi-flash":  return 1300;
@@ -1080,7 +1089,7 @@ export async function POST(
   }
 
   // ── KIE.AI tools (ideogram-remix, recraft, grok) ──
-  const kieAiTools = ["character-swap-remix", "recraft-crisp-upscale", "grok-video-upscale"];
+  const kieAiTools = ["character-swap-remix", "recraft-crisp-upscale", "grok-video-upscale", "topaz-image-upscale"];
   if (kieAiTools.includes(slug)) {
     const callbackUrl = `${process.env.APP_URL ?? "https://artifacial.app"}/api/webhooks/kieai`;
     let kieTaskId: string;
@@ -1113,6 +1122,13 @@ export async function POST(
         const imageUrl = await resolveImg(userId, body.image);
         if (!imageUrl) throw new Error("Missing image");
         const result = await submitRecraftCrispUpscale({ imageUrl, callbackUrl });
+        kieTaskId = result.taskId;
+      } else if (slug === "topaz-image-upscale") {
+        const imageUrl = await resolveImg(userId, body.image);
+        if (!imageUrl) throw new Error("Missing image");
+        const factorRaw = Number(body.upscaleFactor ?? 2);
+        const upscaleFactor = (factorRaw === 4 || factorRaw === 8 ? factorRaw : 2) as 2 | 4 | 8;
+        const result = await submitTopazImageUpscale({ imageUrl, upscaleFactor, callbackUrl });
         kieTaskId = result.taskId;
       } else { // grok-video-upscale
         if (!body.sourceTaskId) throw new Error("Missing source task ID");

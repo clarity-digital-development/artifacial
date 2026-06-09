@@ -1448,6 +1448,47 @@ function IdeogramCharacterRemixForm({
   );
 }
 
+function TopazImageUpscaleForm({
+  onSubmit,
+  loading,
+}: {
+  onSubmit: (d: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const [image, setImage] = useState<string | null>(null);
+  const [upscaleFactor, setUpscaleFactor] = useState<"2" | "4" | "8">("2");
+
+  const credits = upscaleFactor === "8" ? 3200 : upscaleFactor === "4" ? 1600 : 800;
+
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Image to upscale"
+        value={image}
+        onChange={setImage}
+        hint="JPEG, PNG, or WebP up to 10 MB. Topaz works on portraits, product shots, fashion, prints."
+      />
+      <SelectInput
+        label="Upscale factor"
+        value={upscaleFactor}
+        onChange={(v) => setUpscaleFactor(v as "2" | "4" | "8")}
+        options={[
+          { value: "2", label: "2× upscale · 800 cr" },
+          { value: "4", label: "4× upscale · 1,600 cr" },
+          { value: "8", label: "8× upscale · 3,200 cr" },
+        ]}
+        hint="8× is best for print-ready output. 2× covers most social-media use cases."
+      />
+      <SubmitButton
+        disabled={!image}
+        loading={loading}
+        credits={credits}
+        onClick={() => onSubmit({ image, upscaleFactor: Number(upscaleFactor) })}
+      />
+    </div>
+  );
+}
+
 function RecraftCrispUpscaleForm({
   onSubmit,
   loading,
@@ -2156,6 +2197,7 @@ function ToolForm({
     case "character-swap":      return <IdeogramCharacterForm {...props} />;
     case "character-swap-remix": return <IdeogramCharacterRemixForm {...props} />;
     case "recraft-crisp-upscale":   return <RecraftCrispUpscaleForm {...props} />;
+    case "topaz-image-upscale":     return <TopazImageUpscaleForm {...props} />;
     case "grok-video-upscale":      return <GrokVideoUpscaleForm {...props} />;
     // ── Viral Presets ──
     case "preset-ugc-hook":         return <UgcHookPreset {...props} />;

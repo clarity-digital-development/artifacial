@@ -121,6 +121,20 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     outputType: "video",
   },
 
+  // ── Image Upscale (premium tier — Topaz) ──
+  {
+    slug: "topaz-image-upscale",
+    name: "Topaz Image Upscale",
+    tagline: "Premium 2× / 4× / 8× image upscale — Topaz quality",
+    description:
+      "Run any image through Topaz Photo AI upscaling. Sharper edges, restored detail, true 4K / 8K output for product photography, prints, fashion editorial. Premium tier alongside our Recraft Crisp Upscale.",
+    category: "image",
+    credits: 800,
+    creditLabel: "800–3,200 cr · 2× / 4× / 8×",
+    status: "available",
+    outputType: "image",
+  },
+
   // ── Video Tools ──
   {
     slug: "talking-avatar",
@@ -598,7 +612,7 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
 
   // Image utilities
   if (slug === "character-swap" || slug === "character-swap-remix") return "IMAGE_EDIT";
-  if (slug === "super-resolution" || slug === "recraft-crisp-upscale" || slug === "grok-video-upscale") return "UPSCALE";
+  if (slug === "super-resolution" || slug === "recraft-crisp-upscale" || slug === "grok-video-upscale" || slug === "topaz-image-upscale") return "UPSCALE";
   if (slug === "joycaption" || slug === "trellis3d") return "IMAGE_EDIT";
 
   // Audio (no AUDIO_GEN enum value — closest match is IMAGE_TO_VIDEO since

@@ -123,6 +123,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 2 Wave 9 (2026-06-09) — Topaz Image Upscale ──
+  {
+    slug: "topaz-image-upscale",
+    prompt:
+      "Cinematic split-screen image upscale demonstration with sharp vertical divider. LEFT panel labeled '1×': a soft, slightly pixelated low-resolution close-up portrait of a young woman with visible JPEG artifacts and softness on her skin texture and hair. RIGHT panel labeled '8×': the exact same close-up portrait, identical pose and lighting, but in razor-sharp ultra-high-resolution detail — every individual eyelash, hair strand, skin pore, and fabric weave crisply visible, print-magazine quality. Crisp small amber labels '1×' and '8×' in opposite bottom corners. Demonstrates premium Topaz upscaling. 16:9 framing.",
+  },
+
   // ── Sprint 2 Wave 8 (2026-06-09) — AI Hug variants ──
   {
     slug: "preset-ai-kiss",

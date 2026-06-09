@@ -417,6 +417,43 @@ export async function submitRecraftCrispUpscale(params: {
   return { taskId };
 }
 
+// ── Topaz Image Upscale ──
+
+export async function submitTopazImageUpscale(params: {
+  imageUrl: string;
+  upscaleFactor: 2 | 4 | 8;
+  callbackUrl: string;
+}): Promise<{ taskId: string }> {
+  // KIE.AI Topaz accepts jpeg/png/webp directly — no conversion required —
+  // but we still proxy through KIE upload so the file URL is stable for the
+  // duration of the job (R2 signed URLs can expire mid-process).
+  const kieUrl = await uploadToKieAi(params.imageUrl);
+
+  const requestBody = {
+    model: "topaz/image-upscale",
+    callBackUrl: params.callbackUrl,
+    input: {
+      image_url: kieUrl,
+      upscale_factor: String(params.upscaleFactor),
+    },
+  };
+
+  console.log(`[kieai] TOPAZ IMAGE UPSCALE REQUEST: ${JSON.stringify(requestBody)}`);
+
+  const data = await kieAiFetch(`${KIEAI_BASE_URL}/api/v1/jobs/createTask`, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const taskId = data.data?.taskId as string | undefined;
+  if (!taskId) {
+    throw new Error(`KIE.AI topaz/image-upscale returned no taskId: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+
+  console.log(`[kieai] Topaz Image Upscale task submitted: taskId=${taskId} factor=${params.upscaleFactor}`);
+  return { taskId };
+}
+
 // ── Grok Imagine Video Upscale ──
 
 export async function submitGrokVideoUpscale(params: {
