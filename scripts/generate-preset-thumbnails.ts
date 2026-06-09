@@ -123,6 +123,13 @@ const THUMBS: ThumbSpec[] = [
       "Stylized album cover art with abstract flowing colored gradients (sunset oranges and deep blues), centered overlay of stylized song lyrics in elegant white script across the middle: 'Chasing the night / breaking the silence / we sing till the dawn'. Suggests AI-generated full songs with timed lyrics. Editorial album art quality, no other text.",
   },
 
+  // ── Sprint 2 Wave 7 (2026-06-09) — Talking Avatar (OmniHuman 1.5) ──
+  {
+    slug: "talking-avatar",
+    prompt:
+      "Cinematic close-up of a young professional woman mid-speech against a softly blurred warm modern interior background. Her mouth is slightly open in a natural speaking expression, eyes engaged with the viewer, subtle expressive eyebrow movement, head tilted slightly. A faint glowing translucent audio waveform graphic overlays the lower third of the frame — bold amber and white waveform lines pulsing in sync with her speech. Sharp cinematic lighting, magazine-quality realism, demonstrates AI talking avatar generation. 16:9 framing.",
+  },
+
   // ── Sprint 1 Wave 6 (2026-06-06) — Virality Predictor ──
   {
     slug: "virality-predictor",

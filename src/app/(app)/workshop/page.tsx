@@ -19,6 +19,7 @@ const PUBLIC_TOOL_SLUGS = [
   "ai-hug",
 
   // ── Video Tools ──
+  "talking-avatar",
   "lipsync",
   "effects",
   "kling-sound",

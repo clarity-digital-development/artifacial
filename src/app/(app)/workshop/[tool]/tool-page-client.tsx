@@ -1909,6 +1909,66 @@ function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unk
   );
 }
 
+function TalkingAvatarForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  const [characterImage, setCharacterImage] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState("");
+  const [length, setLength] = useState<"5" | "15" | "30">("15");
+  const [prompt, setPrompt] = useState("");
+  const [fastMode, setFastMode] = useState(true);
+
+  const credits = length === "5" ? 2600 : length === "15" ? 7800 : 15600;
+  const valid = !!characterImage && !!audioUrl.trim();
+
+  return (
+    <div className="space-y-4">
+      <ImageInput
+        label="Character photo"
+        value={characterImage}
+        onChange={setCharacterImage}
+        hint="One clear photo of the person who will speak. Front-facing portrait works best."
+      />
+      <TextInput
+        label="Audio URL"
+        value={audioUrl}
+        onChange={setAudioUrl}
+        placeholder="https://… .wav or .mp3"
+        hint="Publicly accessible audio file (WAV or MP3, up to 35 seconds). Self-host on R2, Cloudinary, Dropbox, etc."
+      />
+      <SelectInput
+        label="Length"
+        value={length}
+        onChange={(v) => setLength(v as "5" | "15" | "30")}
+        options={[
+          { value: "5", label: "Up to 5 seconds · 2,600 cr" },
+          { value: "15", label: "Up to 15 seconds · 7,800 cr" },
+          { value: "30", label: "Up to 30 seconds · 15,600 cr" },
+        ]}
+        hint="OmniHuman charges per second of audio. We bill the tier you pick — pick the smallest that fits your clip."
+      />
+      <TextArea
+        label="Scene prompt (optional)"
+        value={prompt}
+        onChange={setPrompt}
+        rows={2}
+        placeholder="standing on a podium giving a TED talk"
+        hint="Optional — describe the scene around the speaker."
+      />
+      <Toggle
+        label="Fast mode"
+        checked={fastMode}
+        onChange={setFastMode}
+        hint="Faster generation at slightly lower fidelity. Recommended."
+      />
+      <SubmitButton
+        disabled={!valid}
+        loading={loading}
+        credits={credits}
+        onClick={() => onSubmit({ characterImage, audioUrl: audioUrl.trim(), length, prompt: prompt.trim() || undefined, fastMode })}
+      />
+    </div>
+  );
+}
+
 function ViralityPredictorForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [videoUrl, setVideoUrl] = useState("");
   const valid = !!videoUrl;
@@ -2014,6 +2074,7 @@ function ToolForm({
     case "video-face-swap":    return <VideoFaceSwapForm {...props} />;
     case "virtual-try-on":     return <VirtualTryOnForm {...props} />;
     case "ai-hug":             return <AIHugForm {...props} />;
+    case "talking-avatar":     return <TalkingAvatarForm {...props} />;
     case "lipsync":            return <LipsyncForm {...props} />;
     case "effects":            return <KlingEffectsForm {...props} />;
     case "kling-sound":        return <KlingSoundForm {...props} />;

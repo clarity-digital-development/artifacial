@@ -123,6 +123,18 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
 
   // ── Video Tools ──
   {
+    slug: "talking-avatar",
+    name: "Talking Avatar",
+    tagline: "Premium talking-head video from a photo + audio — OmniHuman 1.5",
+    description:
+      "Upload one photo and an audio URL. We generate a premium talking-head video where the person speaks the audio with natural lip sync, facial expression, and subtle head motion. Up to 30 seconds. Powered by OmniHuman 1.5.",
+    category: "video",
+    credits: 2600,
+    creditLabel: "2,600–15,600 cr · 5–30s",
+    status: "available",
+    outputType: "video",
+  },
+  {
     slug: "lipsync",
     name: "Lip Sync",
     tagline: "Sync lips to any audio or custom text",
@@ -542,6 +554,7 @@ export function getWorkflowTypeForTool(slug: string): WorkflowType {
   // Video tools
   if (slug === "lipsync") return "LIP_SYNC";
   if (slug === "effects") return "IMAGE_TO_VIDEO";
+  if (slug === "talking-avatar") return "IMAGE_TO_VIDEO";
   if (slug === "video-remove-bg" || slug === "remove-bg") return "BACKGROUND_REMOVAL";
   if (slug === "watermark-remover") return "IMAGE_EDIT";
 

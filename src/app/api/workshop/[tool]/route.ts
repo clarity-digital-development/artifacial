@@ -221,6 +221,14 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "virtual-try-on":    return 280 * (Number(body.batchSize) || 1);
     case "ai-hug":            return 800;
     case "lipsync":           return 400;
+    case "talking-avatar": {
+      // OmniHuman 1.5: $0.13/s audio. Tiered to avoid measuring audio length client-side.
+      // 75% margin: 5s→2,600 / 15s→7,800 / 30s→15,600.
+      const tier = String(body.length ?? "15");
+      if (tier === "5")  return 2600;
+      if (tier === "30") return 15600;
+      return 7800;
+    }
     case "effects":           return body.professionalMode ? 1840 : 1040;
     case "kling-sound":       return 280;
     case "video-remove-bg":   return 240;
@@ -338,6 +346,35 @@ async function buildTask(
     }
 
     // ── Video Tools ──────────────────────────────────────────────────────────
+
+    case "talking-avatar": {
+      const charImg = await resolveImg(userId, body.characterImage);
+      if (!charImg) throw new Error("Missing character image");
+      const audioUrl = typeof body.audioUrl === "string" ? body.audioUrl.trim() : "";
+      if (!audioUrl) throw new Error("Missing audio URL");
+      // Defense in depth: reject SSRF-prone audio URLs before PiAPI sees them.
+      // PiAPI will download from this URL — we don't want internal-network URLs
+      // making it that far. URL parse + protocol check; PiAPI hosts its own
+      // network so private-IP probing wouldn't hit OUR infra, but garbage URLs
+      // waste a paid generation.
+      try {
+        const parsed = new URL(audioUrl);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          throw new Error("Audio URL must use http or https");
+        }
+      } catch (e) {
+        throw new Error(e instanceof Error && e.message.startsWith("Audio URL") ? e.message : "Invalid audio URL");
+      }
+      const input: Record<string, unknown> = {
+        image_url: charImg,
+        audio_url: audioUrl,
+        fast_mode: body.fastMode !== false,
+      };
+      if (typeof body.prompt === "string" && body.prompt.trim()) {
+        input.prompt = body.prompt.trim();
+      }
+      return { model: "omni-human", taskType: "omni-human-1.5", input };
+    }
 
     case "lipsync": {
       if (!body.videoUrl) throw new Error("Missing video URL");
