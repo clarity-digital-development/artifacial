@@ -169,6 +169,43 @@ const THUMBS: ThumbSpec[] = [
       "Cinematic dark UI mockup of an AI marketing-ad workspace. Center-left: a glowing input field containing a product URL like 'yourstore.com/products/serum'. Below it, a single bold amber CTA button labeled 'Generate ad'. Center-right: a 9:16 phone-shaped video frame showing a polished UGC ad still of a young creator holding a beauty product. Subtle floating arrow flowing from the URL field to the phone preview. Modern dashboard with sharp typography, amber accent, deep noir background, faint product photography props around the edges. 16:9 framing.",
   },
 
+  // ── Sprint 4 Wave 22 (2026-06-09) — NSFW preset thumbnails (Pro-safe glamour) ──
+  {
+    slug: "preset-boudoir-bedroom",
+    prompt:
+      "Magazine glamour-photography still — a young woman in elegant black sheer lace lingerie reclining on a soft pink-toned bedroom bed, satin sheets bunched around her legs, intimate window light from the side casting warm shadows. Sensual relaxed pose, hand draped above her head, magazine-glamour aesthetic, slight smile, gauzy soft-focus boudoir photography. 16:9 framing.",
+  },
+  {
+    slug: "preset-wet-shower",
+    prompt:
+      "Glamour bathroom photography still — a young woman in a luxury steam-filled shower behind partially frosted glass, water cascading on her bare shoulders and upper back, glistening wet skin, hand pressed against the wet glass, head tilted back with eyes closed, intimate sensual mood, warm tungsten bathroom lighting through the steam. Magazine-quality photography, slight artistic blur. 16:9 framing.",
+  },
+  {
+    slug: "preset-lace-lingerie",
+    prompt:
+      "Magazine glamour still — a young woman standing in a sultry mirror-wall bedroom wearing a black lace lingerie set, over-the-shoulder mirror pose, warm tungsten light, hand running through her hair, sensual confident expression. Glamour-magazine quality, sharp focus on her silhouette. 16:9 framing.",
+  },
+  {
+    slug: "preset-pool-wet-look",
+    prompt:
+      "Vogue-style rooftop pool photography still — a young woman in a small black bikini emerging slowly from an infinity-edge pool at golden hour, water beading on glistening skin, wet hair dripping past her shoulders, sensual confident expression. Sunset golden light, luxury rooftop setting, cinematic glamour-photography aesthetic. 16:9 framing.",
+  },
+  {
+    slug: "preset-silk-sheets",
+    prompt:
+      "Intimate morning bedroom photography still — a young woman waking up wrapped in white silk sheets, golden window light streaming across the bed, bare shoulders exposed, sleepy bed-tousled hair, draped sheet partially covering her body, sensual but tender mood. Magazine-quality intimate photography, soft focus. 16:9 framing.",
+  },
+  {
+    slug: "preset-vegas-penthouse",
+    prompt:
+      "Glamour photography still — a young woman in a glamorous Las Vegas penthouse suite at sunset, wearing a half-open black silk robe loosely tied at the waist, standing against floor-to-ceiling windows that look out over the Vegas strip glowing pink and gold, sultry confident pose, golden cinematic light. Editorial glamour aesthetic, magazine-quality. 16:9 framing.",
+  },
+  {
+    slug: "preset-oral",
+    prompt:
+      "Magazine-quality intimate close-up portrait — a young woman lying back on a softly lit luxury bedroom bed, eyes half-closed in a pleasurable expression, lips parted, head tilted back into a satin pillow, one hand resting at the edge of the frame as if reaching down. Warm tungsten bedroom lighting, sensual intimate mood, focus on her serene blissful facial expression and bare shoulders. Tasteful intimate adult photography aesthetic. 16:9 framing.",
+  },
+
   // ── Sprint 4 Wave 17 (2026-06-09) — 6 fresh presets ──
   {
     slug: "preset-snow-globe",

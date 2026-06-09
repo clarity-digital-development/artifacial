@@ -91,23 +91,42 @@ const PUBLIC_TOOL_SLUGS = [
   "outfit-swap",
   // Sprint 1 Wave 6 (2026-06-06): Virality Predictor
   "virality-predictor",
+
+  // Sprint 4 Wave 22 (2026-06-09): NSFW presets — only visible to NSFW-mode users on Starter+ tier
+  "preset-boudoir-bedroom",
+  "preset-wet-shower",
+  "preset-lace-lingerie",
+  "preset-pool-wet-look",
+  "preset-silk-sheets",
+  "preset-vegas-penthouse",
+  "preset-oral",
 ];
+
+const NSFW_ELIGIBLE_TIERS = new Set(["STARTER", "CREATOR", "PRO", "STUDIO"]);
 
 export default async function WorkshopPage() {
   const session = await auth();
   let totalCredits = 0;
+  let contentMode: string = "SFW";
+  let subscriptionTier: string = "FREE";
 
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { subscriptionCredits: true, purchasedCredits: true },
+      select: { subscriptionCredits: true, purchasedCredits: true, contentMode: true, subscriptionTier: true },
     });
     if (user) {
       totalCredits = (user.subscriptionCredits ?? 0) + (user.purchasedCredits ?? 0);
+      contentMode = user.contentMode ?? "SFW";
+      subscriptionTier = user.subscriptionTier ?? "FREE";
     }
   }
 
-  const visibleTools = WORKSHOP_TOOLS.filter((t) => PUBLIC_TOOL_SLUGS.includes(t.slug));
+  const nsfwEligible = contentMode === "NSFW" && NSFW_ELIGIBLE_TIERS.has(subscriptionTier);
+
+  const visibleTools = WORKSHOP_TOOLS
+    .filter((t) => PUBLIC_TOOL_SLUGS.includes(t.slug))
+    .filter((t) => !t.nsfw || nsfwEligible);
 
   return <WorkshopClient totalCredits={totalCredits} tools={visibleTools} />;
 }

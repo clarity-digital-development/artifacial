@@ -15,6 +15,10 @@ export interface WorkshopTool {
    *  Used for tools that have a bespoke multi-step UI route outside the standard
    *  /workshop/[slug] handler (e.g. Marketing Studio at /marketing). */
   externalHref?: string;
+  /** When true, the tool is gated behind contentMode=NSFW + subscriptionTier!=FREE.
+   *  Hidden from /workshop catalog for ineligible users; backend POST handler
+   *  re-checks the gate before dispatching (defense in depth). */
+  nsfw?: boolean;
 }
 
 export const WORKSHOP_TOOLS: WorkshopTool[] = [
@@ -623,6 +627,99 @@ export const WORKSHOP_TOOLS: WorkshopTool[] = [
     creditLabel: "2,000 cr · 5s · 720p",
     status: "available",
     outputType: "video",
+  },
+
+  // ── Sprint 4 Wave 22 (2026-06-09): NSFW presets (gated by contentMode + tier) ──
+  {
+    slug: "preset-boudoir-bedroom",
+    name: "Boudoir Bedroom",
+    tagline: "Sheer lingerie, soft pink bedroom · NSFW",
+    description:
+      "Sensual boudoir-photography preset. Your character in sheer lingerie on a soft pink bedroom set, intimate window light, reclined relaxed pose. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-wet-shower",
+    name: "Wet Shower",
+    tagline: "Sensual steam-and-water shower scene · NSFW",
+    description:
+      "Sensual shower preset. Your character in a steam-filled luxury bathroom, water cascading, glistening skin, hand pressed against the wet glass. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-lace-lingerie",
+    name: "Lace Lingerie",
+    tagline: "Black lace set, mirror-pose glamour · NSFW",
+    description:
+      "Black lace lingerie set against a moody mirror-wall bedroom backdrop. Sultry over-the-shoulder mirror pose, warm tungsten light, glamour-magazine aesthetic. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-pool-wet-look",
+    name: "Pool Wet Look",
+    tagline: "Wet bikini, golden-hour rooftop pool · NSFW",
+    description:
+      "Wet bikini preset. Your character emerging from an infinity-edge rooftop pool at golden hour, water beading on skin, sensual slow movement. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-silk-sheets",
+    name: "Silk Sheets Morning",
+    tagline: "Sleepy intimate morning bedroom · NSFW",
+    description:
+      "Intimate morning bedroom preset. Your character waking up wrapped in silk sheets, golden window light, sleepy bed-tousled hair, sensual but tender mood. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-vegas-penthouse",
+    name: "Vegas Penthouse",
+    tagline: "Sheer robe, sunset penthouse · NSFW",
+    description:
+      "Glamorous Vegas penthouse preset. Your character in a half-open silk robe against floor-to-ceiling windows overlooking the strip at sunset, sultry slow-motion pose, golden cinematic lighting. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
+  },
+  {
+    slug: "preset-oral",
+    name: "Oral",
+    tagline: "Explicit intimate oral scene · NSFW",
+    description:
+      "Explicit intimate scene. Your character reclined back receiving oral pleasure from a fictional partner — focus on their facial expression and the intimate mood. Single-image input. Powered by Wan 2.6 NSFW.",
+    category: "preset",
+    credits: 1700,
+    creditLabel: "1,700 cr · 5s · 720p",
+    status: "available",
+    outputType: "video",
+    nsfw: true,
   },
 
   // ── Sprint 4 Wave 17 (2026-06-09): 6 fresh preset additions ──

@@ -2044,6 +2044,29 @@ function SpyMissionPreset(p: { onSubmit: (d: Record<string, unknown>) => void; l
   return <PresetForm {...p} credits={2000} imageHint="Full-body shot — they'll be the action-movie spy." />;
 }
 
+// ── Sprint 4 Wave 22 NSFW presets (gated server + client) ──
+function BoudoirBedroomPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Front-facing or three-quarter portrait of your character." />;
+}
+function WetShowerPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Upper-body portrait works best." />;
+}
+function LaceLingeriePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Three-quarter or full-body portrait." />;
+}
+function PoolWetLookPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Three-quarter or full-body portrait." />;
+}
+function SilkSheetsPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Upper-body or front-facing portrait." />;
+}
+function VegasPenthousePreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Three-quarter or full-body portrait." />;
+}
+function OralPreset(p: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
+  return <PresetForm {...p} credits={1700} imageHint="Upper-body or front-facing portrait of your character (must be a fictional adult)." />;
+}
+
 function PhotodumpForm({ onSubmit, loading }: { onSubmit: (d: Record<string, unknown>) => void; loading: boolean }) {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const valid = !!characterImage;
@@ -2284,6 +2307,13 @@ function ToolForm({
     case "preset-skydiving":        return <SkydivingPreset {...props} />;
     case "preset-crystal-cave":     return <CrystalCavePreset {...props} />;
     case "preset-spy-mission":      return <SpyMissionPreset {...props} />;
+    case "preset-boudoir-bedroom":  return <BoudoirBedroomPreset {...props} />;
+    case "preset-wet-shower":       return <WetShowerPreset {...props} />;
+    case "preset-lace-lingerie":    return <LaceLingeriePreset {...props} />;
+    case "preset-pool-wet-look":    return <PoolWetLookPreset {...props} />;
+    case "preset-silk-sheets":      return <SilkSheetsPreset {...props} />;
+    case "preset-vegas-penthouse":  return <VegasPenthousePreset {...props} />;
+    case "preset-oral":             return <OralPreset {...props} />;
     case "photodump":               return <PhotodumpForm {...props} />;
     case "headshot-generator":      return <HeadshotGeneratorForm {...props} />;
     case "outfit-swap":             return <OutfitSwapForm {...props} />;

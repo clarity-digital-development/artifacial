@@ -20,6 +20,7 @@ import type { SceneTemplate } from "@/lib/workshop/presets/types";
 import { analyzeVirality } from "@/lib/analysis/virality";
 import { safeFetchUserUrl } from "@/lib/security/safe-fetch";
 import { detectKling3Omni, submitKling3OmniRouted } from "@/lib/generation/provider-router";
+import { submitVeniceVideo } from "@/lib/venice";
 
 // ─── Generation record helper ─────────────────────────────────────────────────
 // Creates a Generation row at workshop submission so the result shows up in
@@ -286,6 +287,14 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "preset-skydiving":        return 2000;
     case "preset-crystal-cave":     return 2000;
     case "preset-spy-mission":      return 2000;
+    // Wave 22 NSFW presets — Wan 2.6 NSFW via Venice (5s 720p ≈ $0.35 / 1,700 cr)
+    case "preset-boudoir-bedroom":  return 1700;
+    case "preset-wet-shower":       return 1700;
+    case "preset-lace-lingerie":    return 1700;
+    case "preset-pool-wet-look":    return 1700;
+    case "preset-silk-sheets":      return 1700;
+    case "preset-vegas-penthouse":  return 1700;
+    case "preset-oral":             return 1700;
     case "preset-underwater":       return 2000; // Kling 3.0 omni 720p 5s
     case "preset-vhs-90s":          return 2000;
     case "preset-catwalk":          return 2000;
@@ -298,6 +307,108 @@ function computeCredits(slug: string, body: Record<string, unknown>): number {
     case "outfit-swap":             return 450;     // Single Nano Banana Pro image edit, 75% margin
     case "virality-predictor":      return 200;     // Claude Sonnet 4.6 multimodal video analysis // Kling 3.0 omni 720p 5s
     default:                  return 100;
+  }
+}
+
+// ─── NSFW preset prompts (gated submission via Venice Wan 2.6 NSFW) ──────────
+
+const NSFW_NEGATIVE = "low quality, blurry, distorted face, deformed body, deformed hands, watermark, text overlay, cartoon, anime, child, minor, underage";
+
+const NSFW_PRESET_PROMPTS: Record<string, string> = {
+  "preset-boudoir-bedroom":
+    "The woman from the reference image lying back on a soft pink-toned bedroom bed dressed in elegant sheer black lingerie, relaxed sensual pose, soft window light from the side casting subtle shadows on her skin, satin sheets bunched around her legs, intimate magazine boudoir-photography aesthetic, slow gentle camera push-in. Tasteful adult sensuality, glamour-magazine production quality.",
+  "preset-wet-shower":
+    "The woman from the reference image standing in a luxury steam-filled shower behind frosted glass, water cascading down her bare shoulders and back, glistening wet skin, hand pressed against the wet glass, head tilted back, eyes closed, sensual intimate mood, warm tungsten bathroom lighting through the steam. Slow cinematic camera move, magazine-glamour aesthetic.",
+  "preset-lace-lingerie":
+    "The woman from the reference image standing in a sultry mirror-wall bedroom wearing a black lace lingerie set with matching garters. Over-the-shoulder mirror pose, warm tungsten light, hand running through her hair, sensual confident expression. Glamour-magazine production quality, slow turn toward the camera.",
+  "preset-pool-wet-look":
+    "The woman from the reference image emerging slowly from an infinity-edge rooftop pool at golden hour wearing a barely-there bikini, water beading on her glistening skin, wet hair dripping past her shoulders, sensual slow movement as she walks toward the camera through the water. Sunset golden light, luxury rooftop setting, cinematic glamour-photography aesthetic.",
+  "preset-silk-sheets":
+    "The woman from the reference image waking up wrapped only in white silk bedsheets, golden morning window light streaming across the bed, bare shoulders exposed, sleepy bed-tousled hair, sensual but tender intimate morning mood, soft slow stretching motion, draped sheet partially covering her body. Magazine-quality intimate photography.",
+  "preset-vegas-penthouse":
+    "The woman from the reference image in a glamorous Las Vegas penthouse suite at sunset, wearing a half-open black silk robe loosely tied at the waist, standing against floor-to-ceiling windows that look out over the Vegas strip glowing pink and gold. Sultry confident pose, head turned slightly toward camera, golden cinematic light catching her figure, slow camera glide. Editorial glamour aesthetic.",
+  "preset-oral":
+    "The adult person from the reference image lying back on a softly lit luxury bedroom bed receiving intimate oral sex from an adult fictional partner positioned between their legs. Focus on the reclining person's face — eyes half-closed in pleasure, lips parted, head tilted back, one hand gently in their partner's hair. Bare upper body. Their partner is partially visible at the bottom of frame in soft focus. Warm tungsten lighting, slow sensual camera move along the reclined person's body, magazine-quality adult cinematic production. Both characters are clearly adults.",
+};
+
+async function submitNsfwPreset(opts: {
+  userId: string;
+  slug: string;
+  tool: WorkshopTool;
+  credits: number;
+  body: Record<string, unknown>;
+}): Promise<NextResponse> {
+  const { userId, slug, tool, credits, body } = opts;
+
+  const charUrl = await resolveImg(userId, body.characterImage);
+  if (!charUrl) {
+    await refundCredits(userId, credits, `Refund: ${slug} missing character image`);
+    return NextResponse.json({ error: "Missing character image" }, { status: 400 });
+  }
+
+  const prompt = NSFW_PRESET_PROMPTS[slug];
+  if (!prompt) {
+    await refundCredits(userId, credits, `Refund: ${slug} no NSFW prompt`);
+    return NextResponse.json({ error: "Unknown NSFW preset" }, { status: 500 });
+  }
+
+  try {
+    const result = await submitVeniceVideo({
+      model: "wan-2.6-image-to-video",
+      prompt,
+      duration: "5s",
+      resolution: "720p",
+      aspectRatio: "9:16",
+      audio: false,
+      imageUrl: charUrl,
+      negativePrompt: NSFW_NEGATIVE,
+    });
+
+    // Workshop poll handles the venice:video: prefix (see /api/workshop/poll)
+    const prefixedTaskId = `venice:video:${result.model}:${result.queueId}`;
+
+    const generation = await prisma.generation.create({
+      data: {
+        userId,
+        workflowType: "IMAGE_TO_VIDEO",
+        status: "PROCESSING",
+        contentMode: "NSFW",
+        provider: "VENICE",
+        modelId: slug,
+        creditsCost: credits,
+        withAudio: false,
+        durationSec: 5,
+        resolution: "720p",
+        inputParams: {
+          toolSlug: slug,
+          toolName: tool.name,
+          outputType: "video",
+          surface: "workshop-nsfw-preset",
+          veniceQueueId: result.queueId,
+          veniceModel: result.model,
+          submissionPath: "workshop-nsfw",
+          characterImageUrl: charUrl,
+          // Don't store the raw prompt — it's curated server-side and NSFW
+        } as Prisma.InputJsonValue,
+        startedAt: new Date(),
+        queuedAt: new Date(),
+      },
+      select: { id: true },
+    });
+
+    return NextResponse.json({
+      taskId: prefixedTaskId,
+      generationId: generation.id,
+      credits,
+    });
+  } catch (err) {
+    await refundCredits(userId, credits, `Refund: ${slug} Venice submission failed`);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[workshop/${slug}] Venice submit failed:`, msg);
+    return NextResponse.json(
+      { error: sanitizeClientError(msg, `workshop/${slug}`) },
+      { status: 500 },
+    );
   }
 }
 
@@ -1072,6 +1183,31 @@ export async function POST(
     return NextResponse.json({ error: "Unknown tool" }, { status: 404 });
   }
 
+  // NSFW gate — defense in depth. The /workshop page already hides NSFW tools
+  // from ineligible users, but the POST handler MUST re-check in case a user
+  // crafted a direct API request. Both contentMode=NSFW AND tier!=FREE required.
+  if (tool.nsfw) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { contentMode: true, subscriptionTier: true },
+    });
+    const eligible =
+      user?.contentMode === "NSFW" &&
+      user?.subscriptionTier !== "FREE" &&
+      user?.subscriptionTier !== undefined;
+    if (!eligible) {
+      return NextResponse.json(
+        {
+          error:
+            user?.contentMode !== "NSFW"
+              ? "Enable NSFW content mode in Settings to use this preset."
+              : "NSFW presets require the Starter plan or higher.",
+        },
+        { status: 403 },
+      );
+    }
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -1211,6 +1347,11 @@ export async function POST(
       }).catch(() => {});
       return NextResponse.json({ error: sanitizeClientError(msg, "workshop/virality-predictor") }, { status: 500 });
     }
+  }
+
+  // ── NSFW preset (Venice Wan 2.6 NSFW) — single submission, gated above ──
+  if (tool.nsfw) {
+    return submitNsfwPreset({ userId, slug, tool, credits, body });
   }
 
   // ── Multi-image batch presets (Photodump, Headshot Generator) ──

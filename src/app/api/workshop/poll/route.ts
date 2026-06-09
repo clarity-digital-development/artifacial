@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getTaskStatus } from "@/lib/piapi-client";
 import { getKieAiTaskStatus } from "@/lib/kieai";
+import { retrieveVeniceVideo } from "@/lib/venice";
+import { uploadToR2 } from "@/lib/r2";
 import { sanitizeClientError } from "@/lib/errors";
 import { prisma } from "@/lib/db";
 import { getSignedR2Url } from "@/lib/r2";
@@ -35,6 +37,76 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // ── Venice video routing (prefix: "venice:video:<model>:<queueId>") ──
+    if (taskId.startsWith("venice:video:")) {
+      const rest = taskId.slice("venice:video:".length);
+      const sepIdx = rest.indexOf(":");
+      if (sepIdx < 0) {
+        return NextResponse.json({ error: "Malformed Venice task id" }, { status: 400 });
+      }
+      const veniceModel = rest.slice(0, sepIdx);
+      const queueId = rest.slice(sepIdx + 1);
+
+      const veniceResult = await retrieveVeniceVideo(veniceModel, queueId);
+
+      let vStatus: "pending" | "processing" | "completed" | "failed";
+      if (veniceResult.status === "completed") vStatus = "completed";
+      else if (veniceResult.status === "failed") vStatus = "failed";
+      else vStatus = "processing";
+
+      let videoUrl: string | null = null;
+      let errorMessage: string | null = null;
+
+      // On completion: persist the returned MP4 buffer to R2 directly.
+      if (vStatus === "completed" && veniceResult.videoBuffer && generationId) {
+        const key = `users/${userId}/generations/${generationId}/output.mp4`;
+        await uploadToR2(key, veniceResult.videoBuffer, "video/mp4");
+        const signedVideoUrl = await getSignedR2Url(key, 3600);
+        videoUrl = signedVideoUrl;
+
+        // Best-effort thumbnail from the MP4 buffer. generateVideoThumbnail
+        // uploads + returns the R2 key directly.
+        let thumbnailKey: string | null = null;
+        try {
+          thumbnailKey = await generateVideoThumbnail(veniceResult.videoBuffer, generationId);
+        } catch (e) {
+          console.warn("[workshop-poll:venice] thumbnail extraction failed:", e instanceof Error ? e.message : e);
+        }
+
+        await prisma.generation.update({
+          where: { id: generationId },
+          data: {
+            status: "COMPLETED",
+            progress: 100,
+            outputUrl: key,
+            ...(thumbnailKey ? { thumbnailUrl: thumbnailKey } : {}),
+            completedAt: new Date(),
+          },
+        }).catch(() => {});
+      } else if (vStatus === "failed") {
+        errorMessage = sanitizeClientError(veniceResult.errorMessage ?? "Generation failed", "workshop-poll:venice");
+        if (generationId) {
+          await prisma.generation.update({
+            where: { id: generationId },
+            data: { status: "FAILED", errorMessage, completedAt: new Date() },
+          }).catch(() => {});
+        }
+      }
+
+      return NextResponse.json({
+        status: vStatus,
+        errorMessage,
+        videoUrl,
+        imageUrl: null,
+        imageUrls: null,
+        audioUrl: null,
+        audioUrls: null,
+        text: null,
+        modelUrl: null,
+        songId: null,
+      });
+    }
+
     // ── KIE.AI task routing (prefix: "kieai:image:" or "kieai:video:") ──
     if (taskId.startsWith("kieai:image:") || taskId.startsWith("kieai:video:")) {
       const isImage = taskId.startsWith("kieai:image:");
