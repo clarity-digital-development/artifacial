@@ -216,9 +216,18 @@ model Character {
   estimatedAgeLow  Int?
   estimatedAgeHigh Int?
 
+  // Community gallery — when isPublic is true the character appears in the
+  // community catalog and can be cloned into other users' libraries.
+  // cloneCount tracks how often it's been borrowed (for sort + creator credit).
+  isPublic         Boolean  @default(false)
+  publishedAt      DateTime?
+  cloneCount       Int      @default(0)
+
   scenes      Scene[]
   projects    Project[]
   generations Generation[]
+
+  @@index([isPublic, publishedAt])
 }
 
 model Project {

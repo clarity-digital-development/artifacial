@@ -52,12 +52,22 @@ export async function PATCH(
     }
   }
 
+  // Visibility toggle — when flipping ON, stamp publishedAt; flipping OFF clears it.
+  let visibilityUpdate: { isPublic: boolean; publishedAt: Date | null } | undefined;
+  if (typeof body.isPublic === "boolean" && body.isPublic !== character.isPublic) {
+    visibilityUpdate = {
+      isPublic: body.isPublic,
+      publishedAt: body.isPublic ? new Date() : null,
+    };
+  }
+
   const updated = await prisma.character.update({
     where: { id },
     data: {
       ...(body.name !== undefined && { name: body.name }),
       ...(body.description !== undefined && { description: body.description }),
       ...(referenceImagesUpdate && { referenceImages: referenceImagesUpdate }),
+      ...(visibilityUpdate ?? {}),
     },
   });
 

@@ -28,6 +28,18 @@ export default async function CharactersPage() {
         {/* Desktop: side by side. Mobile: stacked, compact */}
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           <Link
+            href="/community/characters"
+            className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all duration-200 hover:border-[var(--border-subtle)] sm:px-4 sm:py-2.5 sm:text-sm"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Community
+          </Link>
+          <Link
             href="/edit"
             className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--accent-amber)]/40 px-3 py-1.5 text-xs font-semibold text-[var(--accent-amber)] transition-all duration-200 hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-glow)] sm:px-4 sm:py-2.5 sm:text-sm"
           >

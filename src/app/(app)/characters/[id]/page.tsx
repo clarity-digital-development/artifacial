@@ -50,6 +50,15 @@ export default async function CharacterDetailPage({
     })),
   );
 
+  // Need isPublic flag for the publish toggle — re-read minimal extra fields
+  // since getCharacterWithSignedUrls doesn't return them.
+  const visibility = userId
+    ? await prisma.character.findUnique({
+        where: { id: character.id },
+        select: { isPublic: true, cloneCount: true },
+      })
+    : null;
+
   return (
     <CharacterDetailClient
       character={{
@@ -59,6 +68,8 @@ export default async function CharacterDetailPage({
         style: character.style,
         signedUrls: character.signedUrls,
         createdAt: character.createdAt.toISOString(),
+        isPublic: visibility?.isPublic ?? false,
+        cloneCount: visibility?.cloneCount ?? 0,
       }}
       recentGenerations={generations}
     />

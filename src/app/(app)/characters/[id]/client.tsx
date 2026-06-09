@@ -55,6 +55,8 @@ interface CharacterData {
   style: string;
   signedUrls: string[];
   createdAt: string;
+  isPublic: boolean;
+  cloneCount: number;
 }
 
 interface GenerationItem {
@@ -79,6 +81,29 @@ export function CharacterDetailClient({
   const [newName, setNewName] = useState(character.name);
   const [renameSaving, setRenameSaving] = useState(false);
   const [displayName, setDisplayName] = useState(character.name);
+
+  // Community publish state
+  const [isPublic, setIsPublic] = useState(character.isPublic);
+  const [publishing, setPublishing] = useState(false);
+
+  const handleTogglePublish = async () => {
+    const next = !isPublic;
+    if (next && !confirm("Publish this character to the community gallery? Anyone can clone it into their library. You can unpublish at any time.")) return;
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/characters/${character.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: next }),
+      });
+      if (!res.ok) throw new Error();
+      setIsPublic(next);
+    } catch {
+      // keep previous state
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   const handleRename = async () => {
     const trimmed = newName.trim();
@@ -276,6 +301,42 @@ export function CharacterDetailClient({
 
         </div>
       </div>
+
+      {/* ── Publish to community ── */}
+      <section className="mt-8 md:mx-auto md:max-w-3xl">
+        <div className={`flex flex-col gap-3 rounded-[var(--radius-lg)] border p-5 sm:flex-row sm:items-center sm:justify-between ${
+          isPublic ? "border-[var(--accent-amber)]/40 bg-[var(--accent-amber)]/5" : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+        }`}>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                {isPublic ? "Published to community" : "Share with the community?"}
+              </h3>
+              {isPublic && (
+                <span className="rounded-full bg-[var(--accent-amber)]/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent-amber)]">
+                  Public
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              {isPublic
+                ? `Anyone can browse and clone this character. ${character.cloneCount > 0 ? `Cloned ${character.cloneCount} time${character.cloneCount === 1 ? "" : "s"} so far.` : "No clones yet."}`
+                : "Publish to the community gallery so other creators can add your character to their library."}
+            </p>
+          </div>
+          <button
+            onClick={handleTogglePublish}
+            disabled={publishing}
+            className={`rounded-[var(--radius-md)] px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+              isPublic
+                ? "border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-subtle)]"
+                : "bg-[var(--accent-amber)] text-black hover:opacity-90"
+            }`}
+          >
+            {publishing ? "Saving…" : isPublic ? "Unpublish" : "Publish"}
+          </button>
+        </div>
+      </section>
 
       {/* ── Try these presets — works on both mobile + desktop ── */}
       <section className="mt-8 md:mx-auto md:max-w-3xl">
