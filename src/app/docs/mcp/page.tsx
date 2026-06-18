@@ -150,7 +150,37 @@ export default function McpDocsPage() {
         </ul>
       </Section>
 
-      <Section title="4. Troubleshooting">
+      <Section title="4. Skill / usage guide (for AI agents)">
+        <p>
+          The MCP server exposes a markdown <strong>usage guide</strong> as an MCP{" "}
+          <em>resource</em> at <code className="font-mono">artifacial://skill/usage-guide</code>.
+          When you connect to Artifacial from Claude Desktop, Claude Code, or any other MCP
+          client, the agent can fetch this guide via the standard{" "}
+          <code className="font-mono">resources/list</code> +{" "}
+          <code className="font-mono">resources/read</code> methods. It covers every tool,
+          async-vs-sync polling cadence, credit costs, common workflows, and where to redirect
+          users when their request needs the web UI.
+        </p>
+        <p className="mt-3">
+          The same content is also available as plain markdown at{" "}
+          <a
+            className="font-mono underline underline-offset-2"
+            href="/docs/mcp/skill"
+            target="_blank"
+            rel="noreferrer"
+          >
+            /docs/mcp/skill
+          </a>{" "}
+          — paste it as system context into any LLM, share it with your team, or download it
+          for offline reference.
+        </p>
+        <p className="mt-3 text-[12px] text-[var(--text-muted)]">
+          Tip: in Claude Code, you can attach the skill to your turn with{" "}
+          <code className="font-mono">@artifacial:artifacial://skill/usage-guide</code>.
+        </p>
+      </Section>
+
+      <Section title="5. Troubleshooting">
         <ul className="space-y-3 text-[14px] text-[var(--text-secondary)]">
           <li>
             <strong>&quot;Invalid or revoked API key&quot;</strong> — Generate a new key in{" "}

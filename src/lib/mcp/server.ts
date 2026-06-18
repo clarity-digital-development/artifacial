@@ -8,6 +8,14 @@
  */
 
 import { listMCPTools, callMCPTool } from "./tools";
+import {
+  SKILL_URI,
+  SKILL_NAME,
+  SKILL_TITLE,
+  SKILL_DESCRIPTION,
+  SKILL_LAST_MODIFIED,
+  SKILL_CONTENT,
+} from "./skill";
 
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2025-06-18", "2025-03-26"]);
@@ -20,6 +28,7 @@ const SERVER_INFO = {
 
 const SERVER_CAPABILITIES = {
   tools: {}, // We don't emit `listChanged` notifications — keep stateless.
+  resources: {}, // One static skill resource at artifacial://skill/usage-guide.
 };
 
 // ─── JSON-RPC helpers ────────────────────────────────────────────────────────
@@ -58,13 +67,66 @@ async function handleInitialize(params: Record<string, unknown> | undefined) {
     protocolVersion: negotiated,
     capabilities: SERVER_CAPABILITIES,
     serverInfo: SERVER_INFO,
-    instructions:
-      "Artifacial — AI character + video creation. Use list_workshop_tools to discover the catalog, get_credits to see balance, analyze_video_virality for instant viral scoring, or any of the per-job tools (remove_image_background, upscale_image_recraft, upscale_image_topaz). Async jobs return a generationId — poll with get_generation.",
+    instructions: `Artifacial — AI character + short-form video creation platform.
+
+A usage guide is available as an MCP resource at \`${SKILL_URI}\` — read it via \`resources/read\` BEFORE invoking any generation tool. It covers every tool, when to call it, async vs sync polling, credit costs, common workflows, and where to redirect the user when their request needs the web UI.
+
+Quick reference: list_workshop_tools (browse the 60+ tool catalog) · get_credits (balance) · analyze_video_virality (instant Sonnet 4.6 scoring) · remove_image_background / upscale_image_recraft / upscale_image_topaz (async — poll with get_generation).`,
   };
 }
 
 async function handleToolsList() {
   return { tools: listMCPTools() };
+}
+
+async function handleResourcesList() {
+  return {
+    resources: [
+      {
+        uri: SKILL_URI,
+        name: SKILL_NAME,
+        title: SKILL_TITLE,
+        description: SKILL_DESCRIPTION,
+        mimeType: "text/markdown",
+        size: Buffer.byteLength(SKILL_CONTENT, "utf8"),
+        annotations: {
+          // priority 1.0 + audience ["assistant"] signal to clients that
+          // heuristic-driven attachment should prefer this resource.
+          audience: ["assistant"],
+          priority: 1.0,
+          lastModified: SKILL_LAST_MODIFIED,
+        },
+      },
+    ],
+  };
+}
+
+function handleResourcesRead(params: Record<string, unknown> | undefined): {
+  result?: unknown;
+  error?: { code: number; message: string };
+} {
+  const uri = typeof params?.uri === "string" ? params.uri : null;
+  if (!uri) return { error: { code: -32602, message: "Missing required parameter: uri" } };
+  if (uri !== SKILL_URI) {
+    return { error: { code: -32602, message: `Unknown resource: ${uri}` } };
+  }
+  return {
+    result: {
+      contents: [
+        {
+          uri: SKILL_URI,
+          mimeType: "text/markdown",
+          text: SKILL_CONTENT,
+        },
+      ],
+    },
+  };
+}
+
+// Templates: empty array — no parameterized resources yet. Some clients
+// (Cursor) probe this endpoint before falling back to plain resources/list.
+async function handleResourceTemplatesList() {
+  return { resourceTemplates: [] };
 }
 
 async function handleToolsCall(params: Record<string, unknown> | undefined, userId: string) {
@@ -130,6 +192,21 @@ export async function dispatchMCP(msg: unknown, userId: string): Promise<RpcOutc
           return { kind: "response", body: rpcError(id, out.error.error!.code, out.error.error!.message) };
         }
         return { kind: "response", body: rpcResult(id, out.result) };
+      }
+      case "resources/list": {
+        const result = await handleResourcesList();
+        return { kind: "response", body: rpcResult(id, result) };
+      }
+      case "resources/read": {
+        const out = handleResourcesRead(req.params);
+        if (out.error) {
+          return { kind: "response", body: rpcError(id, out.error.code, out.error.message) };
+        }
+        return { kind: "response", body: rpcResult(id, out.result) };
+      }
+      case "resources/templates/list": {
+        const result = await handleResourceTemplatesList();
+        return { kind: "response", body: rpcResult(id, result) };
       }
       default:
         return { kind: "response", body: rpcError(id, -32601, `Method not found: ${req.method}`) };
